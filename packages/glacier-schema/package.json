@@ -1,0 +1,13 @@
+{
+  "name": "@glacier/schema",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "lint:types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@glacier/reflection": "workspace:*",
+    "@glacier/utils": "workspace:*"
+  }
+}

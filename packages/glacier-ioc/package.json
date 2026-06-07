@@ -1,0 +1,14 @@
+{
+  "name": "@glacier/ioc",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "lint:types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@glacier/context": "workspace:*",
+    "@glacier/reflection": "workspace:*",
+    "@glacier/utils": "workspace:*"
+  }
+}

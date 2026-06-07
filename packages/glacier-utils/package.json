@@ -1,0 +1,9 @@
+{
+  "name": "@glacier/utils",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "lint:types": "tsc --noEmit"
+  }
+}

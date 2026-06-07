@@ -1,0 +1,11 @@
+{
+  "name": "@glacier/context",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint:types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@glacier/utils": "workspace:*"
+  }
+}

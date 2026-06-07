@@ -1,0 +1,33 @@
+{
+  "name": "@glacier/workspace",
+  "packageManager": "pnpm@9.8.0",
+  "scripts": {
+    "prepare": "husky",
+    "lint": "eslint ./packages --ext .ts,.js",
+    "lint:fix": "eslint ./packages --ext .ts,.js --fix",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
+    "@eslint/js": "^9.39.2",
+    "@swc/core": "^1.15.7",
+    "@swc/jest": "^0.2.39",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.0.8",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-boundaries": "^5.3.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
+    "jiti": "^2.6.1",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.50.0"
+  }
+}

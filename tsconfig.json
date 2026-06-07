@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["ES2015", "ESNext", "ES2015.Iterable"],
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": ["packages/*/src/**/*", "packages/*/tests/**/*"]
+}
