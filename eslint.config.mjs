@@ -6,7 +6,7 @@ import tsESLint from 'typescript-eslint';
 import { defineConfig, includeIgnoreFile } from 'eslint/config';
 import eslintPluginPrettier from 'eslint-plugin-prettier/recommended';
 import comments from '@eslint-community/eslint-plugin-eslint-comments/configs';
-import importPlugin from 'eslint-plugin-import';
+import {importX} from 'eslint-plugin-import-x';
 import boundaries from 'eslint-plugin-boundaries';
 
 const gitignorePath = fileURLToPath(new URL('.gitignore', import.meta.url));
@@ -30,7 +30,7 @@ export default defineConfig([
   comments.recommended,
   {
     files: ['**/*.{ts,tsx}'],
-    extends: [importPlugin.flatConfigs.recommended, importPlugin.flatConfigs.typescript],
+    extends: [importX.flatConfigs.recommended, importX.flatConfigs.typescript],
     settings: {
       'import/resolver': {
         typescript: true,
@@ -38,8 +38,7 @@ export default defineConfig([
       }
     },
     rules: {
-      'import/enforce-node-protocol-usage': ['error', 'always'],
-      'import/order': [
+      'import-x/order': [
         'error',
         {
           groups: [
