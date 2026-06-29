@@ -7,6 +7,9 @@ node_modules/
 # Build
 applications/*/dist/
 
+# Infrastructure
+infrastructure/postgres/
+
 # IDE
 .idea/**/workspace.xml
 .idea/**/tasks.xml
