@@ -6,3 +6,129 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum AUTH_USER_STATUS {
+  ACTIVE    @map("active")
+  SUSPENDED @map("suspended")
+
+  @@map("auth_user_status")
+}
+
+enum AUTH_IDP_PROTOCOL {
+  OIDC   @map("oidc")
+  OAUTH2 @map("oauth2")
+  SAML   @map("saml")
+
+  @@map("auth_idp_protocol")
+}
+
+enum AUTH_WEBAUTHN_CEREMONY {
+  REGISTRATION   @map("registration")
+  AUTHENTICATION @map("authentication")
+
+  @@map("auth_webauthn_ceremony")
+}
+
+model AUTH_ACCOUNT_LOCAL {
+  id                 String                       @id(map: "auth_account_local_pkey") @default(uuid()) @map("id")
+  userId             String                       @unique(map: "auth_account_local_user_id_key") @map("user_id")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
+  username           String                       @unique(map: "auth_account_local_username_key") @map("username")
+  passwordHash       String                       @map("password_hash")
+  passwordExpiration DateTime?                    @map("password_expiration")
+  passkeys           AUTH_ACCOUNT_LOCAL_PASSKEY[]
+  challenges         AUTH_WEBAUTHN_CHALLENGES[]
+
+  user AUTH_USERS @relation(fields: [userId], references: [id])
+
+  @@map("auth_account_local")
+}
+
+model AUTH_ACCOUNT_REMOTE {
+  id                String                  @id(map: "auth_account_remote_pkey") @default(uuid()) @map("id")
+  userId            String                  @map("user_id")
+  providerId        String                  @map("provider_id")
+  providerAccountId String                  @map("provider_account_id")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  user              AUTH_USERS              @relation(fields: [userId], references: [id])
+  provider          AUTH_IDENTITY_PROVIDERS @relation(fields: [providerId], references: [id])
+
+  @@unique([providerId, providerAccountId], map: "auth_account_remote_provider_id_provider_account_id_key")
+  @@index([userId], map: "auth_account_remote_user_id_idx")
+  @@index([providerId], map: "auth_account_remote_provider_id_idx")
+  @@map("auth_account_remote")
+}
+
+model AUTH_IDENTITY_PROVIDERS {
+  id               String                @id(map: "auth_identity_providers_pkey") @default(uuid()) @map("id")
+  providerKey      String                @unique(map: "auth_identity_providers_provider_key_key") @map("provider_key")
+  displayName      String                @map("display_name")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  protocol         AUTH_IDP_PROTOCOL     @map("protocol")
+  issuerURL        String?               @map("issuer_url")
+  authorizationURL String?               @map("authorization_url")
+  tokenURL         String?               @map("token_url")
+  userInfoURL      String?               @map("user_info_url")
+  jwksURL          String?               @map("jwks_url")
+  clientId         String?               @map("client_id")
+  clientSecret     String?               @map("client_secret")
+  isActive         Boolean               @default(true) @map("is_active")
+  remoteAccounts   AUTH_ACCOUNT_REMOTE[]
+
+  @@map("auth_identity_providers")
+}
+
+model AUTH_ACCOUNT_LOCAL_PASSKEY {
+  id             String             @id(map: "auth_account_local_passkey_pkey") @default(uuid()) @map("id")
+  localAccountId String             @map("local_account_id")
+  credentialId   Bytes              @unique(map: "auth_account_local_passkey_credential_id_key") @map("credential_id")
+  publicKey      Bytes              @map("public_key")
+  signCount      Int                @default(0) @map("sign_count")
+  transports     String[]           @map("transports")
+  aaguid         String?            @map("aaguid")
+  backupEligible Boolean?           @map("backup_eligible")
+  backupState    Boolean?           @map("backup_state")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  lastUsedAt     DateTime?          @map("last_used_at")
+  revokedAt      DateTime?          @map("revoked_at")
+  localAccount   AUTH_ACCOUNT_LOCAL @relation(fields: [localAccountId], references: [id])
+
+  @@index([localAccountId], map: "auth_account_local_passkey_local_account_id_idx")
+  @@index([localAccountId, revokedAt], map: "auth_account_local_passkey_local_account_id_revoked_at_idx")
+  @@map("auth_account_local_passkey")
+}
+
+model AUTH_WEBAUTHN_CHALLENGES {
+  id             String                 @id(map: "auth_webauthn_challenges_pkey") @default(uuid()) @map("id")
+  localAccountId String                 @map("local_account_id")
+  ceremony       AUTH_WEBAUTHN_CEREMONY @map("ceremony")
+  challenge      String                 @map("challenge")
+  expiresAt      DateTime               @map("expires_at")
+  usedAt         DateTime?              @map("used_at")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  localAccount   AUTH_ACCOUNT_LOCAL     @relation(fields: [localAccountId], references: [id])
+
+  @@index([localAccountId, ceremony], map: "auth_webauthn_challenges_local_account_id_ceremony_idx")
+  @@index([challenge], map: "auth_webauthn_challenges_challenge_idx")
+  @@index([expiresAt], map: "auth_webauthn_challenges_expires_at_idx")
+  @@index([usedAt], map: "auth_webauthn_challenges_used_at_idx")
+  @@map("auth_webauthn_challenges")
+}
+
+model AUTH_USERS {
+  id             String                @id(map: "auth_users_pkey") @default(uuid()) @map("id")
+  firstName      String                @map("first_name")
+  lastName       String                @map("last_name")
+  email          String                @unique(map: "auth_users_email_key") @map("email")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  status         AUTH_USER_STATUS      @default(ACTIVE) @map("status")
+  localAccount   AUTH_ACCOUNT_LOCAL?
+  remoteAccounts AUTH_ACCOUNT_REMOTE[]
+
+  @@map("auth_users")
+}
