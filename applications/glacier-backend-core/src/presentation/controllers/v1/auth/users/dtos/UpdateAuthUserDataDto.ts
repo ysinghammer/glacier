@@ -9,16 +9,16 @@ export class UpdateAuthUserDataDto {
   @Expose()
   @IsString()
   @Equals('users')
-  type!: 'users';
+  declare public type: 'users';
 
   @ApiProperty({ format: 'uuid' })
   @Expose()
   @IsUUID(4)
-  id!: string;
+  declare public id: string;
 
   @ApiProperty({ type: UpdateAuthUserAttributesDto })
   @Expose()
   @ValidateNested()
   @Type(() => UpdateAuthUserAttributesDto)
-  attributes!: UpdateAuthUserAttributesDto;
+  declare public attributes: UpdateAuthUserAttributesDto;
 }

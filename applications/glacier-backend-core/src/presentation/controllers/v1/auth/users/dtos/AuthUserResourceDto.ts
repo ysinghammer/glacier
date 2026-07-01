@@ -9,16 +9,16 @@ export class AuthUserResourceDto {
   @Expose()
   @IsString()
   @Equals('users')
-  type!: 'users';
+  declare public type: 'users';
 
   @ApiProperty({ format: 'uuid' })
   @Expose()
   @IsUUID(4)
-  id!: string;
+  declare public id: string;
 
   @ApiProperty({ type: AuthUserAttributesDto })
   @Expose()
   @ValidateNested()
   @Type(() => AuthUserAttributesDto)
-  attributes!: AuthUserAttributesDto;
+  declare public attributes: AuthUserAttributesDto;
 }

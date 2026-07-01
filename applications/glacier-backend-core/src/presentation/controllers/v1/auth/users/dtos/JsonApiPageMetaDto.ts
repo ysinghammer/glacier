@@ -7,17 +7,17 @@ export class JsonApiPageMetaDto {
   @Expose()
   @IsInt()
   @Min(1)
-  page!: number;
+  declare public page: number;
 
   @ApiProperty({ minimum: 1, maximum: 100 })
   @Expose()
   @IsInt()
   @Min(1)
-  pageSize!: number;
+  declare public pageSize: number;
 
   @ApiProperty({ minimum: 0 })
   @Expose()
   @IsInt()
   @Min(0)
-  total!: number;
+  declare public total: number;
 }

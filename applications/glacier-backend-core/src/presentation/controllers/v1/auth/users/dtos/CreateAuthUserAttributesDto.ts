@@ -9,13 +9,13 @@ export class CreateAuthUserAttributesDto {
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @Length(1, 128)
-  firstName!: string;
+  declare public firstName: string;
 
   @ApiProperty({ minLength: 1, maxLength: 128 })
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @Length(1, 128)
-  lastName!: string;
+  declare public lastName: string;
 
   @ApiProperty({ format: 'email', maxLength: 320 })
   @Transform(({ value }: { value: unknown }) =>
@@ -23,10 +23,10 @@ export class CreateAuthUserAttributesDto {
   )
   @IsEmail()
   @Length(3, 320)
-  email!: string;
+  declare public email: string;
 
   @ApiPropertyOptional({ enum: AUTH_USER_STATUS, default: AUTH_USER_STATUS.ACTIVE })
   @IsOptional()
   @IsEnum(AUTH_USER_STATUS)
-  status?: (typeof AUTH_USER_STATUS)[keyof typeof AUTH_USER_STATUS];
+  declare public status?: (typeof AUTH_USER_STATUS)[keyof typeof AUTH_USER_STATUS];
 }

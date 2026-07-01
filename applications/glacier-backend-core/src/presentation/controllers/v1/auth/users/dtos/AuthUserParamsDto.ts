@@ -6,5 +6,5 @@ export class AuthUserParamsDto {
   @ApiProperty({ format: 'uuid' })
   @Expose()
   @IsUUID(4)
-  userId!: string;
+  declare public userId: string;
 }

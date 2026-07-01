@@ -9,11 +9,11 @@ export class CreateAuthUserDataDto {
   @Expose()
   @IsString()
   @Equals('users')
-  type!: 'users';
+  declare public type: 'users';
 
   @ApiProperty({ type: CreateAuthUserAttributesDto })
   @Expose()
   @ValidateNested()
   @Type(() => CreateAuthUserAttributesDto)
-  attributes!: CreateAuthUserAttributesDto;
+  declare public attributes: CreateAuthUserAttributesDto;
 }

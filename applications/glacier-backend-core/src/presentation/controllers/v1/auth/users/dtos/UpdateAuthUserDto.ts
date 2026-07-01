@@ -9,5 +9,5 @@ export class UpdateAuthUserDto {
   @Expose()
   @ValidateNested()
   @Type(() => UpdateAuthUserDataDto)
-  data!: UpdateAuthUserDataDto;
+  declare public data: UpdateAuthUserDataDto;
 }

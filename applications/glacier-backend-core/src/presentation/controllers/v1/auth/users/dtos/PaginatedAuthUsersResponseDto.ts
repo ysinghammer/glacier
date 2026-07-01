@@ -11,11 +11,11 @@ export class PaginatedAuthUsersResponseDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AuthUserResourceDto)
-  data!: AuthUserResourceDto[];
+  declare public data: AuthUserResourceDto[];
 
   @ApiProperty({ type: JsonApiPageMetaDto })
   @Expose()
   @ValidateNested()
   @Type(() => JsonApiPageMetaDto)
-  meta!: JsonApiPageMetaDto;
+  declare public meta: JsonApiPageMetaDto;
 }

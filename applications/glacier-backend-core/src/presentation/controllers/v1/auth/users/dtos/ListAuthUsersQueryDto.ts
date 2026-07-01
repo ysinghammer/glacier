@@ -12,7 +12,7 @@ export class ListAuthUsersQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  ['page[number]']?: number = 1;
+  public ['page[number]']?: number = 1;
 
   @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 20 })
   @Type(() => Number)
@@ -20,19 +20,19 @@ export class ListAuthUsersQueryDto {
   @IsInt()
   @Min(1)
   @Max(100)
-  ['page[size]']?: number = 20;
+  public ['page[size]']?: number = 20;
 
   @ApiPropertyOptional({ enum: AUTH_USER_STATUS })
   @IsOptional()
   @IsEnum(AUTH_USER_STATUS)
-  ['filter[status]']?: (typeof AUTH_USER_STATUS)[keyof typeof AUTH_USER_STATUS];
+  declare public ['filter[status]']?: (typeof AUTH_USER_STATUS)[keyof typeof AUTH_USER_STATUS];
 
   @ApiPropertyOptional({ minLength: 1, maxLength: 255 })
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
   @IsOptional()
   @IsString()
   @Length(1, 255)
-  ['filter[q]']?: string;
+  declare public ['filter[q]']?: string;
 
   @ApiPropertyOptional({
     description: 'Comma-separated fields, with "-" prefix for descending.',
@@ -41,10 +41,10 @@ export class ListAuthUsersQueryDto {
   @IsOptional()
   @IsString()
   @Matches(/^-?(createdAt|updatedAt|email)(,-?(createdAt|updatedAt|email))*$/)
-  sort?: string;
+  declare public sort?: string;
 
   @ApiPropertyOptional({ enum: AUTH_USER_INCLUDE_FIELDS })
   @IsOptional()
   @IsEnum(AUTH_USER_INCLUDE_FIELDS)
-  include?: (typeof AUTH_USER_INCLUDE_FIELDS)[number];
+  declare public include?: (typeof AUTH_USER_INCLUDE_FIELDS)[number];
 }

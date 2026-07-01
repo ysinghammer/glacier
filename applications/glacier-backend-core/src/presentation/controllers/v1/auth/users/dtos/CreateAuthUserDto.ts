@@ -9,5 +9,5 @@ export class CreateAuthUserDto {
   @Expose()
   @ValidateNested()
   @Type(() => CreateAuthUserDataDto)
-  data!: CreateAuthUserDataDto;
+  declare public data: CreateAuthUserDataDto;
 }

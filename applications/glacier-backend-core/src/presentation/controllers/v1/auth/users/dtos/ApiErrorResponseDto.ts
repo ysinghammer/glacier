@@ -10,5 +10,5 @@ export class ApiErrorResponseDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => JsonApiErrorObjectDto)
-  errors!: JsonApiErrorObjectDto[];
+  declare public errors: JsonApiErrorObjectDto[];
 }
