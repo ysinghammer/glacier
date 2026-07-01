@@ -1,3 +1,5 @@
+import type { UserStatus } from '../../../domain/entities/user/valueObjects/UserStatus.js';
+
 /**
  * Individual user item in the {@link ListAuthUsersQueryResult}.
  *
@@ -29,7 +31,7 @@ export interface ListAuthUsersQueryResultItem {
   /**
    * Current status of the user.
    */
-  readonly status: string;
+  readonly status: UserStatus;
 
   /**
    * Timestamp when the user was created.

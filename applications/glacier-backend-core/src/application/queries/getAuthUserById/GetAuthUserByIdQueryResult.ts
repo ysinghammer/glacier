@@ -1,3 +1,5 @@
+import type { UserStatus } from '../../../domain/entities/user/valueObjects/UserStatus.js';
+
 /**
  * Result type for {@link GetAuthUserByIdQuery} execution.
  *
@@ -32,7 +34,7 @@ export interface GetAuthUserByIdQueryResult {
   /**
    * Current status of the user.
    */
-  readonly status: string;
+  readonly status: UserStatus;
 
   /**
    * Timestamp when the user was created.

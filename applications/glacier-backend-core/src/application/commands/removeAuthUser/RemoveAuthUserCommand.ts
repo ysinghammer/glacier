@@ -1,3 +1,5 @@
+import { Command } from '@nestjs/cqrs';
+
 /**
  * Command to soft-delete an authenticated user by suspending them.
  *
@@ -8,7 +10,7 @@
  * @see {@link RemoveAuthUserCommandHandler} for command execution logic.
  * @see {@link User#suspend} for the domain method that performs the soft delete.
  */
-export class RemoveAuthUserCommand {
+export class RemoveAuthUserCommand extends Command<void> {
   /**
    * Unique identifier of the user to remove (suspend).
    */
@@ -20,6 +22,7 @@ export class RemoveAuthUserCommand {
    * @param userId - The unique identifier of the user to suspend.
    */
   constructor(userId: string) {
+    super();
     this.userId = userId;
   }
 }

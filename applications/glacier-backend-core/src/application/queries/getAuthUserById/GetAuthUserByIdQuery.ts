@@ -1,3 +1,7 @@
+import { Query } from '@nestjs/cqrs';
+
+import { GetAuthUserByIdQueryResult } from './GetAuthUserByIdQueryResult.js';
+
 /**
  * Query to retrieve a single authenticated user by identifier.
  *
@@ -8,7 +12,7 @@
  * @see {@link GetAuthUserByIdQueryHandler} for query execution logic.
  * @see {@link UserRepositoryPort.findById} for the repository method used to fetch the user.
  */
-export class GetAuthUserByIdQuery {
+export class GetAuthUserByIdQuery extends Query<GetAuthUserByIdQueryResult> {
   /**
    * Unique identifier of the user to retrieve.
    */
@@ -20,6 +24,7 @@ export class GetAuthUserByIdQuery {
    * @param userId - The unique identifier of the user to fetch.
    */
   constructor(userId: string) {
+    super();
     this.userId = userId;
   }
 }

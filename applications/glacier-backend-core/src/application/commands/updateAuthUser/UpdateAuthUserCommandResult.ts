@@ -1,3 +1,5 @@
+import type { UserStatus } from '../../../domain/entities/user/valueObjects/UserStatus.js';
+
 /**
  * Result type for {@link UpdateAuthUserCommand} execution.
  *
@@ -32,7 +34,7 @@ export interface UpdateAuthUserCommandResult {
   /**
    * Current status of the updated user.
    */
-  readonly status: string;
+  readonly status: UserStatus;
 
   /**
    * Timestamp when the user was originally created.

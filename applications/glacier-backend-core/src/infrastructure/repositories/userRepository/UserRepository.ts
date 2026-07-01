@@ -4,7 +4,11 @@ import { User } from '../../../domain/entities/user/User.js';
 import { PrismaClient } from '../../../generated/prisma/client.js';
 import { UserRepositoryMapper } from './mappers/UserRepositoryMapper.js';
 
-import type { UserRepositoryPort } from '../../../domain/entities/user/ports/UserRepositoryPort.js';
+import type {
+  FindAllUsersOptions,
+  FindAllUsersResult,
+  UserRepositoryPort
+} from '../../../domain/entities/user/ports/UserRepositoryPort.js';
 import type { UserEmail } from '../../../domain/entities/user/valueObjects/UserEmail.js';
 
 /**
@@ -75,6 +79,77 @@ export class UserRepository implements UserRepositoryPort {
 
     const primitives = UserRepositoryMapper.toDomain(userModel);
     return User.reconstitute(primitives);
+  }
+
+  /**
+   * Finds all {@link User} aggregates with pagination, filtering, and sorting.
+   *
+   * Supports:
+   * - Pagination via page and pageSize
+   * - Filtering by status
+   * - Text search across firstName, lastName, and email
+   * - Sorting by any field
+   *
+   * @param options - Options for pagination, filtering, and sorting.
+   * @returns A promise resolving to {@link FindAllUsersResult} with paginated user data.
+   * @throws {Error} If database query fails or aggregate reconstitution fails.
+   */
+  public async findAll(options: FindAllUsersOptions): Promise<FindAllUsersResult> {
+    const skip = (options.page - 1) * options.pageSize;
+    const take = options.pageSize;
+
+    // Build where clause for filtering
+    const where: {
+      status?: string;
+      OR?: Array<{
+        firstName?: { contains: string; mode: 'insensitive' };
+        lastName?: { contains: string; mode: 'insensitive' };
+        email?: { contains: string; mode: 'insensitive' };
+      }>;
+    } = {};
+
+    if (options.status !== undefined) {
+      where.status = options.status;
+    }
+
+    if (options.searchQuery !== undefined && options.searchQuery.trim() !== '') {
+      where.OR = [
+        { firstName: { contains: options.searchQuery, mode: 'insensitive' } },
+        { lastName: { contains: options.searchQuery, mode: 'insensitive' } },
+        { email: { contains: options.searchQuery, mode: 'insensitive' } }
+      ];
+    }
+
+    // Build orderBy clause for sorting
+    const orderBy: Record<string, 'asc' | 'desc'> = {};
+    if (options.sort !== undefined) {
+      orderBy[options.sort.field] = options.sort.direction;
+    } else {
+      // Default sort by createdAt descending
+      orderBy.createdAt = 'desc';
+    }
+
+    // Execute queries in parallel for better performance
+    const [userModels, totalItems] = await Promise.all([
+      this.prisma.aUTH_USERS.findMany({
+        where,
+        orderBy,
+        skip,
+        take
+      }),
+      this.prisma.aUTH_USERS.count({ where })
+    ]);
+
+    // Reconstitute user aggregates from database models
+    const items = userModels.map((model) => {
+      const primitives = UserRepositoryMapper.toDomain(model);
+      return User.reconstitute(primitives);
+    });
+
+    return {
+      items,
+      totalItems
+    };
   }
 
   /**

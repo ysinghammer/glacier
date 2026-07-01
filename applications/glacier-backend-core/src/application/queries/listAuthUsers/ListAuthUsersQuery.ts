@@ -1,3 +1,7 @@
+import { Query } from '@nestjs/cqrs';
+
+import { ListAuthUsersQueryResult } from './ListAuthUsersQueryResult.js';
+
 /**
  * Query to retrieve a paginated, filtered, and sorted list of authenticated users.
  *
@@ -7,7 +11,7 @@
  *
  * @see {@link ListAuthUsersQueryHandler} for query execution logic.
  */
-export class ListAuthUsersQuery {
+export class ListAuthUsersQuery extends Query<ListAuthUsersQueryResult> {
   /**
    * Page number for pagination (1-based).
    * Defaults to 1 if not specified.
@@ -63,6 +67,7 @@ export class ListAuthUsersQuery {
     sort?: string,
     include?: string
   ) {
+    super();
     this.pageNumber = pageNumber;
     this.pageSize = pageSize;
     this.filterStatus = filterStatus;

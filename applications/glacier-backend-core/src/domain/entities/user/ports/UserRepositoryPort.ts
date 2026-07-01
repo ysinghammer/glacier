@@ -1,5 +1,54 @@
 import type { User } from '../User.js';
 import type { UserEmail } from '../valueObjects/UserEmail.js';
+import type { UserStatus } from '../valueObjects/UserStatus.js';
+
+/**
+ * Options for paginating and filtering user queries.
+ */
+export interface FindAllUsersOptions {
+  /**
+   * Page number (1-based).
+   */
+  readonly page: number;
+
+  /**
+   * Number of items per page.
+   */
+  readonly pageSize: number;
+
+  /**
+   * Optional status filter.
+   */
+  readonly status?: UserStatus;
+
+  /**
+   * Optional text search across user fields (name, email).
+   */
+  readonly searchQuery?: string;
+
+  /**
+   * Optional sort field and direction.
+   */
+  readonly sort?: {
+    readonly field: string;
+    readonly direction: 'asc' | 'desc';
+  };
+}
+
+/**
+ * Result of a paginated user query.
+ */
+export interface FindAllUsersResult {
+  /**
+   * Array of user aggregates for the current page.
+   */
+  readonly items: ReadonlyArray<User>;
+
+  /**
+   * Total number of items across all pages.
+   */
+  readonly totalItems: number;
+}
 
 /**
  * Outbound port defining persistence operations for the {@link User} aggregate.
@@ -23,6 +72,14 @@ export interface UserRepositoryPort {
    * @returns A promise resolving to the {@link User} aggregate if found, or null if not found.
    */
   findByEmail(email: UserEmail): Promise<User | null>;
+
+  /**
+   * Finds all users with pagination, filtering, and sorting.
+   *
+   * @param options - Options for pagination, filtering, and sorting.
+   * @returns A promise resolving to {@link FindAllUsersResult} with paginated user data.
+   */
+  findAll(options: FindAllUsersOptions): Promise<FindAllUsersResult>;
 
   /**
    * Persists a {@link User} aggregate.

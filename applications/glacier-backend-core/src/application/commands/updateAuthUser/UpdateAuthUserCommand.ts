@@ -1,3 +1,7 @@
+import { Command } from '@nestjs/cqrs';
+
+import { UpdateAuthUserCommandResult } from './UpdateAuthUserCommandResult.js';
+
 /**
  * Command to update an existing authenticated user.
  *
@@ -12,7 +16,7 @@
  * @see {@link User#changeEmail} for updating email.
  * @see {@link User#activate} and {@link User#suspend} for status changes.
  */
-export class UpdateAuthUserCommand {
+export class UpdateAuthUserCommand extends Command<UpdateAuthUserCommandResult> {
   /**
    * Unique identifier of the user to update.
    */
@@ -58,6 +62,7 @@ export class UpdateAuthUserCommand {
     email?: string,
     status?: string
   ) {
+    super();
     this.userId = userId;
     this.firstName = firstName;
     this.lastName = lastName;
