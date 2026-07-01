@@ -5,9 +5,10 @@ import { PresentationModule } from './presentation/Presentation.module.js';
 import { V1ControllerModule } from './presentation/controllers/v1/V1Controller.module.js';
 import { FrameworkModule } from './framework/Framework.module.js';
 import { RepositoriesModule } from './infrastructure/repositories/Repositories.module.js';
+import { CommandsModule } from './application/commands/Commands.module.js';
 
 @Module({
-  imports: [FrameworkModule, RepositoriesModule, PresentationModule]
+  imports: [FrameworkModule, RepositoriesModule, CommandsModule, PresentationModule]
 })
 export class ApplicationModule {
   public static async create() {

@@ -11,6 +11,7 @@ import {
   Post,
   Query
 } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
 import {
   ApiBadRequestResponse,
   ApiConsumes,
@@ -25,27 +26,65 @@ import {
   ApiTags
 } from '@nestjs/swagger';
 
+import { CreateAuthUserCommand } from '../../../../../application/commands/createAuthUser/CreateAuthUserCommand.js';
+import { UserStatus } from '../../../../../domain/entities/user/valueObjects/UserStatus.js';
 import { ApiErrorResponseDto } from './dtos/ApiErrorResponseDto.js';
+import { AuthUserAttributesDto } from './dtos/AuthUserAttributesDto.js';
 import { AuthUserParamsDto } from './dtos/AuthUserParamsDto.js';
+import { AuthUserResourceDto } from './dtos/AuthUserResourceDto.js';
 import { AuthUserResponseDto } from './dtos/AuthUserResponseDto.js';
 import { CreateAuthUserDto } from './dtos/CreateAuthUserDto.js';
 import { ListAuthUsersQueryDto } from './dtos/ListAuthUsersQueryDto.js';
 import { PaginatedAuthUsersResponseDto } from './dtos/PaginatedAuthUsersResponseDto.js';
 import { UpdateAuthUserDto } from './dtos/UpdateAuthUserDto.js';
 
+import type { CreateAuthUserCommandResult } from '../../../../../application/commands/createAuthUser/CreateAuthUserCommandResult.js';
+
 @ApiTags('Auth Users')
 @ApiConsumes('application/vnd.api+json')
 @ApiProduces('application/vnd.api+json')
 @Controller('/v1/auth/users')
 export class UsersController {
+  public constructor(private readonly commandBus: CommandBus) {}
+
   @Post()
   @ApiOperation({ summary: 'Create an auth user' })
   @ApiCreatedResponse({ type: AuthUserResponseDto, description: 'JSON:API user document' })
   @ApiBadRequestResponse({ type: ApiErrorResponseDto })
   @ApiConflictResponse({ type: ApiErrorResponseDto })
-  public create(@Body() body: CreateAuthUserDto): Promise<AuthUserResponseDto> {
-    void body;
-    throw new NotImplementedException('Create user is not implemented yet.');
+  public async create(@Body() body: CreateAuthUserDto): Promise<AuthUserResponseDto> {
+    // Extract attributes from the JSON:API formatted request
+    const attributes = body.data.attributes;
+
+    // Create and dispatch the CreateAuthUserCommand via the CommandBus
+    const command = new CreateAuthUserCommand(
+      attributes.firstName,
+      attributes.lastName,
+      attributes.email,
+      attributes.status
+    );
+
+    const result: CreateAuthUserCommandResult = await this.commandBus.execute(command);
+    const apiStatus = result.status === UserStatus.ACTIVE ? 'ACTIVE' : 'SUSPENDED';
+
+    // Transform the command result into a JSON:API formatted response
+    const userAttributes = new AuthUserAttributesDto();
+    userAttributes.firstName = result.firstName;
+    userAttributes.lastName = result.lastName;
+    userAttributes.email = result.email;
+    userAttributes.status = apiStatus;
+    userAttributes.createdAt = result.createdAt.toISOString();
+    userAttributes.updatedAt = result.updatedAt.toISOString();
+
+    const userResource = new AuthUserResourceDto();
+    userResource.type = 'users';
+    userResource.id = result.id;
+    userResource.attributes = userAttributes;
+
+    const response = new AuthUserResponseDto();
+    response.data = userResource;
+
+    return response;
   }
 
   @Get()
