@@ -9,9 +9,17 @@ import { RepositoriesModule } from './contexts/identity/infrastructure/repositor
 import { CommandsModule } from './contexts/identity/application/commands/Commands.module.js';
 import { QueriesModule } from './contexts/identity/application/queries/Queries.module.js';
 import { DomainExceptionFilter } from './contexts/identity/presentation/exceptions/DomainExceptionFilter.js';
+import { ManagementModule } from './contexts/management/Management.module.js';
 
 @Module({
-  imports: [FrameworkModule, RepositoriesModule, CommandsModule, QueriesModule, PresentationModule]
+  imports: [
+    FrameworkModule,
+    RepositoriesModule,
+    CommandsModule,
+    QueriesModule,
+    PresentationModule,
+    ManagementModule
+  ]
 })
 export class ApplicationModule {
   public static async create() {

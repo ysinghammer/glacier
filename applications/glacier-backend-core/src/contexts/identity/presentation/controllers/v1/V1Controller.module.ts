@@ -2,10 +2,9 @@ import { INestApplication, Module } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AuthControllerModule } from './auth/AuthController.module.js';
-import { ManagementControllerModule } from './management/ManagementController.module.js';
 
 @Module({
-  imports: [ManagementControllerModule, AuthControllerModule]
+  imports: [AuthControllerModule]
 })
 export class V1ControllerModule {
   public static register(app: INestApplication): void {
