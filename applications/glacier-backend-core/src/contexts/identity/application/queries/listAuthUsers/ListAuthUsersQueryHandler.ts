@@ -1,9 +1,8 @@
 import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 
-import { UserStatus } from '../../../domain/entities/user/valueObjects/UserStatus.js';
-import { UserStatusParser } from '../../../presentation/dtos/UserStatusParser.js';
-import { SortParser } from '../../../presentation/dtos/SortParser.js';
+import { UserStatusParser } from '../../shared/parsers/UserStatusParser.js';
+import { SortParser } from '../../shared/parsers/SortParser.js';
 import { ListAuthUsersQuery } from './ListAuthUsersQuery.js';
 
 import type { UserRepositoryPort } from '../../../domain/entities/user/ports/UserRepositoryPort.js';
@@ -55,15 +54,7 @@ export class ListAuthUsersQueryHandler implements IQueryHandler<
     const pageSize = Math.min(100, Math.max(1, query.pageSize));
 
     // Step 2: Parse optional status filter using dedicated parser
-    let status: UserStatus | undefined;
-    const parsedStatus = UserStatusParser.parse(query.filterStatus);
-    if (parsedStatus) {
-      const statusMap = {
-        ACTIVE: UserStatus.ACTIVE,
-        SUSPENDED: UserStatus.SUSPENDED
-      };
-      status = statusMap[parsedStatus as keyof typeof statusMap];
-    }
+    const status = UserStatusParser.parse(query.filterStatus);
 
     // Step 3: Parse optional sort specification using dedicated parser
     const sort = SortParser.parse(query.sort);
