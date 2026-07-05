@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
 import { User } from '../../../domain/entities/user/User.js';
-import { PrismaClient } from '../../../generated/prisma/client.js';
+import { AUTH_USER_STATUS, Prisma, PrismaClient } from '../../../generated/prisma/client.js';
+import { UserStatus } from '../../../domain/entities/user/valueObjects/UserStatus.js';
 import { UserRepositoryMapper } from './mappers/UserRepositoryMapper.js';
 
 import type {
@@ -99,17 +100,11 @@ export class UserRepository implements UserRepositoryPort {
     const take = options.pageSize;
 
     // Build where clause for filtering
-    const where: {
-      status?: string;
-      OR?: Array<{
-        firstName?: { contains: string; mode: 'insensitive' };
-        lastName?: { contains: string; mode: 'insensitive' };
-        email?: { contains: string; mode: 'insensitive' };
-      }>;
-    } = {};
+    const where: Prisma.AUTH_USERSWhereInput = {};
 
     if (options.status !== undefined) {
-      where.status = options.status;
+      where.status =
+        options.status === UserStatus.ACTIVE ? AUTH_USER_STATUS.ACTIVE : AUTH_USER_STATUS.SUSPENDED;
     }
 
     if (options.searchQuery !== undefined && options.searchQuery.trim() !== '') {

@@ -7,7 +7,7 @@ import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaHealth } from './Prisma.health.js';
 
 @Module({
-  exports: [PrismaHealth],
+  exports: [PrismaHealth, PrismaClient],
   imports: [TerminusModule],
   providers: [
     PrismaConfig,

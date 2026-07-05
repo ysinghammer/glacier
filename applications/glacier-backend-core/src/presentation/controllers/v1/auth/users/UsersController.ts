@@ -13,14 +13,12 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   ApiBadRequestResponse,
-  ApiConsumes,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiProduces,
   ApiQuery,
   ApiTags
 } from '@nestjs/swagger';
@@ -48,8 +46,6 @@ import type { GetAuthUserByIdQueryResult } from '../../../../../application/quer
 import type { ListAuthUsersQueryResult } from '../../../../../application/queries/listAuthUsers/ListAuthUsersQueryResult.js';
 
 @ApiTags('Auth Users')
-@ApiConsumes('application/vnd.api+json')
-@ApiProduces('application/vnd.api+json')
 @Controller('/v1/auth/users')
 export class UsersController {
   public constructor(
