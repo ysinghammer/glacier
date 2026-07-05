@@ -1,4 +1,4 @@
-import { DomainException } from './DomainException.js';
+import { DomainException } from '../../../../../shared/kernel/index.js';
 
 /**
  * Thrown when attempting to create a user with an email that already exists.

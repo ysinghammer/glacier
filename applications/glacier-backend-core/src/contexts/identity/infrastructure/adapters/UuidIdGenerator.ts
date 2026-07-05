@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 
 import { Injectable } from '@nestjs/common';
 
-import type { IdGeneratorPort } from '../../domain/shared/ports/IdGeneratorPort.js';
+import type { IdGeneratorPort } from '../../../../shared/kernel/index.js';
 
 /**
  * UUID v4-based implementation of {@link IdGeneratorPort}.

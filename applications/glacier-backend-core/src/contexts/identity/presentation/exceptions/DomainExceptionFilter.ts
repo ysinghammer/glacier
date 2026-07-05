@@ -12,7 +12,7 @@ import { Response } from 'express';
 import { UserNotFoundException } from '../../domain/shared/exceptions/UserNotFoundException.js';
 import { UserAlreadyExistsException } from '../../domain/shared/exceptions/UserAlreadyExistsException.js';
 import { InvalidUserDataException } from '../../domain/shared/exceptions/InvalidUserDataException.js';
-import { DomainException } from '../../domain/shared/exceptions/DomainException.js';
+import { DomainException } from '../../../../shared/kernel/index.js';
 
 /**
  * NestJS exception filter that translates domain exceptions into HTTP responses.

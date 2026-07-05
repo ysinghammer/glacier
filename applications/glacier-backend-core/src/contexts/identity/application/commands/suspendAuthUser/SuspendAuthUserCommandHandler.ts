@@ -5,7 +5,7 @@ import { UserNotFoundException } from '../../../domain/shared/exceptions/UserNot
 import { SuspendAuthUserCommand } from './SuspendAuthUserCommand.js';
 
 import type { UserRepositoryPort } from '../../../domain/entities/user/ports/UserRepositoryPort.js';
-import type { ClockPort } from '../../../domain/shared/ports/ClockPort.js';
+import type { ClockPort } from '../../../../../shared/kernel/index.js';
 
 /**
  * NestJS CQRS CommandHandler implementation for {@link SuspendAuthUserCommand}.

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import type { ClockPort } from '../../domain/shared/ports/ClockPort.js';
+import type { ClockPort } from '../../../../shared/kernel/index.js';
 
 /**
  * System clock implementation of {@link ClockPort}.

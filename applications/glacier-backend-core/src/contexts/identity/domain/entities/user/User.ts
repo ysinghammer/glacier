@@ -7,7 +7,7 @@ import { IRegisterUserProps } from './interfaces/IRegisterUserProps.js';
 import { IUserPrimitives } from './interfaces/IUserPrimitives.js';
 import { IUserState } from './interfaces/IUserState.js';
 
-import type { DomainEvent } from '../../shared/events/DomainEvent.js';
+import type { DomainEvent } from '../../../../../shared/kernel/index.js';
 
 /**
  * Aggregate root representing an authenticated user and its lifecycle operations.

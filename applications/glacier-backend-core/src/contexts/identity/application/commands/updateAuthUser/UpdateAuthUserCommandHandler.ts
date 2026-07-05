@@ -8,7 +8,7 @@ import { InvalidUserDataException } from '../../../domain/shared/exceptions/Inva
 import { UpdateAuthUserCommand } from './UpdateAuthUserCommand.js';
 
 import type { UserRepositoryPort } from '../../../domain/entities/user/ports/UserRepositoryPort.js';
-import type { ClockPort } from '../../../domain/shared/ports/ClockPort.js';
+import type { ClockPort } from '../../../../../shared/kernel/index.js';
 import type { UpdateAuthUserCommandResult } from './UpdateAuthUserCommandResult.js';
 
 /**

@@ -1,8 +1,7 @@
 import { User } from '../../entities/user/User.js';
 import { ICreateUserInput } from './interfaces/ICreateUserInput.js';
 
-import type { ClockPort } from '../../shared/ports/ClockPort.js';
-import type { IdGeneratorPort } from '../../shared/ports/IdGeneratorPort.js';
+import type { ClockPort, IdGeneratorPort } from '../../../../../shared/kernel/index.js';
 
 /**
  * Domain factory for creating {@link User} aggregates.

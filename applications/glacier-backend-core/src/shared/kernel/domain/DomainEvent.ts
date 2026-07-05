@@ -8,6 +8,8 @@
  * All domain events have:
  * - An aggregate ID (who the event is about)
  * - An occurrence timestamp (when it happened)
+ *
+ * This is a shared kernel class used across all bounded contexts.
  */
 export abstract class DomainEvent {
   /**

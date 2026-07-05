@@ -1,4 +1,4 @@
-import { DomainEvent } from '../../../shared/events/DomainEvent.js';
+import { DomainEvent } from '../../../../../../shared/kernel/index.js';
 
 /**
  * Event emitted when a new user is successfully registered.

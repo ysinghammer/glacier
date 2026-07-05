@@ -4,6 +4,8 @@
  * All domain-level exceptions should extend this class.
  * These exceptions represent invariant violations or business rule failures
  * and are independent of the delivery mechanism (HTTP, GraphQL, etc.).
+ *
+ * This is a shared kernel class used across all bounded contexts.
  */
 export abstract class DomainException extends Error {
   /**
@@ -11,7 +13,7 @@ export abstract class DomainException extends Error {
    *
    * @param message - Human-readable error message describing the exception.
    */
-  protected constructor(message: string) {
+  protected constructor(public readonly message: string) {
     super(message);
     Object.setPrototypeOf(this, DomainException.prototype);
   }

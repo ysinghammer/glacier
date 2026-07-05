@@ -1,4 +1,4 @@
-import { DomainException } from './DomainException.js';
+import { DomainException } from '../../../../../shared/kernel/index.js';
 
 /**
  * Thrown when user data fails domain validation (email, name, status).

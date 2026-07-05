@@ -1,4 +1,4 @@
-import { DomainException } from './DomainException.js';
+import { DomainException } from '../../../../../shared/kernel/index.js';
 
 /**
  * Thrown when attempting to find or modify a user that does not exist.
