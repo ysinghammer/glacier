@@ -2,7 +2,7 @@ import { Expose } from 'class-transformer';
 import { IsDateString, IsEmail, IsEnum, IsString, Length } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-import { AUTH_USER_STATUS } from '../../../../../../../../generated/prisma/enums.js';
+import { UserStatusApiDto } from '../../../../../dtos/UserStatusApiDto.js';
 
 export class AuthUserAttributesDto {
   @ApiProperty({ minLength: 1, maxLength: 128 })
@@ -23,10 +23,10 @@ export class AuthUserAttributesDto {
   @Length(3, 320)
   declare public email: string;
 
-  @ApiProperty({ enum: AUTH_USER_STATUS })
+  @ApiProperty({ enum: UserStatusApiDto })
   @Expose()
-  @IsEnum(AUTH_USER_STATUS)
-  declare public status: (typeof AUTH_USER_STATUS)[keyof typeof AUTH_USER_STATUS];
+  @IsEnum(UserStatusApiDto)
+  declare public status: UserStatusApiDto;
 
   @ApiProperty({ format: 'date-time' })
   @Expose()

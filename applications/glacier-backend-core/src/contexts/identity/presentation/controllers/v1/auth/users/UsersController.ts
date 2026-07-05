@@ -172,13 +172,16 @@ export class UsersController {
     // Extract attributes from the JSON:API formatted request
     const attributes = body.data.attributes;
 
+    // Map API status enum to lowercase string for application layer
+    const status = attributes.status?.toLowerCase();
+
     // Create and dispatch the UpdateAuthUserCommand via the CommandBus
     const command = new UpdateAuthUserCommand(
       params.userId,
       attributes.firstName,
       attributes.lastName,
       attributes.email,
-      attributes.status
+      status
     );
 
     const result: UpdateAuthUserCommandResult = await this.commandBus.execute(command);

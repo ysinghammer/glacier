@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { UserStatus } from '../../domain/entities/user/valueObjects/UserStatus.js';
+import { UserStatusApiDto } from '../dtos/UserStatusApiDto.js';
 import { AuthUserAttributesDto } from '../controllers/v1/auth/users/dtos/AuthUserAttributesDto.js';
 import { AuthUserResourceDto } from '../controllers/v1/auth/users/dtos/AuthUserResourceDto.js';
 import { AuthUserResponseDto } from '../controllers/v1/auth/users/dtos/AuthUserResponseDto.js';
@@ -16,7 +17,7 @@ import type { UserReadModel } from '../../application/shared/readModels/UserRead
  *
  * Benefits:
  * - Eliminates code duplication in UsersController (4 identical mapping blocks)
- * - Centralizes the enum mapping from domain UserStatus to API status strings
+ * - Centralizes the enum mapping from domain UserStatus to API UserStatusApiDto
  * - Makes changes to the JSON:API format apply everywhere
  * - Enables reuse of mapping logic in other components (filters, interceptors, etc.)
  */
@@ -32,7 +33,8 @@ export class UserResponseMapper {
    * @returns A JSON:API-formatted {@link AuthUserResourceDto}.
    */
   public toResource(user: UserReadModel): AuthUserResourceDto {
-    const apiStatus = user.status === UserStatus.ACTIVE ? 'ACTIVE' : 'SUSPENDED';
+    const apiStatus =
+      user.status === UserStatus.ACTIVE ? UserStatusApiDto.ACTIVE : UserStatusApiDto.SUSPENDED;
 
     const attributes = new AuthUserAttributesDto();
     attributes.firstName = user.firstName;

@@ -2,7 +2,7 @@ import { Transform } from 'class-transformer';
 import { IsEmail, IsEnum, IsOptional, IsString, Length, ValidateIf } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-import { AUTH_USER_STATUS } from '../../../../../../../../generated/prisma/enums.js';
+import { UserStatusApiDto } from '../../../../../dtos/UserStatusApiDto.js';
 
 export class UpdateAuthUserAttributesDto {
   @ApiPropertyOptional({
@@ -36,8 +36,8 @@ export class UpdateAuthUserAttributesDto {
   @Length(3, 320)
   email?: string;
 
-  @ApiPropertyOptional({ enum: AUTH_USER_STATUS })
+  @ApiPropertyOptional({ enum: UserStatusApiDto })
   @IsOptional()
-  @IsEnum(AUTH_USER_STATUS)
-  status?: (typeof AUTH_USER_STATUS)[keyof typeof AUTH_USER_STATUS];
+  @IsEnum(UserStatusApiDto)
+  status?: UserStatusApiDto;
 }
