@@ -16,7 +16,16 @@ import { DomainExceptionFilter } from './contexts/identity/presentation/exceptio
 export class ApplicationModule {
   public static async create() {
     const app = await NestFactory.create<NestExpressApplication>(ApplicationModule);
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: {
+          enableImplicitConversion: true
+        }
+      })
+    );
     app.useGlobalFilters(new DomainExceptionFilter());
     app.enableVersioning({ type: VersioningType.URI });
     V1ControllerModule.register(app);

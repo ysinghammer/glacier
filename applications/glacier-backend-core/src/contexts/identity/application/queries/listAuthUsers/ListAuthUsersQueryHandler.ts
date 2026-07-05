@@ -2,6 +2,8 @@ import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 
 import { UserStatus } from '../../../domain/entities/user/valueObjects/UserStatus.js';
+import { UserStatusParser } from '../../../presentation/dtos/UserStatusParser.js';
+import { SortParser } from '../../../presentation/dtos/SortParser.js';
 import { ListAuthUsersQuery } from './ListAuthUsersQuery.js';
 
 import type { UserRepositoryPort } from '../../../domain/entities/user/ports/UserRepositoryPort.js';
@@ -52,29 +54,19 @@ export class ListAuthUsersQueryHandler implements IQueryHandler<
     const pageNumber = Math.max(1, query.pageNumber);
     const pageSize = Math.min(100, Math.max(1, query.pageSize));
 
-    // Step 2: Parse optional status filter
+    // Step 2: Parse optional status filter using dedicated parser
     let status: UserStatus | undefined;
-    if (query.filterStatus !== undefined) {
-      if (query.filterStatus === 'active') {
-        status = UserStatus.ACTIVE;
-      } else if (query.filterStatus === 'suspended') {
-        status = UserStatus.SUSPENDED;
-      }
+    const parsedStatus = UserStatusParser.parse(query.filterStatus);
+    if (parsedStatus) {
+      const statusMap = {
+        ACTIVE: UserStatus.ACTIVE,
+        SUSPENDED: UserStatus.SUSPENDED
+      };
+      status = statusMap[parsedStatus as keyof typeof statusMap];
     }
 
-    // Step 3: Parse optional sort specification
-    let sort: { field: string; direction: 'asc' | 'desc' } | undefined;
-    if (query.sort !== undefined) {
-      const sortParts = query.sort.split(',')[0]; // Take first sort field
-      if (sortParts) {
-        const isDescending = sortParts.startsWith('-');
-        const field = isDescending ? sortParts.substring(1) : sortParts;
-        sort = {
-          field,
-          direction: isDescending ? 'desc' : 'asc'
-        };
-      }
-    }
+    // Step 3: Parse optional sort specification using dedicated parser
+    const sort = SortParser.parse(query.sort);
 
     // Step 4: Retrieve paginated users from repository
     const result = await this.userRepository.findAll({
