@@ -6,6 +6,7 @@ import { CreateAuthUserCommandResult } from './CreateAuthUserCommandResult.js';
  * Command to create a new authenticated user.
  *
  * This command encapsulates all data needed to register a new user in the system.
+ * New users are always created with ACTIVE status.
  * The command follows the Command pattern from DDD, representing a user's intent
  * to create a new user entity.
  *
@@ -29,23 +30,16 @@ export class CreateAuthUserCommand extends Command<CreateAuthUserCommandResult> 
    */
   public readonly email: string;
   /**
-   * Optional initial status for the user.
-   * Defaults to {@link UserStatus.ACTIVE} if not provided.
-   */
-  public readonly status?: string;
-  /**
    * Creates a new CreateAuthUserCommand instance.
    *
    * @param firstName - The given name of the user.
    * @param lastName - The family name of the user.
    * @param email - The email address of the user.
-   * @param status - Optional initial status for the user.
    */
-  constructor(firstName: string, lastName: string, email: string, status?: string) {
+  constructor(firstName: string, lastName: string, email: string) {
     super();
     this.firstName = firstName;
     this.lastName = lastName;
     this.email = email;
-    this.status = status;
   }
 }

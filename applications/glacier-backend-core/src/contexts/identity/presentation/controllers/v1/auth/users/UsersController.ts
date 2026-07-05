@@ -24,7 +24,7 @@ import {
 } from '@nestjs/swagger';
 
 import { CreateAuthUserCommand } from '../../../../../application/commands/createAuthUser/CreateAuthUserCommand.js';
-import { RemoveAuthUserCommand } from '../../../../../application/commands/removeAuthUser/RemoveAuthUserCommand.js';
+import { SuspendAuthUserCommand } from '../../../../../application/commands/suspendAuthUser/SuspendAuthUserCommand.js';
 import { UpdateAuthUserCommand } from '../../../../../application/commands/updateAuthUser/UpdateAuthUserCommand.js';
 import { GetAuthUserByIdQuery } from '../../../../../application/queries/getAuthUserById/GetAuthUserByIdQuery.js';
 import { ListAuthUsersQuery } from '../../../../../application/queries/listAuthUsers/ListAuthUsersQuery.js';
@@ -65,8 +65,7 @@ export class UsersController {
     const command = new CreateAuthUserCommand(
       attributes.firstName,
       attributes.lastName,
-      attributes.email,
-      attributes.status
+      attributes.email
     );
 
     const result: CreateAuthUserCommandResult = await this.commandBus.execute(command);
@@ -114,7 +113,7 @@ export class UsersController {
     // Extract query parameters with defaults
     const pageNumber = query['page[number]'] ?? 1;
     const pageSize = query['page[size]'] ?? 20;
-    const filterStatus = query['filter[status]'];
+    const filterStatus = query['filter[status]']?.toLowerCase();
     const filterQuery = query['filter[q]'];
     const sort = query.sort;
     const include = query.include;
@@ -189,13 +188,13 @@ export class UsersController {
 
   @Delete(':userId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft-delete auth user by setting status to SUSPENDED' })
+  @ApiOperation({ summary: 'Suspend auth user by setting status to SUSPENDED' })
   @ApiNoContentResponse()
   @ApiBadRequestResponse({ type: ApiErrorResponseDto })
   @ApiNotFoundResponse({ type: ApiErrorResponseDto })
-  public async remove(@Param() params: AuthUserParamsDto): Promise<void> {
-    // Create and dispatch the RemoveAuthUserCommand via the CommandBus
-    const command = new RemoveAuthUserCommand(params.userId);
+  public async suspend(@Param() params: AuthUserParamsDto): Promise<void> {
+    // Create and dispatch the SuspendAuthUserCommand via the CommandBus
+    const command = new SuspendAuthUserCommand(params.userId);
 
     await this.commandBus.execute(command);
   }

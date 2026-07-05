@@ -1,20 +1,28 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, Length, ValidateIf } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 import { AUTH_USER_STATUS } from '../../../../../../../../generated/prisma/enums.js';
 
 export class UpdateAuthUserAttributesDto {
-  @ApiPropertyOptional({ minLength: 1, maxLength: 128 })
+  @ApiPropertyOptional({
+    minLength: 1,
+    maxLength: 128,
+    description: 'Required if lastName is provided'
+  })
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
-  @IsOptional()
+  @ValidateIf((obj: UpdateAuthUserAttributesDto) => obj.lastName !== undefined)
   @IsString()
   @Length(1, 128)
   firstName?: string;
 
-  @ApiPropertyOptional({ minLength: 1, maxLength: 128 })
+  @ApiPropertyOptional({
+    minLength: 1,
+    maxLength: 128,
+    description: 'Required if firstName is provided'
+  })
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
-  @IsOptional()
+  @ValidateIf((obj: UpdateAuthUserAttributesDto) => obj.firstName !== undefined)
   @IsString()
   @Length(1, 128)
   lastName?: string;

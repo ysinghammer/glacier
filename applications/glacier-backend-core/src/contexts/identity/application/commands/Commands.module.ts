@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { CreateAuthUserCommandHandler } from './createAuthUser/CreateAuthUserCommandHandler.js';
-import { RemoveAuthUserCommandHandler } from './removeAuthUser/RemoveAuthUserCommandHandler.js';
+import { SuspendAuthUserCommandHandler } from './suspendAuthUser/SuspendAuthUserCommandHandler.js';
 import { UpdateAuthUserCommandHandler } from './updateAuthUser/UpdateAuthUserCommandHandler.js';
 
 /**
@@ -18,7 +18,7 @@ import { UpdateAuthUserCommandHandler } from './updateAuthUser/UpdateAuthUserCom
   imports: [CqrsModule],
   providers: [
     CreateAuthUserCommandHandler,
-    RemoveAuthUserCommandHandler,
+    SuspendAuthUserCommandHandler,
     UpdateAuthUserCommandHandler
   ]
 })
