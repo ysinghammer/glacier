@@ -1,0 +1,1667 @@
+{
+  "nodes": [
+    {
+      "id": "$graphify-root$_oxlintrc_json",
+      "label": ".oxlintrc.json",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L1"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_schema",
+      "label": "$schema",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L2"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_plugins",
+      "label": "plugins",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "ref_typescript",
+      "label": "typescript",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "ref_unicorn",
+      "label": "unicorn",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L3"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_categories",
+      "label": "categories",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_categories_correctness",
+      "label": "correctness",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_options",
+      "label": "options",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_options_typeaware",
+      "label": "typeAware",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L8"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_env",
+      "label": "env",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_env_builtin",
+      "label": "builtin",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L11"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_ignorepatterns",
+      "label": "ignorePatterns",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_ds_store",
+      "label": "**/.DS_Store",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_node_modules",
+      "label": "**/node_modules/",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_applications_dist",
+      "label": "applications/*/dist/",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_infrastructure_postgres",
+      "label": "infrastructure/postgres/",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_workspace_xml",
+      "label": ".idea/**/workspace.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_tasks_xml",
+      "label": ".idea/**/tasks.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_usage_statistics_xml",
+      "label": ".idea/**/usage.statistics.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_dictionaries",
+      "label": ".idea/**/dictionaries",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_shelf",
+      "label": ".idea/**/shelf",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_contentmodel_xml",
+      "label": ".idea/**/contentModel.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_datasources",
+      "label": ".idea/**/dataSources/",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_datasources_ids",
+      "label": ".idea/**/dataSources.ids",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_datasources_local_xml",
+      "label": ".idea/**/dataSources.local.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_sqldatasources_xml",
+      "label": ".idea/**/sqlDataSources.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_dynamic_xml",
+      "label": ".idea/**/dynamic.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_uidesigner_xml",
+      "label": ".idea/**/uiDesigner.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_dbnavigator_xml",
+      "label": ".idea/**/dbnavigator.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_mongosettings_xml",
+      "label": ".idea/**/mongoSettings.xml",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_idea_httprequests",
+      "label": ".idea/httpRequests",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "ref_applications_src_generated",
+      "label": "applications/*/src/generated/**/*",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules",
+      "label": "rules",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L35"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_no_array_constructor",
+      "label": "no-array-constructor",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L36"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_no_unused_expressions",
+      "label": "no-unused-expressions",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L37"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_no_unused_vars",
+      "label": "no-unused-vars",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L38"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_no_useless_constructor",
+      "label": "no-useless-constructor",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L39"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_await_thenable",
+      "label": "typescript/await-thenable",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L40"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_ban_ts_comment",
+      "label": "typescript/ban-ts-comment",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L41"
+    },
+    {
+      "id": "ref_error",
+      "label": "error",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L41"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_array_delete",
+      "label": "typescript/no-array-delete",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L47"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_base_to_string",
+      "label": "typescript/no-base-to-string",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L48"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_confusing_void_expression",
+      "label": "typescript/no-confusing-void-expression",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L49"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_deprecated",
+      "label": "typescript/no-deprecated",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L50"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_duplicate_enum_values",
+      "label": "typescript/no-duplicate-enum-values",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L51"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_duplicate_type_constituents",
+      "label": "typescript/no-duplicate-type-constituents",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L52"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_dynamic_delete",
+      "label": "typescript/no-dynamic-delete",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L53"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_empty_object_type",
+      "label": "typescript/no-empty-object-type",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L54"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_explicit_any",
+      "label": "typescript/no-explicit-any",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L55"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_extra_non_null_assertion",
+      "label": "typescript/no-extra-non-null-assertion",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L56"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_floating_promises",
+      "label": "typescript/no-floating-promises",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L57"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_for_in_array",
+      "label": "typescript/no-for-in-array",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L58"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_implied_eval",
+      "label": "typescript/no-implied-eval",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L59"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_invalid_void_type",
+      "label": "typescript/no-invalid-void-type",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L60"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_meaningless_void_operator",
+      "label": "typescript/no-meaningless-void-operator",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L61"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_misused_new",
+      "label": "typescript/no-misused-new",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L62"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_misused_promises",
+      "label": "typescript/no-misused-promises",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L63"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_misused_spread",
+      "label": "typescript/no-misused-spread",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L64"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_mixed_enums",
+      "label": "typescript/no-mixed-enums",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L65"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_namespace",
+      "label": "typescript/no-namespace",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L66"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_non_null_asserted_nullish_coalescing",
+      "label": "typescript/no-non-null-asserted-nullish-coalescing",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L67"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_non_null_asserted_optional_chain",
+      "label": "typescript/no-non-null-asserted-optional-chain",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L68"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_non_null_assertion",
+      "label": "typescript/no-non-null-assertion",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L69"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_redundant_type_constituents",
+      "label": "typescript/no-redundant-type-constituents",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L70"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_require_imports",
+      "label": "typescript/no-require-imports",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L71"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_this_alias",
+      "label": "typescript/no-this-alias",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L72"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_boolean_literal_compare",
+      "label": "typescript/no-unnecessary-boolean-literal-compare",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L73"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_template_expression",
+      "label": "typescript/no-unnecessary-template-expression",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L74"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_type_arguments",
+      "label": "typescript/no-unnecessary-type-arguments",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L75"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_type_assertion",
+      "label": "typescript/no-unnecessary-type-assertion",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L76"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_type_constraint",
+      "label": "typescript/no-unnecessary-type-constraint",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L77"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_type_conversion",
+      "label": "typescript/no-unnecessary-type-conversion",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L78"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_argument",
+      "label": "typescript/no-unsafe-argument",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L79"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_assignment",
+      "label": "typescript/no-unsafe-assignment",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L80"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_call",
+      "label": "typescript/no-unsafe-call",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L81"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_declaration_merging",
+      "label": "typescript/no-unsafe-declaration-merging",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L82"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_enum_comparison",
+      "label": "typescript/no-unsafe-enum-comparison",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L83"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_member_access",
+      "label": "typescript/no-unsafe-member-access",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L84"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_return",
+      "label": "typescript/no-unsafe-return",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L85"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_unary_minus",
+      "label": "typescript/no-unsafe-unary-minus",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L86"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_useless_default_assignment",
+      "label": "typescript/no-useless-default-assignment",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L87"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_wrapper_object_types",
+      "label": "typescript/no-wrapper-object-types",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L88"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_only_throw_error",
+      "label": "typescript/only-throw-error",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L89"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_prefer_as_const",
+      "label": "typescript/prefer-as-const",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L90"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_prefer_literal_enum_member",
+      "label": "typescript/prefer-literal-enum-member",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L91"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_prefer_namespace_keyword",
+      "label": "typescript/prefer-namespace-keyword",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L92"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_prefer_promise_reject_errors",
+      "label": "typescript/prefer-promise-reject-errors",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L93"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_prefer_reduce_type_parameter",
+      "label": "typescript/prefer-reduce-type-parameter",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L94"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_prefer_return_this_type",
+      "label": "typescript/prefer-return-this-type",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L95"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_related_getter_setter_pairs",
+      "label": "typescript/related-getter-setter-pairs",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L96"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_require_await",
+      "label": "typescript/require-await",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L97"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_restrict_plus_operands",
+      "label": "typescript/restrict-plus-operands",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L98"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_restrict_template_expressions",
+      "label": "typescript/restrict-template-expressions",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L108"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_return_await",
+      "label": "typescript/return-await",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L119"
+    },
+    {
+      "id": "ref_error_handling_correctness_only",
+      "label": "error-handling-correctness-only",
+      "file_type": "concept",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L119"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_triple_slash_reference",
+      "label": "typescript/triple-slash-reference",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L120"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_unbound_method",
+      "label": "typescript/unbound-method",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L121"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_unified_signatures",
+      "label": "typescript/unified-signatures",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L122"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_use_unknown_in_catch_callback_variable",
+      "label": "typescript/use-unknown-in-catch-callback-variable",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L123"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_type_assertion",
+      "label": "typescript/no-unsafe-type-assertion",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L124"
+    },
+    {
+      "id": "$graphify-root$_oxlintrc_overrides",
+      "label": "overrides",
+      "file_type": "code",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L126"
+    }
+  ],
+  "edges": [
+    {
+      "source": "$graphify-root$_oxlintrc_json",
+      "target": "$graphify-root$_oxlintrc_schema",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_json",
+      "target": "$graphify-root$_oxlintrc_plugins",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_plugins",
+      "target": "ref_typescript",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_plugins",
+      "target": "ref_unicorn",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_json",
+      "target": "$graphify-root$_oxlintrc_categories",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_categories",
+      "target": "$graphify-root$_oxlintrc_categories_correctness",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_json",
+      "target": "$graphify-root$_oxlintrc_options",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_options",
+      "target": "$graphify-root$_oxlintrc_options_typeaware",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_json",
+      "target": "$graphify-root$_oxlintrc_env",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_env",
+      "target": "$graphify-root$_oxlintrc_env_builtin",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_json",
+      "target": "$graphify-root$_oxlintrc_ignorepatterns",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_ds_store",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_node_modules",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_applications_dist",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_infrastructure_postgres",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_workspace_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_tasks_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_usage_statistics_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_dictionaries",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_shelf",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_contentmodel_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_datasources",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_datasources_ids",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_datasources_local_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_sqldatasources_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_dynamic_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_uidesigner_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_dbnavigator_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_mongosettings_xml",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_idea_httprequests",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_ignorepatterns",
+      "target": "ref_applications_src_generated",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_json",
+      "target": "$graphify-root$_oxlintrc_rules",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_no_array_constructor",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_no_unused_expressions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_no_unused_vars",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_no_useless_constructor",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_await_thenable",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_ban_ts_comment",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules_typescript_ban_ts_comment",
+      "target": "ref_error",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L41",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_array_delete",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_base_to_string",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_confusing_void_expression",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_deprecated",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_duplicate_enum_values",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L51",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_duplicate_type_constituents",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_dynamic_delete",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_empty_object_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_explicit_any",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_extra_non_null_assertion",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L56",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_floating_promises",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_for_in_array",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_implied_eval",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_invalid_void_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_meaningless_void_operator",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_misused_new",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_misused_promises",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L63",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_misused_spread",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L64",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_mixed_enums",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_namespace",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_non_null_asserted_nullish_coalescing",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_non_null_asserted_optional_chain",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_non_null_assertion",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_redundant_type_constituents",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L70",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_require_imports",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_this_alias",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_boolean_literal_compare",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_template_expression",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_type_arguments",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_type_assertion",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L76",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_type_constraint",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unnecessary_type_conversion",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_argument",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_assignment",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L80",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_call",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L81",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_declaration_merging",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L82",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_enum_comparison",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_member_access",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_return",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L85",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_unary_minus",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_useless_default_assignment",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L87",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_wrapper_object_types",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_only_throw_error",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_prefer_as_const",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_prefer_literal_enum_member",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L91",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_prefer_namespace_keyword",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_prefer_promise_reject_errors",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_prefer_reduce_type_parameter",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L94",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_prefer_return_this_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_related_getter_setter_pairs",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_require_await",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L97",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_restrict_plus_operands",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules_typescript_restrict_plus_operands",
+      "target": "ref_error",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L98",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_restrict_template_expressions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L108",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules_typescript_restrict_template_expressions",
+      "target": "ref_error",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L108",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_return_await",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L119",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules_typescript_return_await",
+      "target": "ref_error",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L119",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules_typescript_return_await",
+      "target": "ref_error_handling_correctness_only",
+      "relation": "extends",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L119",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_triple_slash_reference",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L120",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_unbound_method",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L121",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_unified_signatures",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_use_unknown_in_catch_callback_variable",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L123",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_rules",
+      "target": "$graphify-root$_oxlintrc_rules_typescript_no_unsafe_type_assertion",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L124",
+      "weight": 1.0
+    },
+    {
+      "source": "$graphify-root$_oxlintrc_json",
+      "target": "$graphify-root$_oxlintrc_overrides",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": ".oxlintrc.json",
+      "source_location": "L126",
+      "weight": 1.0
+    }
+  ]
+}
