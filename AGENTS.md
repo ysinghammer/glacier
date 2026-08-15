@@ -18,9 +18,9 @@ The repository is organized into several directories, each serving a specific pu
 |-- .commitlintrc.json      # Configuration file for commitlinting
 |-- .gitignore              # Specifies files and directories to be ignored by Git
 |-- .npmrc                  # Configuration file for npm package manager
-|-- .prettierrc             # Configuration file for Prettier code formatting
+|-- .oxfmtrc.json           # Configuration file for Oxfmt code formatting
 |-- AGENTS.md               # Guidelines for agents interacting with this repository
-|-- eslint.config.js        # Configuration file for ESLint code linting
+|-- .oxlintrc.json          # Configuration file for Oxlint code linting
 |-- glacier.iml             # IntelliJ IDEA project configuration file
 |-- package.json            # Contains metadata and dependencies for the project
 |-- pnpm-lock.yaml          # Lockfile for pnpm package manager
@@ -32,19 +32,18 @@ The repository is organized into several directories, each serving a specific pu
 The workspace contains several tools that are used to maintain code quality, enforce coding standards, and manage
 dependencies. These tools include:
 
-### ESLint
+### Oxlint
 
 Check workspace code for potential errors and enforce coding standards.
 
 | Command             | Description                                         |
-|---------------------|-----------------------------------------------------|
+| ------------------- | --------------------------------------------------- |
 | `pnpm run lint`     | Check workspace wide code style without auto fixing |
 | `pnpm run lint:fix` | Check workspace wide code style with auto fixing    |
 
-### Prettier
+### Oxfmt
 
-Prettier is used to format code according to a consistent style. Do not manually run `prettier` commands. use
-`pnpm run lint:fix` instead.
+Oxfmt is used to format code according to a consistent style.
 
 ### Husky
 

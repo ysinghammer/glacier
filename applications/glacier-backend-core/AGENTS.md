@@ -174,58 +174,58 @@ All TypeScript files use **PascalCase** naming.
 
 ### Commands
 
-| File Type      | Pattern                            | Example                          |
-| -------------- | ---------------------------------- | -------------------------------- |
-| Command        | `{Action}{Entity}Command.ts`       | `CreateAuthUserCommand.ts`       |
-| Handler        | `{Action}{Entity}CommandHandler.ts`| `CreateAuthUserCommandHandler.ts`|
-| Result         | `{Action}{Entity}CommandResult.ts` | `CreateAuthUserCommandResult.ts` |
+| File Type | Pattern                             | Example                           |
+| --------- | ----------------------------------- | --------------------------------- |
+| Command   | `{Action}{Entity}Command.ts`        | `CreateAuthUserCommand.ts`        |
+| Handler   | `{Action}{Entity}CommandHandler.ts` | `CreateAuthUserCommandHandler.ts` |
+| Result    | `{Action}{Entity}CommandResult.ts`  | `CreateAuthUserCommandResult.ts`  |
 
 ### Queries
 
-| File Type      | Pattern                          | Example                        |
-| -------------- | -------------------------------- | ------------------------------ |
-| Query          | `{Action}{Entity}Query.ts`       | `GetAuthUserQuery.ts`          |
-| Handler        | `{Action}{Entity}QueryHandler.ts`| `GetAuthUserQueryHandler.ts`   |
-| Result         | `{Action}{Entity}QueryResult.ts` | `GetAuthUserQueryResult.ts`    |
+| File Type | Pattern                           | Example                      |
+| --------- | --------------------------------- | ---------------------------- |
+| Query     | `{Action}{Entity}Query.ts`        | `GetAuthUserQuery.ts`        |
+| Handler   | `{Action}{Entity}QueryHandler.ts` | `GetAuthUserQueryHandler.ts` |
+| Result    | `{Action}{Entity}QueryResult.ts`  | `GetAuthUserQueryResult.ts`  |
 
 ### Domain Layer
 
-| File Type      | Pattern                        | Example                   |
-| -------------- | ------------------------------ | ------------------------- |
-| Entity         | `{EntityName}.ts`              | `User.ts`                 |
-| Value Object   | `{Entity}{Property}.ts`        | `UserEmail.ts`            |
-| Domain Event   | `{Entity}{Action}Event.ts`     | `UserRegisteredEvent.ts`  |
-| Port Interface | `{Entity}RepositoryPort.ts`    | `UserRepositoryPort.ts`   |
-| Port Interface | `{Name}Port.ts`                | `ClockPort.ts`            |
-| Exception      | `{Description}Exception.ts`    | `UserNotFoundException.ts`|
-| Factory        | `{Entity}Factory.ts`           | `UserFactory.ts`          |
-| Interface      | `I{Name}.ts`                   | `IUserPrimitives.ts`      |
+| File Type      | Pattern                     | Example                    |
+| -------------- | --------------------------- | -------------------------- |
+| Entity         | `{EntityName}.ts`           | `User.ts`                  |
+| Value Object   | `{Entity}{Property}.ts`     | `UserEmail.ts`             |
+| Domain Event   | `{Entity}{Action}Event.ts`  | `UserRegisteredEvent.ts`   |
+| Port Interface | `{Entity}RepositoryPort.ts` | `UserRepositoryPort.ts`    |
+| Port Interface | `{Name}Port.ts`             | `ClockPort.ts`             |
+| Exception      | `{Description}Exception.ts` | `UserNotFoundException.ts` |
+| Factory        | `{Entity}Factory.ts`        | `UserFactory.ts`           |
+| Interface      | `I{Name}.ts`                | `IUserPrimitives.ts`       |
 
 ### Infrastructure Layer
 
-| File Type      | Pattern                        | Example                      |
-| -------------- | ------------------------------ | ---------------------------- |
-| Repository     | `{Entity}Repository.ts`        | `UserRepository.ts`          |
-| Mapper         | `{Context}Mapper.ts`           | `UserRepositoryMapper.ts`    |
-| Adapter        | `{Name}Adapter.ts`             | `PrismaClockAdapter.ts`      |
+| File Type  | Pattern                 | Example                   |
+| ---------- | ----------------------- | ------------------------- |
+| Repository | `{Entity}Repository.ts` | `UserRepository.ts`       |
+| Mapper     | `{Context}Mapper.ts`    | `UserRepositoryMapper.ts` |
+| Adapter    | `{Name}Adapter.ts`      | `PrismaClockAdapter.ts`   |
 
 ### Presentation Layer
 
-| File Type        | Pattern                      | Example                      |
-| ---------------- | ---------------------------- | ---------------------------- |
-| Controller       | `{Resource}Controller.ts`    | `UsersController.ts`         |
-| DTO              | `{Name}Dto.ts`               | `AuthUserResponseDto.ts`     |
-| Exception Filter | `{Name}ExceptionFilter.ts`   | `DomainExceptionFilter.ts`   |
-| Mapper           | `{Entity}ResponseMapper.ts`  | `UserResponseMapper.ts`      |
+| File Type        | Pattern                     | Example                    |
+| ---------------- | --------------------------- | -------------------------- |
+| Controller       | `{Resource}Controller.ts`   | `UsersController.ts`       |
+| DTO              | `{Name}Dto.ts`              | `AuthUserResponseDto.ts`   |
+| Exception Filter | `{Name}ExceptionFilter.ts`  | `DomainExceptionFilter.ts` |
+| Mapper           | `{Entity}ResponseMapper.ts` | `UserResponseMapper.ts`    |
 
 ### Framework and Configuration
 
-| File Type      | Pattern                        | Example                   |
-| -------------- | ------------------------------ | ------------------------- |
-| Module         | `{Name}.module.ts`             | `Prisma.module.ts`        |
-| Config         | `{Name}.config.ts`             | `Prisma.config.ts`        |
-| Health Check   | `{Name}.health.ts`             | `Prisma.health.ts`        |
-| Bootstrap      | `Application.bootstrap.ts`     | `Application.bootstrap.ts`|
+| File Type    | Pattern                    | Example                    |
+| ------------ | -------------------------- | -------------------------- |
+| Module       | `{Name}.module.ts`         | `Prisma.module.ts`         |
+| Config       | `{Name}.config.ts`         | `Prisma.config.ts`         |
+| Health Check | `{Name}.health.ts`         | `Prisma.health.ts`         |
+| Bootstrap    | `Application.bootstrap.ts` | `Application.bootstrap.ts` |
 
 ---
 
@@ -256,10 +256,10 @@ export class User {
     const user = new User({
       id: props.id,
       email: props.email,
-      status: UserStatus.create('PENDING'),
+      status: UserStatus.create('PENDING')
     });
 
-    user.recordEvent(new UserRegisteredEvent({ /* ... */ }));
+    user.recordEvent(new UserRegisteredEvent({/* ... */}));
     return user;
   }
 
@@ -271,7 +271,7 @@ export class User {
     return new User({
       id: UserId.create(primitives.id),
       email: UserEmail.create(primitives.email),
-      status: UserStatus.create(primitives.status),
+      status: UserStatus.create(primitives.status)
     });
   }
 
@@ -283,7 +283,7 @@ export class User {
     return {
       id: this.id.toString(),
       email: this.email.toString(),
-      status: this.status.toString(),
+      status: this.status.toString()
     };
   }
 }
@@ -355,7 +355,7 @@ Commands and queries extend base classes from `@nestjs/cqrs`:
 export class CreateAuthUserCommand extends Command<CreateAuthUserCommandResult> {
   constructor(
     public readonly email: string,
-    public readonly name: string,
+    public readonly name: string
   ) {
     super();
   }
@@ -379,19 +379,20 @@ export class GetAuthUserQuery extends Query<GetAuthUserQueryResult> {
 
 ```typescript
 @CommandHandler(CreateAuthUserCommand)
-export class CreateAuthUserCommandHandler
-  implements ICommandHandler<CreateAuthUserCommand, CreateAuthUserCommandResult>
-{
+export class CreateAuthUserCommandHandler implements ICommandHandler<
+  CreateAuthUserCommand,
+  CreateAuthUserCommandResult
+> {
   constructor(
     private readonly userFactory: UserFactory,
     @Inject('UserRepositoryPort')
-    private readonly userRepository: UserRepositoryPort,
+    private readonly userRepository: UserRepositoryPort
   ) {}
 
   async execute(command: CreateAuthUserCommand): Promise<CreateAuthUserCommandResult> {
     const user = this.userFactory.register({
       email: command.email,
-      name: command.name,
+      name: command.name
     });
 
     await this.userRepository.save(user);
@@ -432,7 +433,7 @@ export class UserRegisteredEvent extends DomainEvent {
   constructor(
     public readonly userId: string,
     public readonly email: string,
-    public readonly registeredAt: Date,
+    public readonly registeredAt: Date
   ) {
     super();
   }
@@ -477,12 +478,12 @@ export interface IRegisterUserProps {
 
 ### Interface Categories
 
-| Category   | Naming Pattern       | Purpose                              |
-| ---------- | -------------------- | ------------------------------------ |
-| State      | `I{Entity}State`     | Internal aggregate state             |
-| Primitives | `I{Entity}Primitives`| Serialized representation            |
-| Props      | `I{Action}Props`     | Input for factory/method             |
-| Port       | `{Name}Port`         | Dependency abstraction (no I prefix) |
+| Category   | Naming Pattern        | Purpose                              |
+| ---------- | --------------------- | ------------------------------------ |
+| State      | `I{Entity}State`      | Internal aggregate state             |
+| Primitives | `I{Entity}Primitives` | Serialized representation            |
+| Props      | `I{Action}Props`      | Input for factory/method             |
+| Port       | `{Name}Port`          | Dependency abstraction (no I prefix) |
 
 ### Type Aliases
 
@@ -603,7 +604,7 @@ export interface UserReadModel {
 export class UserRepository implements UserRepositoryPort {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mapper: UserRepositoryMapper,
+    private readonly mapper: UserRepositoryMapper
   ) {}
 
   async save(user: User): Promise<void> {
@@ -611,13 +612,13 @@ export class UserRepository implements UserRepositoryPort {
     await this.prisma.aUTH_USER.upsert({
       where: { id: data.id },
       create: data,
-      update: data,
+      update: data
     });
   }
 
   async findById(id: UserId): Promise<User | null> {
     const record = await this.prisma.aUTH_USER.findUnique({
-      where: { id: id.toString() },
+      where: { id: id.toString() }
     });
 
     if (!record) return null;
@@ -638,7 +639,7 @@ export class UserRepositoryMapper {
       email: record.email,
       status: record.status,
       createdAt: record.created_at,
-      updatedAt: record.updated_at,
+      updatedAt: record.updated_at
     });
   }
 
@@ -649,7 +650,7 @@ export class UserRepositoryMapper {
       email: primitives.email,
       status: primitives.status,
       created_at: primitives.createdAt,
-      updated_at: primitives.updatedAt,
+      updated_at: primitives.updatedAt
     };
   }
 }
@@ -664,11 +665,11 @@ Ports are registered in infrastructure module:
   providers: [
     {
       provide: 'UserRepositoryPort',
-      useClass: UserRepository,
+      useClass: UserRepository
     },
-    UserRepositoryMapper,
+    UserRepositoryMapper
   ],
-  exports: ['UserRepositoryPort'],
+  exports: ['UserRepositoryPort']
 })
 export class InfrastructureModule {}
 ```
@@ -686,15 +687,13 @@ export class UsersController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-    private readonly responseMapper: UserResponseMapper,
+    private readonly responseMapper: UserResponseMapper
   ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new user' })
-  async create(
-    @Body() dto: CreateAuthUserRequestDto,
-  ): Promise<AuthUserResponseDto> {
+  async create(@Body() dto: CreateAuthUserRequestDto): Promise<AuthUserResponseDto> {
     const command = new CreateAuthUserCommand(dto.email, dto.name);
     const result = await this.commandBus.execute(command);
     return this.responseMapper.toResponse(result);
@@ -778,9 +777,9 @@ export class UserResponseMapper {
         id: user.id,
         attributes: {
           email: user.email,
-          status: user.status,
-        },
-      },
+          status: user.status
+        }
+      }
     };
   }
 }
@@ -808,12 +807,7 @@ Application.module.ts
 ```typescript
 // Context root module
 @Module({
-  imports: [
-    DomainModule,
-    ApplicationModule,
-    InfrastructureModule,
-    PresentationModule,
-  ],
+  imports: [DomainModule, ApplicationModule, InfrastructureModule, PresentationModule]
 })
 export class IdentityModule {}
 
@@ -821,9 +815,9 @@ export class IdentityModule {}
 @Module({
   imports: [CqrsModule],
   providers: [
-    CreateAuthUserCommandHandler,
+    CreateAuthUserCommandHandler
     // ... other handlers
-  ],
+  ]
 })
 export class CommandsModule {}
 ```
@@ -836,7 +830,7 @@ Use `@Global()` for cross-cutting concerns:
 @Global()
 @Module({
   providers: [PrismaService],
-  exports: [PrismaService],
+  exports: [PrismaService]
 })
 export class PrismaModule {}
 ```
@@ -847,11 +841,11 @@ export class PrismaModule {}
 
 ### Model Naming
 
-| Element      | Convention           | Example                       |
-| ------------ | -------------------- | ----------------------------- |
-| Model name   | SCREAMING_SNAKE_CASE | `AUTH_USER`                   |
-| Column name  | snake_case           | `created_at`                  |
-| Table name   | snake_case           | `auth_user` (via `@@map()`)   |
+| Element     | Convention           | Example                     |
+| ----------- | -------------------- | --------------------------- |
+| Model name  | SCREAMING_SNAKE_CASE | `AUTH_USER`                 |
+| Column name | snake_case           | `created_at`                |
+| Table name  | snake_case           | `auth_user` (via `@@map()`) |
 
 ### Schema Example
 
@@ -940,14 +934,14 @@ export class UserFactory {
     @Inject('IdGeneratorPort')
     private readonly idGenerator: IdGeneratorPort,
     @Inject('ClockPort')
-    private readonly clock: ClockPort,
+    private readonly clock: ClockPort
   ) {}
 
   register(props: IRegisterUserProps): User {
     return User.register({
       id: UserId.create(this.idGenerator.generate()),
       email: props.email,
-      createdAt: this.clock.now(),
+      createdAt: this.clock.now()
     });
   }
 }
