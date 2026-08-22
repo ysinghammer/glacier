@@ -8,6 +8,9 @@ node_modules/
 applications/*/dist/
 .turbo/
 
+# Test artifacts
+coverage/
+
 # Infrastructure
 infrastructure/postgres/
 
@@ -27,3 +30,10 @@ infrastructure/postgres/
 .idea/**/dbnavigator.xml
 .idea/**/mongoSettings.xml
 .idea/httpRequests
+
+# Playwright
+tests/test-results/
+tests/playwright-report/
+tests/blob-report/
+tests/playwright/.cache/
+tests/playwright/.auth/

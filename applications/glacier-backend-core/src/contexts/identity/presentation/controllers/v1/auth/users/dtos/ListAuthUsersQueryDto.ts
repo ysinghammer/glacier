@@ -12,7 +12,7 @@ export class ListAuthUsersQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  public ['page[number]']?: number = 1;
+  public ['page[number]']: number = 1;
 
   @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 20 })
   @Type(() => Number)
@@ -20,7 +20,7 @@ export class ListAuthUsersQueryDto {
   @IsInt()
   @Min(1)
   @Max(100)
-  public ['page[size]']?: number = 20;
+  public ['page[size]']: number = 20;
 
   @ApiPropertyOptional({ enum: AUTH_USER_STATUS })
   @IsOptional()

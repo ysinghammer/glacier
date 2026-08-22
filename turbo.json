@@ -8,6 +8,14 @@
     "lint": {
       "dependsOn": ["^lint"],
       "outputs": []
+    },
+    "test": {
+      "cache": false,
+      "outputs": []
+    },
+    "coverage:e2e": {
+      "cache": false,
+      "outputs": ["coverage/**"]
     }
   }
 }

@@ -111,8 +111,8 @@ export class UsersController {
   @ApiBadRequestResponse({ type: ApiErrorResponseDto })
   public async list(@Query() query: ListAuthUsersQueryDto): Promise<PaginatedAuthUsersResponseDto> {
     // Extract query parameters with defaults
-    const pageNumber = query['page[number]'] ?? 1;
-    const pageSize = query['page[size]'] ?? 20;
+    const pageNumber = query['page[number]'];
+    const pageSize = query['page[size]'];
     const filterStatus = query['filter[status]']?.toLowerCase();
     const filterQuery = query['filter[q]'];
     const sort = query.sort;
