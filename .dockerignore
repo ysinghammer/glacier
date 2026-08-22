@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+.turbo
+**/node_modules
+**/dist
+tests/test-results
+tests/playwright-report
+tests/blob-report
+infrastructure/postgres
