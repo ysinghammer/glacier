@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "esnext",
+    "skipLibCheck": true,
+    "strict": true,
+    "types": ["@types/node", "@playwright/test"]
+  },
+  "include": ["./playwright.config.ts", "src/**/*.ts"]
+}

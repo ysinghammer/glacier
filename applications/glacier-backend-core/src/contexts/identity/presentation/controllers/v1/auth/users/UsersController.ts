@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -111,8 +112,8 @@ export class UsersController {
   @ApiBadRequestResponse({ type: ApiErrorResponseDto })
   public async list(@Query() query: ListAuthUsersQueryDto): Promise<PaginatedAuthUsersResponseDto> {
     // Extract query parameters with defaults
-    const pageNumber = query['page[number]'] ?? 1;
-    const pageSize = query['page[size]'] ?? 20;
+    const pageNumber = query['page[number]'];
+    const pageSize = query['page[size]'];
     const filterStatus = query['filter[status]']?.toLowerCase();
     const filterQuery = query['filter[q]'];
     const sort = query.sort;
@@ -171,6 +172,10 @@ export class UsersController {
   ): Promise<AuthUserResponseDto> {
     // Extract attributes from the JSON:API formatted request
     const attributes = body.data.attributes;
+
+    if (body.data.id !== params.userId) {
+      throw new BadRequestException('Resource ID must match the route parameter.');
+    }
 
     // Map API status enum to lowercase string for application layer
     const status = attributes.status?.toLowerCase();
