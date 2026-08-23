@@ -5,5 +5,6 @@
     <flags>
       <entry key="fix_kind" value="DANGEROUS_FIX_OR_SUGGESTION" />
     </flags>
+    <option name="typeAware" value="true" />
   </component>
 </project>

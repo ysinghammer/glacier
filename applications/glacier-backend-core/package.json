@@ -3,11 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nest build",
-    "lint": "oxlint .",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "start": "node --watch dist/Application.bootstrap.mjs",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate"
@@ -18,7 +16,7 @@
     "@nestjs/core": "^11.2.1",
     "@nestjs/cqrs": "^11.0.3",
     "@nestjs/platform-express": "^11.2.1",
-    "@nestjs/swagger": "^11.4.6",
+    "@nestjs/swagger": "^11.4.7",
     "@nestjs/terminus": "^11.1.1",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
@@ -29,15 +27,13 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.24",
-    "@swc/cli": "^0.8.1",
-    "@swc/core": "^1.16.0",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
-    "@types/pg": "^8.21.0",
+    "@types/pg": "^8.23.1",
     "dotenv": "^17.4.2",
     "prisma": "^7.9.1",
+    "tsdown": "^0.22.14",
     "tsx": "^4.23.12",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }

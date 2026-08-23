@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -171,6 +172,10 @@ export class UsersController {
   ): Promise<AuthUserResponseDto> {
     // Extract attributes from the JSON:API formatted request
     const attributes = body.data.attributes;
+
+    if (body.data.id !== params.userId) {
+      throw new BadRequestException('Resource ID must match the route parameter.');
+    }
 
     // Map API status enum to lowercase string for application layer
     const status = attributes.status?.toLowerCase();
