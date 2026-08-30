@@ -104,6 +104,12 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/glacier-schema:
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   tests:
     devDependencies:
       '@playwright/test':
