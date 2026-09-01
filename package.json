@@ -1,7 +1,7 @@
 {
   "name": "@glacier/workspace",
   "private": true,
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@11.25.0",
   "scripts": {
     "prepare": "husky",
     "build": "turbo run build",
