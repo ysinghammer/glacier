@@ -1,20 +1,11 @@
+# =================================================================================================
 # OSX
+# =================================================================================================
 .DS_Store
 
-# NPM
-node_modules/
-
-# Build
-applications/*/dist/
-.turbo/
-
-# Test artifacts
-coverage/
-
-# Infrastructure
-infrastructure/postgres/
-
-# IDE
+# =================================================================================================
+# IntelliJ
+# =================================================================================================
 .idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
@@ -30,10 +21,3 @@ infrastructure/postgres/
 .idea/**/dbnavigator.xml
 .idea/**/mongoSettings.xml
 .idea/httpRequests
-
-# Playwright
-tests/test-results/
-tests/playwright-report/
-tests/blob-report/
-tests/playwright/.cache/
-tests/playwright/.auth/
