@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="JavaScriptLibraryMappings">
-    <file url="file://$PROJECT_DIR$" libraries="{Node.js Core}" />
+    <excludedPredefinedLibrary name="glacier/applications/glacier-backend-core/node_modules" />
+    <excludedPredefinedLibrary name="glacier/packages/glacier-schema/node_modules" />
+    <excludedPredefinedLibrary name="glacier/tests/node_modules" />
   </component>
 </project>
