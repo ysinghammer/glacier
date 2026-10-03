@@ -3,6 +3,10 @@ name: implementation-commit
 description: Format and split implementation commits by package using Conventional Commits and Semantic Versioning. Use whenever preparing or creating commits in this monorepo.
 ---
 
+Follow `.docs/Architecture/Decisions/ADR-0006-Workflow.md`. Obtain explicit commit authorization after implementation
+and applicable local verification; plan approval does not authorize commits. Resolve applicable pre-commit failures
+without bypassing hooks. Commit authorization does not authorize pushing, opening a PR, or merging.
+
 Before committing, identify the package that owns each changed file. Use the package's declared name as the commit scope, or `workspace` for changes to the monorepo itself, such as root configuration, global documentation, and shared CI. Do not use `workspace` for a package change merely because it affects other packages.
 
 Write each commit subject as `<type>(<scope>): <imperative summary>`. The scope is required and must be **exactly one** package name or `workspace`; do not combine package names in one scope. Choose the type and release impact according to Conventional Commits:
