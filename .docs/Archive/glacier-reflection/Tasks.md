@@ -15,6 +15,32 @@ it does not restore that document's unverified implementation evidence.
 
 ## Observed baseline and dispatch rules
 
+### Current CI recovery baseline — 2026-10-04
+
+Execution is reopened in the archived location under [P-009 and dated approval](Plan.md#approval); no unarchive move
+is authorized. At recovery discovery `feature/glacier-reflection` was clean, HEAD and locally recorded origin/main
+both `59cb74352652286db9138838d3ae72b742a3aa92`. Git confirms that commit exists; the user committed/pushed outside
+the earlier agent turn. This does not establish a PR, human acceptance, merge method or GitHub delivery.
+All older baselines, successful checks, blockers and ready statements below are fixed-attempt history;
+only this baseline, renewed task statuses and the remaining Execution sequence govern current dispatch.
+No fresh main fetch, clean-install test success or passing remote CI is claimed by this document worker.
+
+Read-only GitHub inspection confirmed [run 37233544344](https://github.com/ysinghammer/glacier/actions/runs/37233544344)
+is a failed push run at that SHA. Its `pnpm check` fails at `@glacier/reflection:test:prepare`:
+`ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL: Command "vite" not found`, followed by
+`Distribution preparation failed: exec vite build --config <consumer>/vite.config.mjs`.
+The package manifest declares only the four previously approved test devDependencies; lockfile Vite 8.3.2 is
+transitive, not a declared CLI dependency. Earlier populated-install local checks did not prove this clean boundary.
+
+T-004 recovery documentation, T-007 attempt 3, T-021 attempt 3 and T-022 attempt 3 are complete.
+Clean-install verification and fixed-snapshot manual review establish local recovery readiness only.
+Historical T-020/T-023 completion remains retained;
+T-020's old fetch is not fresh-main evidence, and T-023's archived location is not delivery.
+T-024 through T-029 remain pending for the recovery revision: old “None” evidence records do not deny the observed
+user commit/push, but no previous PR/hook/acceptance/merge history is reconstructed without authoritative evidence.
+Future commit/publication/current-main/remote-check/human/merge permissions must be obtained separately.
+Failures block dependent dispatch; any needed path expansion or behavior/design change stops for approval.
+
 The original 2026-10-04 drafting authorization created this file fresh on `feature/glacier-reflection` while
 preserving the then-staged deletion. That historical observation is not the current working-tree state.
 T-004 attempt 1 observed a clean checkout on the same approved in-flight branch at `98ebe5b` before edits.
@@ -133,6 +159,19 @@ independent verification, not artificial failure; later type behavior changes re
   No installation, code checks, staging, commit, fetch, branch switch or ADR update is claimed.
 - Blocker: None for T-004. Additional direct dependencies, pin substitutions or material design/ADR conflicts
   still require separate approval; supported runtime/dependency/harness availability remains unverified.
+- Recovery prerequisite attempt 2 / W-003-CI-D / 25.1, 2026-10-04: One fresh bounded documentation worker,
+  no recursive delegation, sole Plan/Tasks and dependency-note writer. Read guidance, all accepted active
+  ADR-0001 through ADR-0008, archived Brief/Plan/Tasks, actual story inventory and architecture/tooling guidance.
+  Confirmed clean starting branch/HEAD above and read the failed run's actual log. Invoked documentation-plan,
+  document-tasks, implementation-branching for explicitly approved in-flight adoption and review-adr-conformance.
+  The actual dependency/recovery decision belongs only in [Plan approval](Plan.md#approval).
+  Aligned both dependency notes with the exact package-local Vite 8.3.2 development distribution-verification
+  scope, preserving frontend application/Storybook scopes and all unrelated dependency/testing boundaries.
+  Specified P-009, clean isolated frozen-install gates and serialized recovery waves without changing Brief/API.
+  This attempt changes only Plan.md, Tasks.md and the two dependency notes; no install, code/manifest/lockfile
+  change, branch/ref/index mutation, commit, push or claimed fresh runtime/CI pass.
+  Documentation format/link/DAG/coverage/conformance checks are recorded in the completed recovery wave below.
+- Current recovery blocker: None for the documented dependency prerequisite; T-007 attempt 2 is ready.
 
 ### T-005 - Record catalog and application-E2E applicability
 
@@ -207,7 +246,7 @@ independent verification, not artificial failure; later type behavior changes re
 
 - Status: done
 - Source: [P-002](Plan.md#implementation-steps), [Validation](Plan.md#validation); AC-026; ADR-0001/ADR-0005.
-- Dependencies: T-006.
+- Dependencies: T-006, T-004.
 - Completion condition: Activate Node 24.21.0 session-locally and pnpm 11.9.0 without modifying global Node.
   Add only approved package-local development pins and update the lockfile through pnpm; restore dependencies only
   following manifest changes or missing-tool failures. Add root test/check routing through Turbo with build,
@@ -266,6 +305,60 @@ independent verification, not artificial failure; later type behavior changes re
   stable task evidence. Harness verification remains explicitly T-008, not an inferred passing test suite.
 - Blocker: None for completed T-007 installation/wiring. Full test/check acceptance remains blocked by absent
   scenarios and unproved executable/combined overall/per-file coverage controls; T-008 is ready for a fresh bounded worker.
+- Recovery obligation (attempt 2, retained for attempt 3): The historical wiring/install results above remain genuine history, not
+  clean-CI proof. P-009 and T-004 now authorize only `vite` exactly 8.3.2 as a package-local devDependency in
+  L package.json and pnpm-generated pnpm-lock.yaml importer changes. Preserve scripts and real bundle assertions;
+  do not edit root manifest, CI, source, tests, exports, thresholds or other dependencies.
+  Activate Node 24.21.0/pnpm 11.9.0; after the manifest change use pnpm to update the lockfile and verify the
+  exact direct pin/CLI and preparation path. Sole S writer records exact changes/commands/results.
+  No artificial API red is required for this tooling correction; failed run above is the observed tooling failure.
+- Current recovery completion condition: Approved direct pin and consistent pnpm-generated lockfile are present,
+  only allowed manifest/lock/S paths changed, and targeted dependency/CLI/preparation checks pass with actual results.
+  Clean installation and complete verification remain T-021, not inferred from this worker's populated checkout.
+- Attempt 2 dispatch blocker at documentation handoff: None; not yet attempted at that handoff.
+- Recovery attempt 2 / W-026, 2026-10-04: Fresh bounded worker stopped because the populated checkout
+  already exposed the transitive Vite CLI. No manifest/lockfile change, installation or Git mutation occurred.
+  Retained R/implementation/baseline.json (197 file hashes and index hash) and baseline-cli.log:
+  `vite/8.3.2 darwin-arm64 node-v24.21.0`. This local masking observation is not clean-install evidence
+  and does not negate the observed CI regression. The attempt's STOP remains historical, not a design blocker.
+- Recovery attempt 3 / W-026, 2026-10-04: One fresh bounded worker, no recursive delegation, sole S writer.
+  Before implementation rechecked all 197 baseline hashes unchanged, empty staged diff, branch
+  `feature/glacier-reflection` and HEAD `59cb74352652286db9138838d3ae72b742a3aa92`.
+  T-006 and renewed T-004 are done; existing approval covers exact package-local development Vite 8.3.2.
+  Read-only `gh run view 37233544344 --repo ysinghammer/glacier --log-failed` confirms the failed
+  `@glacier/reflection#test:prepare` prerequisite during `pnpm check`. The already-observed
+  `Command "vite" not found` CI failure is valid tooling-regression evidence; it is not claimed as locally
+  reproduced or public-API red. No artificial runtime/type failure is required for this tooling-only fix.
+  Revised the serial remaining sequence to attempt 3 with unchanged one-worker ownership; T-021 remains a
+  separate fresh worker for isolated frozen-install proof.
+  Used the existing session-local runtime PATH; `node --version` returned v24.21.0 and
+  `pnpm --version` returned 11.9.0. `HUSKY=0 pnpm --filter @glacier/reflection add --save-dev --save-exact
+vite@8.3.2` exited 0, managing the manifest/lockfile and installation with pnpm after the approved manifest
+  addition. Husky reported `HUSKY=0 skip install`; no global runtime or Git configuration change.
+  Exact authored delta: package devDependencies adds only `"vite": "8.3.2"`; lockfile adds only that importer
+  specifier/version pointing to existing `8.3.2(@types/node@24.19.1)(yaml@2.9.1)`. No package/snapshot
+  resolutions, other pins, root dependencies, runtime dependencies or scripts changed.
+  `pnpm --filter @glacier/reflection list --depth 0` confirmed the five approved direct development pins;
+  `pnpm --filter @glacier/reflection exec vite --version` returned
+  `vite/8.3.2 darwin-arm64 node-v24.21.0`, exit 0.
+  `pnpm exec turbo run build test:prepare --filter @glacier/reflection --force` exited 0 with 3/3 tasks
+  genuinely executed, including root/library builds and fixture/distribution preparation.
+  Real Vite 8.3.2 transformed 19 modules and emitted the unchanged side-effect-retention consumer's
+  `tests/artifacts/t017/attempt2/consumer/bundle/retained.js`; the existing generated path comes from the
+  preserved preparation script, not a newly authored test or changed contract.
+  Logs are retained under R/implementation/attempt3: pnpm-add.log, dependencies.log, vite-version.log,
+  build-prepare.log and ci-regression.log. The latter preserves the exact observed missing-CLI error,
+  consumer Vite config path and failed preparation prerequisite from GitHub.
+  This populated-install success does not prove isolated frozen-install behavior, full tests/coverage,
+  current-main freshness, remote CI/Snyk, human acceptance or Git authorization.
+  `pnpm exec turbo run lint:root format-check:root lint format-check --force` exited 0 with 4/4 uncached
+  root/library style tasks; `git diff --check` passed. Final protected-state verification compares the actual
+  index-file checksum (not a checksum of `git ls-files` text) against attempt 2's retained baseline:
+  all 194 protected tracked file hashes, index, HEAD and branch are unchanged; only the three authorized
+  authored paths differ. Task validation retains 29 stable records, acyclic dependencies and eight remaining
+  serial waves with exact task coverage. No stage/commit/fetch/push/branch mutation occurred.
+- Current recovery attempt 3 blocker: None. T-021 is ready for a separate fresh bounded worker under W-027;
+  it must prove the isolated clean frozen-install/full gates. Attempt 2's local masking remains historical.
 
 ### T-008 - Demonstrate executable harness and coverage negative controls
 
@@ -1794,7 +1887,7 @@ tests/artifacts/t018/attempt2/consumer/tsconfig.examples.json`: exit 0 (copied-e
 
 - Status: done
 - Source: [P-008 and validation](Plan.md#validation); AC-026; ADR-0001/ADR-0003/ADR-0005/ADR-0007.
-- Dependencies: T-020, T-019.
+- Dependencies: T-020, T-019, T-007.
 - Completion condition: On Node 24.21.0/pnpm 11.9.0, run `pnpm check` and explicit fresh
   `pnpm exec turbo run test --force`. Lint, formatting, build, independent type contracts, real fixtures,
   root catalog/tooling regressions and complete Node/Chromium library runtime tests pass.
@@ -1915,6 +2008,84 @@ tooling-check:root lint format-check type-check build --force`, exit 0, **10/10 
   Node/Chromium coverage; T-022 must review this fixed revision rather than relabel attempt1 evidence as fresh.
 - Blocker: None for T-021 attempt2; T-022 attempt2 is dependency-ready for separate fresh manual review.
   Closure authorization, commits, publication, CI/Snyk, human acceptance and merge remain separate unmet gates.
+- Current recovery renewal (attempt 3): P-009 requires an isolated session-files snapshot of the corrected
+  current working revision, without copied node_modules/dist/.turbo/test artifacts. Own only S as an authored
+  repository write; own the unique `R/clean-workspace/` snapshot and `R/verification/` reports defined below
+  for installation/generated outputs and Node/Chromium
+  resources. Never use `/tmp`, destroy user node_modules or write authored fixes during validation.
+  Use Node 24.21.0/pnpm 11.9.0, `HUSKY=0 pnpm install --frozen-lockfile` with unchanged lockfile,
+  pinned Chromium-only installation (workflow `--with-deps` where supported), library `test:prepare`,
+  `pnpm check`, `pnpm exec turbo run test --force`, and the forced non-test root/library gates in P-009.
+  Verify exact direct Vite 8.3.2, preserve real side-effect bundle assertions, 100% overall/per-file V8,
+  independent generated-root contracts and root tooling/catalog regressions. Retain snapshot/revision hashes,
+  exact commands/versions/exits/reports and failures; local CI-equivalent passes do not establish remote CI/Snyk.
+- Evidence (recovery attempt 3 / W-027, 2026-10-04): One fresh bounded nonrecursive worker; sole S writer,
+  with implementation-verification, document-tasks and approved in-flight implementation-branching adoption.
+  P-009 approval applies on unchanged `feature/glacier-reflection`, HEAD
+  `59cb74352652286db9138838d3ae72b742a3aa92`. No original installation, source, manifest, lockfile,
+  dependency note, index, ref or branch was changed; no fetch, staging, commit, push or remote rerun occurred.
+  Read guidance, all eight accepted active ADRs, archived story and exact serialized recovery sequence.
+  `R/verification/baseline.json` captures 197 current authored files and Git index/HEAD/branch identities.
+  Copied those exact working files into initially absent `R/clean-workspace`, excluding all
+  node_modules/dist/.turbo/tests/artifacts and .git. All 197 isolated authored hashes remained unchanged
+  after every gate; original 196 non-S hashes (including manifest/lock) remain protected.
+  Manifest SHA-256 `f30321f237b7173bb5dd4903fab7cd8c053e1b67076b100d58d46c8c4725b1a5`;
+  lock SHA-256 `61b1730726f14ab861ee49ccf09a61ca9fae21cdd13ee21b0b4dd2a592fa36e6`.
+  - Clean `HUSKY=0 pnpm install --frozen-lockfile`: exit 0; 81 packages installed into the new
+    snapshot, 81 package-store contents reused, no inherited node_modules or project bins.
+    Lock resolution skipped as up to date; unchanged manifest/lock hashes independently verified.
+    `R/verification/frozen-install.log` retains clean-start proof and Node **24.21.0** / pnpm **11.9.0**.
+    Only the existing approved Node binary distribution was copied to session-owned `R/runtime-node24`;
+    explicit PATH contains that runtime, Homebrew pnpm and OS bins, never original checkout bins.
+    `runtime-proof.log` proves direct declaration **8.3.2**, isolated Vite resolution and isolated
+    library `.bin/vite`; actual CLI reports **vite/8.3.2 darwin-arm64 node-v24.21.0**.
+  - `pnpm --filter @glacier/reflection exec playwright install chromium`: exit 0, Chromium only.
+    Existing supported macOS browser cache reused; native headless launch proves Chromium **153.0.8010.12**.
+    Logs `chromium-install.log`/`chromium-proof.log` retain executable/readiness.
+    Ubuntu `--with-deps` system-package installation is not applicable on this macOS host; no sudo,
+    global Node change or claim of Ubuntu execution.
+  - `pnpm exec turbo run test:prepare --force`: exit 0, **3/3**, zero cached; real compiler fixture,
+    independent copied distribution and Vite retained-side-effect bundle built (`clean-prepare.log`).
+  - Exact `pnpm check`: exit 0, **12/12**, two build cache hits from preceding preparation only;
+    complete real native tests execute uncached (`check.log`). No cache result substitutes for final gates.
+  - Exact `pnpm exec turbo run test --force`: exit 0, **6/6**, zero cached (`force-test.log`).
+    Repeated complete identical command solely to preserve raw V8 before runner cleanup:
+    exit 0, **6/6**, zero cached (`force-audited.log`, `force-audited-exit.json`).
+    Actual `results.json`: **570/570**, **285 per Node/Chromium**, 24 suite results; zero failed,
+    pending/todo/skipped or retry-only cases. Both full invocations pass without assertion retries.
+  - `pnpm exec turbo run lint:root format-check:root type-check:root build:root catalog-check:root
+tooling-check:root lint format-check type-check build --force`: exit 0, **10/10**, zero cached
+    (`forced-gates.log`). Lint, formatting, independent generated-root contracts, strict compiler fixtures,
+    builds, catalog validation and real workspace tooling regressions all pass.
+    Catalog is **0 criteria / 0 discovered specs, execution not-run**, not fabricated application acceptance.
+    Catalog's **34 rejection controls** and actual frozen-install/Turbo/strict-compiler/Husky fixtures pass.
+  - `coverage-audit.json` recomputes actual mapped counters: **52 production inclusions**, **17 executable /
+    35 erased**, **375/375 statements, 307/307 branches, 52/52 functions, 318/318 lines**.
+    Overall and every executable file are **100%**; unchanged V8 include/per-file thresholds.
+    `raw-v8/`, `raw-v8-identities.json` and `raw-script-identities.json` retain **23** original raw V8 reports,
+    each SHA-256 verified, with distinct native distribution and source identities.
+    `source-identities.json` and `source-map-audit.json` verify **52** actual generated source maps against
+    the exact snapshot sources; 35 legitimately empty erased maps are not described as runtime coverage.
+    No coverage output, source map, authored input or threshold was rewritten to obtain these results.
+  - Two diagnostic-only probes needed correction: an ESM `require` version inspection and an overstrict
+    audit expecting mappings in erased-type maps. Neither was a product/CI gate failure; corrected
+    import-based runtime proof and explicit erased-map validation pass. Native tests needed no recovery fix.
+    Existing Vite warnings remain unsuppressed. Session snapshot and reports are retained for T-022.
+  - Bounded manual applicability review confirms approved development-only Vite/P-009 scope, unchanged
+    dependency-free curated public root/inward boundaries, genuine independent distribution assertions,
+    type/runtime separation and unchanged Brief criteria. ADR-0001/0002/0003/0005/0006/0007/0008 remain
+    applicable; ADR-0004, React/Storybook and application/service Playwright/Testcontainers are not applicable
+    to this library-only recovery. Formal complete assertion/public-contract/ADR review is separately T-022;
+    passing catalog structure/coverage does not establish assertion quality or human acceptance.
+- Current recovery blocker: None for T-021 attempt3. W-028/T-022 attempt3 is dependency-ready for one
+  separate fresh worker at this fixed snapshot. Local clean-install CI-command equivalence is established,
+  not remote Ubuntu Actions/Snyk success: failed run `37233544344` was not rerun and is not claimed green.
+  Fresh-main inclusion is not established by a new fetch; publication/freshness/remote checks, commit permission,
+  human acceptance and merge remain separate unmet gates.
+- Final recovery evidence checks: Tasks-only Oxfmt write/check and whitespace validation pass.
+  `R/verification/final-validation.json` verifies all 196 original non-S hashes, all 197 isolated authored
+  hashes, unchanged index/HEAD/branch, 29 stable records, an acyclic DAG and exactly seven remaining
+  serial waves 28–34; W-027 is retained only as completed history, and W-028 is the next ready dispatch.
 
 ### T-022 - Review all ADRs, contracts and assertion quality
 
@@ -2072,6 +2243,72 @@ tooling-check:root lint format-check type-check build --force`, exit 0, **10/10 
 - Blocker: None for completed manual review. Historical attempt1/F-022-001 evidence remains intact.
   T-023 is dependency-ready but must await explicit archival/index/link authorization; no move is authorized.
   No stage, commit, push, remote CI/Snyk result or human acceptance is claimed; no further task executes here.
+- Current recovery renewal (attempt 3): Review the fixed corrected snapshot, all active ADRs, exact approved
+  development-only Vite scope, manifest/lock agreement, clean frozen installation, retained distribution assertions,
+  complete renewed T-021 reports and lasting-doc/link consistency. Historical review is not this revision's review.
+  Only S is an authored write; any generated review evidence stays in a distinct session-files review directory.
+- Evidence (recovery attempt 3 / W-028, 2026-10-04): One fresh bounded nonrecursive review worker, sole S
+  writer; invoked review-adr-conformance, document-tasks and approved in-flight implementation-branching.
+  Read AGENTS/Home, all eight accepted active ADRs, archived Brief/Plan/Tasks, dated P-009 approval,
+  dependency notes and actual six-file working diff. Approved branch remains `feature/glacier-reflection`,
+  HEAD `59cb74352652286db9138838d3ae72b742a3aa92`; the user's external commit/push is not inferred delivery.
+  Captured 197 authored hashes and actual index/HEAD/branch identities under R/review/baseline.json.
+  Independently matched all 196 non-S current authored files to the retained clean verification snapshot.
+  No source, test, compiler/configuration, CI, root API, script, coverage threshold or runtime dependency changed.
+
+  Root cause and correction are complete locally: unchanged DistributionContractPrepare invokes
+  `pnpm exec vite build` from the owning library, but the failed CI installation supplied Vite only transitively.
+  The earlier populated-install masked CLI observation remains a stopped historical attempt, not a failed
+  recovery design or fabricated API red. Exact approved direct development `"vite": "8.3.2"` now owns that CLI.
+  Semantic comparison proves the manifest otherwise identical to HEAD; literal lock comparison proves only
+  the three importer lines were added, with every other importer, package/snapshot resolution and pin unchanged.
+  No hoisting workaround, global binary dependency, runtime bundler, unsupported runtime or broader package scope.
+  Actual isolated CLI resolution stays beneath R/clean-workspace on Node 24.21.0 / pnpm 11.9.0.
+  Clean frozen installation preserves manifest/lock, real Vite transforms 19 modules, and unchanged native
+  Node/Chromium public assertions execute the side-effect-only retained bundle, type-only nonactivation,
+  real compiler emission, foreign-handler preservation and root-only/deep-import rejection.
+
+  Audited retained actual logs/results, not summary claims: `pnpm check` 12/12 (two preparation build
+  cache hits only); forced complete tests 6/6 uncached, 570/570 cases, 285 each Node/Chromium, 24 suite
+  results, no failed/pending/todo/skipped cases; forced non-test gates 10/10 uncached.
+  Independently recomputed coverage-final counters: 52 included production files, 17 executable/35 erased,
+  all-file/overall 100% at 375 statements / 307 branches / 52 functions / 318 lines.
+  Verified all 23 retained raw V8 SHA-256 identities and unchanged snapshot sources; erased contracts remain
+  independently type-checked rather than described as runtime-covered. Bundle/public assertions genuinely
+  establish observable behavior; percentages and catalog structure are not assertion-quality substitutes.
+  Retained log token/private-key-signature scan found none; no sensitive diagnostic contents are reproduced.
+  R/review/retained-audit.json preserves the independent fixed-snapshot observations.
+
+  **All-active-ADR outcomes for this recovery:**
+  - ADR-0001: conforming locally; explicitly approved development-only Vite pin and aligned workspace/frontend
+    scopes, supported Node/pnpm/Turbo and Chromium retained. Persistence/deployment technology is inapplicable;
+    remote Actions/Snyk remain separate unmet gates, not a local-green inference.
+  - ADR-0002: conforming; unchanged dependency-free curated root-only ESM/declarations, inward boundaries,
+    no library bootstrap or resource startup; intended compiler activation remains documented and asserted.
+  - ADR-0003: conforming; unchanged class-first/strict/JSDoc/error contracts, genuine passing retained Turbo
+    lint/format/type/build gates and scoped Tasks formatting. No source exceptions or suppressions introduced.
+  - ADR-0004: not applicable; non-React tooling-only recovery adds no JSX/components/hooks/Storybook.
+  - ADR-0005: conforming locally; unchanged meaningful package-root Node/Chromium/distribution assertions,
+    genuine per-file/overall V8 counters and separate erased types. Application/full-stack/Testcontainers
+    verification is inapplicable; macOS Chromium evidence is not Ubuntu execution.
+  - ADR-0006: conforming remaining-gate process; exact dated P-009 approval, fresh bounded workers, sole writer
+    and tooling-only exception to artificial public-API red. No new behavioral/type contract or criteria change.
+    Historical main inclusion is not fresh remote evidence; AI review is neither human acceptance nor delivery.
+  - ADR-0007: conforming; unchanged Brief AC-001 through AC-027 and library-only E2E/catalog inapplicability.
+    No fabricated application criteria or catalog execution; real implemented test links remain valid.
+  - ADR-0008: conforming; stable 29 task IDs, distinct document/approval ownership, acyclic DAG and serial
+    completed W-028 history; six remaining unique gates retain zero-worker human waits where applicable.
+
+  Final R/review/final-validation.json records 305 valid relative-file/anchor checks across Brief/Plan/Tasks
+  and both dependency notes, all 196 protected non-S hashes unchanged, unchanged actual index/HEAD/branch,
+  29 stable records, acyclic dependencies and exactly six remaining serial gates T-024 through T-029.
+  Tasks-only Oxfmt write/check and `git diff --check` pass; no fresh runtime/coverage execution is claimed.
+
+- Current recovery blocker: None for completed T-022 attempt3; no new defect/conflict found.
+  Local fix is review-ready, not accepted/merged. T-024 now awaits separate explicit commit permission;
+  publication, fresh-main integration/evidence, remote Actions/Snyk, human acceptance and merge remain pending.
+  Failed remote run 37233544344 was not rerun or claimed green. Original archive is pre-merge preparation.
+  No stage, commit, fetch, push, PR mutation or further task execution occurred.
 
 ### T-023 - Prepare archival, indexes and durable test links
 
@@ -2134,10 +2371,12 @@ tooling-check:root lint format-check type-check build --force`, exit 0, **10/10 
 
 - Status: pending
 - Source: [P-008](Plan.md#implementation-steps); ADR-0006 commit gate.
-- Dependencies: T-023.
+- Dependencies: T-023, T-022.
 - Completion condition: Obtain explicit user authorization to commit the verified closure-prepared changes,
   identify library versus workspace ownership and exclude unrelated work, including unapproved staged state.
-- Evidence: None. Fresh drafting and plan approval grant no commit permission.
+- Evidence: No recovery commit permission. HEAD `59cb743` and the failed main push are observed user activity,
+  not proof of an agent-created PR, previous hook results, human acceptance or merge.
+  Recovery plan approval grants no commit permission.
 - Blocker: Wait for separate explicit commit authorization; if declined stop this stage.
 
 ### T-025 - Create package-scoped commits with passing hooks
@@ -2903,24 +3142,60 @@ completed T-009 as recorded above; the historical failed attempt and repair are 
 | --------------------- | -------- | ------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | W-019 / 19, attempt 1 | T-023    | 1 fresh bounded worker; sole S writer | T-021/T-022 attempt2 done; explicit closure/archival authorization | Three reflection notes moved from Stories to Archive; Stories/Archive indexes; link-only repairs in ADR-0006, Engineering Guidelines/CI and package README; generated L tests/artifacts/t023/attempt1 | Real implemented-test links, preserved E2E/criteria/history, affected formatting/link/protected-state checks pass; T-024 permission wait |
 
+### CI recovery prerequisite completed wave
+
+| Wave/order        | Task association                      | Exact concurrent workers             | Prerequisites                                                                      | Owned files/resources                                                               | Observed outcome                                                                                              |
+| ----------------- | ------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| W-003-CI-D / 25.1 | T-004 recovery prerequisite attempt 2 | 1 fresh bounded documentation worker | Explicit recovery/Vite decision in Plan approval; failed run 37233544344 inspected | Archived Plan.md and S; Workspace Dependencies.md and Frontend Dependencies.md only | Exact Vite 8.3.2 development scope approved/documented; no implementation/install/Git action or fresh CI pass |
+
+ADR-conformance for this document recovery: ADR-0001 conforms through explicit exact dependency approval and
+bounded tables; ADR-0002 conforms through unchanged root-only dependency-free runtime API; ADR-0003 conforms
+through documentation formatting with no code-style change; ADR-0004 is not applicable (no React).
+ADR-0005 conforms through preserved library-only public contracts, genuine bundling assertions, Chromium-only
+and unchanged coverage/type gates; their fresh execution is pending, not waived. ADR-0006 conforms through
+approved in-flight recovery, separate Git permissions and honest failed-CI/user-commit history.
+ADR-0007 conforms through unchanged criteria and explicit library-only E2E/catalog inapplicability.
+ADR-0008 conforms through stable IDs, preserved history, distinct approval ownership, sole writer and acyclic waves.
+Documentation validation only: formatting, relative links/anchors, task DAG/remaining-wave coverage and
+`git diff --check`; no runtime/type/coverage or clean-install success is asserted.
+Observed checks passed: existing `node_modules/.bin/oxfmt --write` then `--check` on the four authorized notes,
+and `git diff --check`. The shell is Node 25.5.0; these are documentation-format checks, not supported-Node
+implementation validation. An inline python3 validator confirmed 29 stable task records, an acyclic DAG,
+nine remaining tasks exactly once in increasing numbered serial waves, human zero-worker waits, all 27
+criterion mappings and T-007 attempt2 prerequisite readiness. It checked 288 existing relative file/anchor links;
+pre-existing absent ignored evidence artifacts remain historical references, not newly fabricated outputs.
+Only the four authorized notes are dirty; HEAD/branch remain unchanged. No installation or Git mutation occurred.
+
+### CI tooling recovery completed wave
+
+| Wave/order            | Task IDs | Exact concurrent workers              | Prerequisites                                                                   | Owned files/resources                                                                                                                | Observed outcome                                                                                                                             |
+| --------------------- | -------- | ------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| W-026 / 26, attempt 3 | T-007    | 1 fresh bounded worker; sole S writer | T-006 and renewed T-004 done; P-009 approval; all 197 baseline hashes rechecked | L package.json, pnpm-lock.yaml, S only authored writes; R/implementation/attempt3 logs; existing generated build/preparation outputs | Exact Vite 8.3.2 development pin/importer; CLI and forced build/preparation passed; separate clean-install/full verification remains T-021   |
+| W-027 / 27, attempt 3 | T-021    | 1 fresh bounded worker; sole S writer | T-007 attempt3 done; P-009 approval; retained T-019/T-020 history               | S only authored write; R/clean-workspace, R/verification and approved session-local Node binary resources                            | Clean frozen install, exact isolated Vite 8.3.2, complete 570/570 native tests and genuine 100% gates pass; T-022 ready; remote CI not rerun |
+| W-028 / 28, attempt 3 | T-022    | 1 fresh bounded worker; sole S writer | T-021 attempt3 done; P-009 approval; fixed snapshot verified                    | S only authored write; R/review only generated writes; all implementation, isolated snapshot and verification evidence read-only     | No new findings; exact direct development CLI/importer fix and retained clean gates audited; T-024 permission gate; no remote green claim    |
+
 ## Execution sequence
 
 `L` below means exactly `packages/libraries/glacier-reflection`. `S` means exactly
 `.docs/Archive/glacier-reflection/Tasks.md`, the current single-writer evidence resource.
+`R` means exactly `/Users/ysinghammer/.copilot/session-state/5fb6ccbd-4cdf-451a-9414-fbda3eb153fd/files/glacier-reflection-ci-recovery`.
+Each worker owns only its specified R child directory, not other session files. At dispatch confirm availability
+and exclusive ownership; if the execution host differs, a fresh document worker must revise this exact resource
+before dispatch rather than silently substitute a path.
 Completed historical waves used `.docs/Stories/glacier-reflection/Tasks.md` before authorized T-023 archival;
 their original commands and ownership paths remain historical evidence, not live relative links.
 Directory scopes include only task-relevant files under that directory, not permission for arbitrary additions.
 Future source/test paths below remain plain code; T-009's authored public-contract suites are linked in its evidence.
 All prerequisite IDs must be completed before dispatch; a whole-wave barrier applies.
 
-| Wave/order | Task IDs | Exact concurrent workers                                      | Prerequisites                                                                 | Owned files/resources                                                                                                                       | Concurrency rationale                                                           |
-| ---------- | -------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| W-020 / 20 | T-024    | 0 while waiting; fresh 1 after authorization for verification | T-023                                                                         | Read-only verified diff/Git state; archived Tasks.md authorization evidence                                                                 | Human decides commit permission, worker verifies scope only                     |
-| W-021 / 21 | T-025    | 1                                                             | T-024                                                                         | Authorized story changes only, Git index/commits, Husky/lint-staged resources; archived Tasks.md                                            | Single Git writer; hooks never bypassed                                         |
-| W-022 / 22 | T-026    | 0 while waiting; fresh 1 after authorization for verification | T-025; explicit publication permission                                        | Story branch remote push; one GitHub PR targeting main; archived Tasks.md evidence                                                          | Separate human publication gate and serialized remote mutation                  |
-| W-023 / 23 | T-027    | 0 while waiting; fresh 1 after authorization for verification | T-026; owner-provided scans/checks and any correction commit/push permissions | Git refs/authorized story-owned conflicts or fixes, same PR/review threads, Actions/Snyk readout; root/L check artifacts; archived Tasks.md | Serial freshness/feedback loop; CI service jobs are not concurrent task workers |
-| W-024 / 24 | T-028    | 0 while waiting; fresh 1 after authorization for verification | T-027; exact-revision human acceptance and merge permission                   | Read-only current PR SHA/checks/criteria; archived Tasks.md decision evidence                                                               | Human acceptance is not agent approval                                          |
-| W-025 / 25 | T-029    | 1                                                             | T-028; unchanged SHA, passing checks, fresh main inclusion                    | Read-only Git freshness; GitHub merge-commit operation and confirmation for same PR into main                                               | One authorized merge worker; stop on stale revision; no post-merge note commit  |
+| Wave/order | Task IDs | Exact concurrent workers                                      | Prerequisites                                                                               | Owned files/resources                                                                                                                             | Concurrency rationale                                                                                |
+| ---------- | -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| W-020 / 29 | T-024    | 0 while waiting; fresh 1 after authorization for verification | T-023 historical closure and renewed T-022 done                                             | Read-only verified diff/Git state; S authorization evidence                                                                                       | Separate permission for recovery commits; observed user commit/push is not permission                |
+| W-021 / 30 | T-025    | 1 fresh bounded worker                                        | T-024 done                                                                                  | Only explicitly authorized recovery paths: L package.json, pnpm-lock.yaml, archived Plan.md, S, the two dependency notes; Git index/commits/hooks | One Git writer; exclude unrelated work, stop for needed corrections outside scope                    |
+| W-022 / 31 | T-026    | 0 while waiting; fresh 1 after authorization for verification | T-025; explicit publication permission                                                      | Story branch push; one verified existing/new PR targeting main; S evidence                                                                        | Verify actual PR state rather than infer delivery from main commit; serialize remote mutations       |
+| W-023 / 32 | T-027    | 0 while waiting; fresh 1 after authorization for verification | T-026; explicit fetch permission, owner scans/checks and correction commit/push permissions | Git refs/current-main inclusion; same verified PR/Actions/Snyk readout; S; R/remote-renewal for generated checks                                  | Fresh-main integration requires separate scope/permission; changed head renews checks and acceptance |
+| W-024 / 33 | T-028    | 0 while waiting; fresh 1 after authorization for verification | T-027; exact-revision human acceptance and merge permission                                 | Read-only PR SHA/checks/criteria; S decision evidence                                                                                             | Human acceptance is not agent approval                                                               |
+| W-025 / 34 | T-029    | 1 fresh bounded worker                                        | T-028; unchanged SHA, passing checks and authorized fresh main inclusion                    | Read-only freshness; verified PR's GitHub merge-commit operation/confirmation into main                                                           | Stop on stale or absent PR; no invented historical delivery or post-merge note commit                |
 
 Reverification is not a cyclic dependency: failures or a changed PR revision invalidate affected task evidence,
 and a designated writer revises the remaining sequence with fresh attempts for the same IDs before dispatch.

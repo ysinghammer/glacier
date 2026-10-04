@@ -12,6 +12,23 @@ implementation is authorized within the [approval record](#approval).
 
 ## Approach
 
+### Bounded CI recovery
+
+Reopen execution of this archived story on the existing `feature/glacier-reflection` branch; retain its archived
+location and unchanged Brief.md AC-001 through AC-027. The 2026-10-04 recovery approval below adds only package-local
+development `vite` **8.3.2** for the existing independent distribution side-effect-retention bundle.
+Keep the real bundling assertions, package-root API, runtime dependency-free distribution and coverage gates unchanged.
+Declare the CLI directly rather than rely on transitive binary exposure, remove bundling assertions, or introduce
+a runtime bundler. Vite 8.3.2 already exists transitively in pnpm-lock.yaml; that does not make its CLI an approved
+or reliably executable direct package dependency.
+
+The failed main push [Actions run 37233544344](https://github.com/ysinghammer/glacier/actions/runs/37233544344)
+at `59cb74352652286db9138838d3ae72b742a3aa92` reached `@glacier/reflection:test:prepare` and failed with
+`ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL: Command "vite" not found`.
+`DistributionContractPrepare.ts` invokes `pnpm exec vite build --config <consumer>/vite.config.mjs`.
+The recovery changes only the library manifest and its lockfile importer after dependency-note alignment.
+No public behavior changes require artificial API red; retain the observed CLI failure as tooling-failure evidence.
+
 Implement one independently usable, technology-neutral library with npm identity `@glacier/reflection` at
 `packages/libraries/glacier-reflection`. Expose native ESM JavaScript and TypeScript declarations through a single
 package-root `index.ts`, compiled to `dist/index.js` and `dist/index.d.ts`. The export map exposes only `"."`;
@@ -669,6 +686,17 @@ Root composition must invoke the installation adapter; the domain must not depen
 
 ## Implementation steps
 
+- **P-009 - Recover clean-install distribution tooling:** After the dated recovery/dependency approval and
+  dependency-note alignment, retry T-007 with only package-local `vite` 8.3.2 and pnpm-generated lockfile changes.
+  Validate the existing preparation/bundle contract, then renew T-021 in an isolated clean workspace with no copied
+  node_modules or prior build/test/Turbo artifacts. Use Node 24.21.0 and pnpm 11.9.0, `HUSKY=0 pnpm install
+--frozen-lockfile`, Chromium-only installation, package `test:prepare`, `pnpm check`, explicit
+  `pnpm exec turbo run test --force`, and the forced root/library non-test gates specified in Validation.
+  Renew fixed-revision all-ADR/manual review in T-022. Serialize all writers and generated resources as Tasks.md
+  specifies. Stop after any failed prerequisite; do not delete or replace the user's node_modules, weaken
+  assertions, or broaden implementation paths. Dependencies: P-001 approval and retained P-002/P-007 design;
+  this is a retry/verification renewal, not a prerequisite cycle back into historical implementation.
+
 - **P-001 - Confirm design and prerequisites:** Obtain explicit joint approval of this plan and AC-001 through AC-027,
   including the brief's constructor-only annotation and instance-lookup boundaries.
   Record dependency decisions and required documentation-scope updates; create execution tasks and index the story
@@ -775,6 +803,20 @@ with observable cleanup failures. No production logging is needed; typed outcome
 to callers without duplicating logs or disclosing input values.
 
 ## Validation
+
+For P-009, reproduce the clean CI installation boundary, not just the previously populated development checkout.
+An isolated snapshot of the approved working revision must include the corrected manifest/lockfile and documentation,
+exclude existing node_modules/dist/.turbo/test artifacts, and install with `--frozen-lockfile` without changing the lockfile.
+Use a unique session-owned workspace beneath the session's `files/` resource; never `/tmp` and never destructive
+cleanup of user-owned installations. Retain snapshot hashes, exact versions/commands, exit codes and new reports.
+CI-equivalent quality verification includes the workflow's Chromium-only install and `pnpm check`; additionally run
+fresh `pnpm exec turbo run test --force` and
+`pnpm exec turbo run lint:root format-check:root type-check:root build:root catalog-check:root tooling-check:root
+lint format-check type-check build --force`.
+All existing distribution/bundle sensitivity, independent types, root regressions and complete Node/Chromium
+100% coverage remain required. Historical local passes are not clean-install proof or a fresh remote CI pass.
+Platform-specific Chromium installation prerequisites must be reported honestly; remote Actions/Snyk are independent
+publication-stage evidence, not satisfied by this local recovery.
 
 All runtime tests import the package-root API. Tests must not import implementation files, mock modules, inspect
 private state, or export implementation helpers for coverage. Real compiler fixtures are test-owned inputs compiled
@@ -916,13 +958,16 @@ testing, and does not require a Testcontainers application stack.
 
 On 2026-10-04 the user approved native ESM/ES2023, Node 24 LTS, Chromium-only browser verification, no runtime dependencies,
 and package-local development pins `vitest` 5.0.3, `@vitest/coverage-v8` 5.0.3,
-`@vitest/browser-playwright` 5.0.3, and `playwright` 1.63.0. Report conflicts rather than silently substituting tools.
+`@vitest/browser-playwright` 5.0.3, and `playwright` 1.63.0. The separately approved P-009 recovery adds
+`vite` 8.3.2 solely for non-React library distribution bundling verification.
+Report conflicts rather than silently substituting tools.
 
 The user approved extending browser-provider and Playwright scope to non-React library testing; update the lasting
 dependency notes before adding them. Vitest and its V8 coverage provider already have library-wide
 scope. Reuse existing workspace TypeScript/Node tooling; any additional direct dependency requires separate explicit
-approval. There is no requirement for `reflect-metadata`, a schema validator, React, Storybook, jsdom, a bundler
-dependency, or a DI package.
+approval. There is no requirement for `reflect-metadata`, a schema validator, React, Storybook, jsdom,
+a runtime bundler, or a DI package. Vite's approved direct development scope is limited to the existing
+distribution verification; it does not change production compilation or add frontend functionality.
 
 | Risk/prerequisite                                                               | Mitigation and approval boundary                                                                                                                                                                |
 | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -971,6 +1016,17 @@ Commit, PR publication, current-main review and confirmed merge follow ADR-0006 
 Package publishing, release, deployment and execution of a consuming application are not story completion gates.
 
 ## Approval
+
+On **2026-10-04**, after the failed main CI run was identified, the user explicitly selected
+**"Approve Glacier reflection recovery and Vite 8.3.2 (Recommended)"**. This authorizes bounded P-009 recovery:
+dependency-note alignment, package-local direct development `vite` exactly 8.3.2, pnpm-generated manifest/lockfile
+correction, isolated clean frozen-install/full verification and renewed manual review, on the current
+`feature/glacier-reflection` branch. Brief.md AC-001 through AC-027, public API, real distribution bundling assertions,
+no-runtime-dependency contract, Node 24.21.0/pnpm 11.9.0 and Chromium-only testing remain unchanged.
+Execution is reopened without moving archived notes. The user's already-existing main commit/push is not evidence
+of an agent-created PR, human acceptance or GitHub merge; no such delivery history is inferred.
+This approval grants no Git mutations, staging, commits, push/PR publication, merge, runtime Vite,
+other dependency additions or broader code/configuration changes.
 
 On 2026-10-04, after T-021 attempt2 and T-022 attempt2 completed corrected-revision local verification and
 manual review, the user explicitly selected **"Authorize closure preparation and story archival (Recommended)"**.
