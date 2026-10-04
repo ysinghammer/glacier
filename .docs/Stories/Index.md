@@ -30,6 +30,10 @@ approval until renewed; implementation corrections preserving approved behavior 
 - `documentation-brief` creates or revises the requirements contract.
 - `documentation-plan` creates or revises design and verification from a sufficiently settled brief.
 - `document-tasks` derives actionable records from a sufficiently concrete plan.
+- [implementation-develop](../../.github/skills/implementation-develop/SKILL.md) discovers and asks for story selection,
+  then orchestrates fresh bounded workers, never main-agent code/tests/fixes or direct repository edits. Tasks include
+  explicit numbered execution waves, exact concurrent worker counts, prerequisites, ownership, and concurrency rationale.
+  Ready independent scopes may run in parallel; shared task evidence serializes. Human waits use zero workers.
 
 There is no required `documentation-story` coordinator skill. Each skill edits only its document, verifies repository
 facts, and asks about decision-critical gaps. It flags contradictions and needed companion updates rather than silently
@@ -63,6 +67,8 @@ inapplicability, and describe applicable verification in `Validation`. Do not in
 
 ## Active stories
 
+- [Agent task orchestration](agent-task-orchestration/Brief.md) - documentation-only worker execution policy;
+  [plan](agent-task-orchestration/Plan.md) and [tasks](agent-task-orchestration/Tasks.md).
 - [Glacier reflection](glacier-reflection/Brief.md) - independent typed metadata library;
   [plan](glacier-reflection/Plan.md) and [tasks](glacier-reflection/Tasks.md).
 

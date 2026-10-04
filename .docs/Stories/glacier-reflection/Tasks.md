@@ -113,7 +113,7 @@ must not start merely because tests have been authored.
 
 ### T-006 - Scaffold package-local build and test configuration
 
-- Status: done
+- Status: pending
 - Source: P-002; AC-001/AC-026; ADR-0002/ADR-0003/ADR-0005.
 - Dependencies: T-003, T-004, T-005.
 - Completion condition: Establish `packages/libraries/glacier-reflection` with root-only side-effectful ESM export map,
@@ -129,7 +129,7 @@ must not start merely because tests have been authored.
 
 ### T-007 - Wire workspace, dependency installation and CI gates
 
-- Status: done
+- Status: pending
 - Source: P-002; [Validation](Plan.md#validation); ADR-0001/ADR-0005.
 - Dependencies: T-003, T-004, T-005.
 - Completion condition: The coordinator integrates approved manifests/lockfile and package script contracts, adds Turbo
@@ -146,7 +146,7 @@ must not start merely because tests have been authored.
 
 ### T-008 - Demonstrate executable harness and coverage negative controls
 
-- Status: done
+- Status: pending
 - Source: P-002; AC-026; ADR-0005 coverage and ADR-0006 test-first.
 - Dependencies: T-006, T-007.
 - Completion condition: On the declared runtime, demonstrate root-API runtime/type discovery, real decorator-fixture

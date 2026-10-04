@@ -20,6 +20,8 @@ Human acceptance may include maintainer self-review so a solo maintainer is not 
 Merge commits preserve package-scoped Conventional Commits, unlike squashing a multi-package story into one commit.
 
 The story document model and its authoring skills are defined by [ADR-0008](ADR-0008-Story-documentation.md).
+Fresh task workers and explicit execution waves separate implementation ownership from orchestration and make
+parallelism conditional on demonstrably independent scopes rather than task count alone.
 
 This workflow ends when GitHub confirms the PR merged into `main`. Releases, deployments, and continuous delivery are
 outside its scope.
@@ -51,6 +53,10 @@ are defined by [ADR-0008](ADR-0008-Story-documentation.md). The gates below appl
 
 ### Isolate the story
 
+- The explicitly user-approved documentation-only story `agent-task-orchestration` must exceptionally share
+  `feature/glacier-reflection` on 2026-10-04. This exception must not authorize branch switching, changes to the
+  existing dirty reflection `Tasks.md`, or general sharing of unrelated story branches. Its approval must be recorded
+  in that story's plan; remaining authorization gates must stay intact.
 - Before the first repository edit, including story documents, contributors must create one story branch from freshly
   fetched `origin/main`. Read-only discovery may precede branch creation. Subsequent tasks of the same story must reuse
   that branch; unrelated stories must not share it.
@@ -63,6 +69,29 @@ are defined by [ADR-0008](ADR-0008-Story-documentation.md). The gates below appl
 
 ### Implement and verify
 
+- Main agents executing stories must use `implementation-develop`: discover current open stories read-only and ask
+  the user which to execute even if only one exists. Archived unfinished work must be surfaced separately, not
+  represented as delivered. Approved requirements, plan, branch state, and a complete acyclic task sequence must be
+  verified before dispatch.
+- Main agents must remain orchestration-only: read-only inspection, user clarification/approval requests, dispatch,
+  coordination, and concise worker-report evaluation. They must never author code, tests, fixes, or directly edit
+  repository files during execution. Documentation, evidence/status updates, checks, fixes, closure, and authorized Git
+  operations must be delegated to bounded workers. Missing skills or delegation must block execution, not authorize
+  a main-agent implementation fallback.
+- Every task execution attempt, including retries and recovery, must receive a new worker/context; workers must not
+  be reused for another task or recursively delegate. Prompts must identify task IDs, sources/criteria, approved
+  design, dependencies and evidence, exact allowed write paths/resources, applicable skills, checks, and stop/failure
+  policy. Workers must not expand scope or perform unapproved Git operations.
+- Before dispatch, main agents must check prerequisite completion and wave readiness. Waves must follow ADR-0008's
+  explicit sequence with exact worker counts. Only ready tasks with independent file/resource scopes must run in
+  parallel. Global gates, manifests/lockfiles/root exports, shared documentation, and mutable resources must serialize
+  unless demonstrably isolated. Shared Tasks evidence must have one writer: serialize an evidence worker or task-worker
+  updates, never concurrent writes. Whole-wave barriers must be permitted.
+- Human gates must wait with zero workers; main agents must not approve on the user's behalf. Once authorized, a fresh
+  worker must verify/record the gate and perform only its separately authorized actions. Main agents must wait for
+  relevant reports, block dependents after failure, and dispatch fresh recovery attempts preserving stable task IDs
+  and attempt evidence. Runtime limitations may reduce concurrency through an explicit worker-authored sequence
+  revision, not increase it unsafely. Material design changes must return to approval.
 - Approved application/service criterion changes and required scenarios must enter
   [ADR-0007](ADR-0007-Acceptance-catalog.md)'s acceptance catalog before feature implementation. The story must
   preserve approved IDs, proposal rationale, and intended test paths.
@@ -185,6 +214,9 @@ The diagram summarizes the gates; updates to an already published PR still requi
 but must reuse the same story, branch, and PR rather than create another PR.
 
 ## Consequences
+
+Fresh bounded workers cost additional dispatch and serialized evidence coordination. Explicit waves expose safe
+parallelism and human waits; unavailable delegation blocks progress rather than weakening ownership.
 
 Every change has an approved purpose, traceable verification, and explicit human handoffs. One story branch and
 merge-commit history preserve both review context and package-level change attribution. Public-contract test-first

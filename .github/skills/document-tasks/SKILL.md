@@ -1,6 +1,6 @@
 ---
 name: document-tasks
-description: Create or revise a story Tasks.md from a sufficiently concrete plan with stable task IDs, statuses, dependencies, completion conditions, blockers, and evidence. Use when asked to document story execution tasks or update their progress.
+description: Create or revise a story Tasks.md with stable task IDs, evidence and explicit numbered execution waves with exact worker counts and safe file/resource ownership. Use when asked to document story execution tasks or update their progress.
 ---
 
 Author only the story's `Tasks.md`. Use `.docs/Templates/Story Tasks.md` for task records and
@@ -34,3 +34,18 @@ ADR-0006 for workflow gates and ADR-0008 for task records. Preserve ADR-0007's c
 8. Verify task identity, sources, dependency ordering, completion conditions, evidence, blockers, links, and gate
    coverage. Report documented progress and necessary blockers. Invoking this skill does not execute tasks, change
    code, grant approval, commit, push, publish, or merge.
+9. Retain an `Execution sequence` table with ordered stable wave IDs, task IDs, exact concurrent worker counts,
+   prerequisites, exact file/resource ownership, and why parallelism is safe or serialization is required. Every
+   actionable task appears exactly once in the remaining plan; retain completed historical rows and evidence separately.
+   Check coverage and acyclicity against records and earlier-wave completion. Do not assume all tasks run in parallel.
+10. Human gates declare zero workers while waiting and one fresh worker for verification after explicit authorization;
+    never execute approval on the user's behalf. Only ready independent scopes may share a wave. Serialize global gates,
+    manifest/lockfile/root-export changes, shared docs and mutable resources unless demonstrably isolated. Whole-wave
+    barriers are allowed; readiness must be checked again at dispatch.
+11. Record actual execution attempts and checks without inventing prior workers. Preserve stable IDs for failures/retries;
+    every attempt uses a fresh agent/context, never recursive delegation. Block dependent tasks after failure. Runtime
+    limits lowering concurrency require an explicit sequence revision, not an unsafe increase.
+12. During coordinated execution, author evidence/status/sequence changes only as the designated single writer:
+    serialize an evidence worker or task-worker updates, never concurrent Tasks writes. Main agents must delegate these
+    edits and remain orchestration-only under implementation-develop. Missing/stale sequences block dispatch until a
+    bounded document-tasks worker repairs them; never invent approval or silently rewrite companion documents.

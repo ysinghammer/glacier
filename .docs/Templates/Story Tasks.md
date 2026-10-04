@@ -30,6 +30,24 @@ Repeat this record for actionable implementation and verification tasks. Keep ta
 introduce new requirements, copy the design, infer approval, or claim a check or authorization that has not occurred.
 For a genuinely inapplicable gate, record the rationale as its completion evidence rather than claim execution.
 
+## Execution sequence
+
+Declare numbered stable wave IDs in dispatch order. Each actionable task appears exactly once in the remaining
+planned sequence. Preserve completed historical rows/evidence separately, without implying future dispatch.
+
+| Wave/order | Task IDs | Exact concurrent workers | Prerequisites                         | Owned files/resources   | Concurrency rationale              |
+| ---------- | -------- | ------------------------ | ------------------------------------- | ----------------------- | ---------------------------------- |
+| W-001 / 1  | T-001    | 1                        | [Completed dependencies and approval] | [Exact paths/resources] | [Why serial or safely independent] |
+
+For each human gate use `0 while waiting; fresh 1 after authorization for verification`, not an agent deciding approval.
+Check acyclic dependencies, earlier completion, and readiness at dispatch; whole-wave barriers are safe.
+Parallelize only ready independent write/resource scopes. Serialize global gates, manifests/lockfiles/root exports,
+shared docs and mutable resources unless demonstrably isolated. Shared Tasks has one writer: serialize evidence-worker
+or task-worker updates, never concurrent writes. Runtime limits may lower concurrency through an explicit worker-authored
+revision; never increase unsafely. Each attempt gets a fresh worker/context with no recursive delegation or reuse.
+Log actual attempts, scope, results/checks and failures in task evidence; preserve IDs and block dependents on failure.
+Do not invent historical workers or infer all tasks can run in parallel.
+
 ## Workflow coverage
 
 Create task records for applicable gates, not merely this reminder list:

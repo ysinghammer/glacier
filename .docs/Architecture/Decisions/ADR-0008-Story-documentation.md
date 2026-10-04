@@ -18,6 +18,7 @@ same work. One coherent outcome is chosen over an initiative containing unrelate
 documentation outcomes qualify without an artificial user-story sentence. Three document-specific skills are chosen
 over a coordinator skill so contributors can revise one artifact without implicitly authorizing downstream work.
 Structured tasks make dependencies, blockers, and completion evidence explicit; detail remains proportionate.
+An explicit numbered wave sequence makes worker counts and file/resource ownership reviewable before execution.
 
 ## Decision
 
@@ -61,6 +62,15 @@ Structured tasks make dependencies, blockers, and completion evidence explicit; 
 - Tasks must include applicable discovery, approval, implementation, verification, closure preparation, commit,
   publication, current-main integration, human acceptance, and merge gates. A task must not introduce a requirement
   or materially change the approved approach; those changes must return to the brief/plan approval gate.
+- Tasks must retain an `Execution sequence` table with ordered stable wave IDs, task IDs, exact concurrent worker
+  counts, prerequisites, owned files/resources, and safe-parallel or serial rationale. Each actionable task must occur
+  exactly once in the remaining planned sequence; completed historical tasks must retain evidence and historical
+  sequence rows rather than imply future execution. Attempts must be logged in task evidence without changing IDs.
+- Human-gate rows must specify zero workers while waiting and a fresh one-worker verification after authorization.
+  Dependency readiness and earlier completion must be checked at dispatch; a whole-wave barrier must be allowed.
+  Independent ready scopes alone must justify parallelism, not an assumption that all tasks run concurrently.
+  Shared Tasks updates must serialize under one writer. Runtime restrictions lowering concurrency must receive an
+  explicit sequence revision by a worker; unsafe increases must not occur.
 - The plan's approval record must identify the user's explicit decision, its date, the scope of the approved plan and
   brief criteria, and any explicitly bounded exclusions. The brief must link to that record rather than duplicate it.
   Undecided drafts must be clearly marked unapproved. A material requirement or design change must invalidate the
@@ -81,6 +91,9 @@ Structured tasks make dependencies, blockers, and completion evidence explicit; 
   implementation-independent requirements. `documentation-plan` must require a sufficiently settled brief and map
   its criteria to the design and verification. `document-tasks` must require a sufficiently concrete plan and derive
   executable tasks, dependencies, completion conditions, and applicable workflow gates from it.
+- `document-tasks` must derive and validate the explicit execution sequence, counts, ownership, and dependency
+  coverage. `implementation-develop` must coordinate fresh per-task attempts under ADR-0006; it must not replace the
+  three document-authoring skills, invent approval, or allow main-agent repository edits.
 - Skills may draft before approval, but must expose unsettled decisions and approval dependencies. They must ask only
   for decision-critical gaps not established by repository facts. They must not automatically start a full grilling
   interview; ideation-grilling or planning-grilling must remain available when needed or explicitly requested.
@@ -91,6 +104,9 @@ Structured tasks make dependencies, blockers, and completion evidence explicit; 
   scope rules. It must not authorize code implementation, self-approval, commits, push, publication, or merge.
 
 ## Consequences
+
+Wave planning and single-writer evidence updates add coordination cost but make parallel safety and actual attempts
+auditable without rewriting historical execution.
 
 Separate document ownership reduces requirements/design drift and makes partial revisions safer. Stable criteria,
 plan-step, and task IDs make progress traceable, while structured task evidence adds maintenance cost. Proportionate

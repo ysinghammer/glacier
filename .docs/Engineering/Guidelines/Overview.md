@@ -16,6 +16,15 @@ conditions, blockers, and evidence. Use `documentation-brief`, `documentation-pl
 those documents independently. Record joint brief/plan approval in the plan; material requirements/design changes
 invalidate affected approval. Document drafting is not authorization to implement, commit, publish, or merge.
 
+Use [implementation-develop](../../../.github/skills/implementation-develop/SKILL.md) for story execution: discover
+open stories read-only and ask which to execute, even for one candidate; surface unfinished archived stories separately.
+Main agents orchestrate only, never author code/tests/fixes or directly edit repository files. Each task attempt gets a
+fresh bounded worker without recursive delegation. Tasks declare ordered waves, exact worker counts, prerequisites,
+owned files/resources, and concurrency rationale. Parallelize only independent ready scopes; serialize shared Tasks
+evidence. Human gates wait with zero workers, followed by one fresh gate-verification worker after authorization.
+Missing skills/delegation block execution. All verification, fixes, closure, and separately authorized Git work remain
+delegated under the existing gates.
+
 Prepare lasting documentation and archive the story in its PR before final review, without claiming delivery before
 GitHub confirms the merge. Changed revisions require fresh checks and renewed acceptance; integrate current main
 without rewriting published history. Applicable unavailable or failed checks block acceptance; genuinely inapplicable

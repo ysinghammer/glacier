@@ -13,6 +13,8 @@ The brief owns requirements, the plan owns design and criterion-to-verification 
 Keep each template's sections with proportionate content or explicit inapplicability. Record joint requirements/plan
 approval only in the plan and link to it; do not duplicate an overall story status. Tasks use stable IDs, explicit
 statuses/dependencies, completion conditions, evidence, and blockers rather than an unqualified checkbox list.
+Tasks also retain numbered execution waves with exact concurrent worker counts, prerequisites, file/resource
+ownership, and safe concurrency rationale; human waits use zero workers and evidence has one serialized writer.
 The `documentation-brief`, `documentation-plan`, and `document-tasks` skills provide document-specific authoring
 procedures; they do not authorize implementation or Git operations. Follow
 [ADR-0006](../Architecture/Decisions/ADR-0006-Workflow.md) for workflow and approval boundaries and
