@@ -28,6 +28,9 @@ Workspace scaffolding must supply Husky hooks and lint-staged configuration. See
 - Use [Playwright](../Dependencies/Workspace%20Dependencies.md) with [Testcontainers](../Dependencies/Workspace%20Dependencies.md)
   for application/service acceptance tests, kept in workspace-root `tests/`. Each invocation starts a fresh entire stack
   and exercises only public UI and HTTP APIs.
+- Use Chromium only for all Playwright-driven browser tests, including library Vitest browser-mode tests, locally
+  and in CI. Configure and install only Chromium for testing, not Firefox or WebKit. HTTP-only Playwright tests
+  remain browser-independent.
 - Use [Vitest](../Dependencies/Workspace%20Dependencies.md) for library packages only, through the package-root public API,
   with 100% statement, branch, function, and line coverage. React library components are tested through their
   Storybook stories run by the Vitest addon in browser mode. Do not use Vitest or isolated unit-test suites for frontend

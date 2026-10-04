@@ -48,6 +48,9 @@ Vitest tests, with jsdom and Testing Library for hooks, so no module mocking of 
   package-root public exports, using jsdom and Testing Library for hooks. Vitest must not be used for application or
   microservice tests. [ADR-0005](ADR-0005-Testing-strategy.md) defines the detailed boundaries, coverage thresholds,
   orchestration, and acceptance gates.
+- Browser testing through Playwright must use Chromium only, including Vitest browser-mode tests using the
+  Playwright provider, locally and in CI. Firefox and WebKit must not be used for testing. HTTP-only tests must
+  remain browser-independent, as defined by ADR-0005.
 - Direct npm dependencies must follow the approved packages and applicable scopes in the [workspace](../Dependencies/Workspace%20Dependencies.md), [backend](../Dependencies/Backend%20Dependencies.md), and [frontend](../Dependencies/Frontend%20Dependencies.md) dependency tables. Every new direct runtime or development dependency must receive explicit approval before it is added; transitive dependencies of an approved direct dependency must not require separate approval.
 - Before a project change is accepted, conformance must be checked against every accepted, active ADR. A nonconforming change must be revised or its conflicting ADR must be updated to authorize it before acceptance.
 

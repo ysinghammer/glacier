@@ -35,6 +35,9 @@ checks require an explanation. Releases, deployments, and continuous delivery ar
 - **Acceptance catalog**: the test-owned catalog under `tests/acceptance/` maps features and public API operations
   through criteria to scenarios and tests. Catalog validation and the complete uncached Playwright suite must pass
   locally and in CI before acceptance.
+- **Browser engine**: all Playwright-driven browser tests must use Chromium only, including library tests using
+  Vitest's Playwright provider, locally and in CI. Configure and install only Chromium for testing; do not configure
+  or run Firefox or WebKit. HTTP-only Playwright tests remain browser-independent.
 
 See ADR-0005 for folder layout, discovery patterns, coverage configuration, stack orchestration, scenario data rules,
 and generated output locations.

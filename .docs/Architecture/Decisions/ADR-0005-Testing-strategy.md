@@ -21,12 +21,19 @@ scenarios therefore differ from the shared real-world acceptance scenarios used 
 A fresh full stack per invocation is chosen over a stack per scenario to limit startup cost. Independent scenario
 data avoids ordered tests and shared mutable fixtures.
 
+Browser verification uses Chromium only, including library browser tests driven by Playwright. This testing scope
+does not establish compatibility with Firefox or WebKit.
+
 ## Decision
 
 ### Test ownership and boundaries
 
 - All test code must use TypeScript and follow the applicable code and package conventions in ADR-0001 through
   ADR-0004.
+- All browser tests using Playwright must use Chromium only, locally and in CI, including application acceptance
+  tests and library tests using the Vitest Playwright provider. Browser projects, provider instances, and test-browser
+  installation must target Chromium only; Firefox and WebKit must not be configured or run for testing.
+  HTTP-only Playwright tests must remain browser-independent and must not require launching Chromium.
 - Each library must keep its Vitest unit tests and test-owned fixtures/helpers in its package-local `tests/`
   directory. This rule must apply to backend, frontend, and technology-independent libraries.
 - All Playwright application/service tests, fixtures, acceptance data, and orchestration helpers must live in the
@@ -190,6 +197,9 @@ Full-stack startup increases local and CI runtime and requires a container runti
 sandbox configuration. External provider outages can block acceptance. Public-interface-only data setup can be slower
 and requires representative scenarios to be achievable through legitimate public flows. A stack shared per invocation
 makes scenario data isolation essential.
+
+Chromium-only verification limits browser installation and execution to one engine. Passing browser tests must not
+be presented as evidence of Firefox or WebKit compatibility.
 
 Workspace and library scaffolding must implement the test directories,
 coverage checks, Testcontainers lifecycle, uncached black-box task, and CI gates, alongside the catalog validation and
