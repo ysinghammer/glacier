@@ -115,11 +115,12 @@ The [manifest](../../../package.json) and [Turbo graph](../../../turbo.json) are
 
 | Command              | Actual work                                                                                                |
 | -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `pnpm check`         | All applicable root gates, plus corresponding tasks of future workspace packages.                          |
+| `pnpm check`         | Root gates and actual package lint/format/type/build/test gates, including reflection V8 coverage.         |
 | `pnpm lint`          | Oxlint on authored test/tooling TypeScript and any package lint tasks.                                     |
 | `pnpm format-check`  | Oxfmt defaults across supported workspace files and any package formatting tasks.                          |
 | `pnpm type-check`    | Strict tooling compilation without emission and any package type checks.                                   |
 | `pnpm build`         | Compile tooling to `dist/` and any actual package builds.                                                  |
+| `pnpm test`          | Uncached library Node/Chromium tests and combined V8 coverage through Turbo prerequisites.                 |
 | `pnpm catalog-check` | Validate catalog/discovered-test mappings and generate truthful traceability.                              |
 | `pnpm tooling-check` | Technical catalog controls, disposable frozen installation, negative Turbo controls, and real hook checks. |
 
@@ -147,9 +148,10 @@ Do not clear failures with empty tasks, skipped checks, or broad suppressions.
 not Vitest or Playwright product suites. [Catalog guidance](../../../tests/acceptance/README.md) describes authoring
 and static scenario metadata. The empty catalog reports no test execution.
 
-No applications, services, libraries, stories for React components, or deployable images exist.
-Product builds, library coverage, Storybook builds, full-stack acceptance execution, and image scans are currently
-inapplicable. This is not a waiver when packages are added:
+The [reflection library](../../../packages/libraries/glacier-reflection/README.md) now has real build,
+public runtime/type contracts and Node/Chromium V8 gates. No applications, services, React components or deployable
+images exist. Storybook, full-stack application acceptance execution and image scans remain inapplicable.
+The empty catalog does not report library assertion execution. This is not a waiver when packages are added:
 
 - Libraries must add package-root public APIs, library-only Vitest/V8 checks, meaningful public-contract assertions,
   and 100% coverage per file and library. React libraries additionally run Storybook play assertions in browser mode.
@@ -159,3 +161,31 @@ inapplicable. This is not a waiver when packages are added:
 
 Package owners must add real scripts to the existing Turbo conventions and extend `pnpm check`/CI for newly
 applicable tests. Dependency additions, runtime upgrades, and any new integration remain subject to ADR approval.
+
+## Reflection commands and consumer boundaries
+
+From the repository root on Node 24.21.0 / pnpm 11.9.0:
+
+```sh
+pnpm --filter @glacier/reflection exec playwright install chromium
+pnpm exec turbo run build type-check lint format-check test:prepare --filter=@glacier/reflection --force
+node packages/libraries/glacier-reflection/tests/data/AdoptionExampleRun.ts
+pnpm exec turbo run test --filter=@glacier/reflection --force
+```
+
+The package [scripts](../../../packages/libraries/glacier-reflection/package.json) compile genuine emitted
+fixtures and independent generated-declaration consumers before tests. The test script supervises native loopback
+ESM delivery and finally cleanup; direct Vitest native-realm execution without that owner lacks required setup.
+Examples supplement public tests and do not replace the unchanged overall/per-file 100% gate.
+Before final review run `pnpm check` and `pnpm exec turbo run test --force`, not only filtered development checks.
+Current passing assertions do not imply passing coverage or final acceptance; exact results belong in
+[story Tasks](../../Archive/glacier-reflection/Tasks.md).
+
+Use the root API and deliberately shared definition identities. Writes/deletion require constructors; ordinary
+instances alias read/presence/discovery on class declarations, not instance-owned storage. Plain/prototype objects
+and instance static/individual constructor-parameter addresses reject. Checked operations infer public keys/fixed
+tuples; dynamic paths validate addresses but cannot reconstruct erased names/signatures. Accumulating containers
+have isolated shallow outer ownership, not deep immutability. Parameter inheritance matches position only;
+own mode is preferable when interpreting dependency annotations. Runtime import must precede decorated execution.
+The README and checked examples document intentional Reflect activation, fresh-realm recovery from foreign-handler
+conflicts, ordinary compiler definitions and erased interface/generic/parameter-name limits.

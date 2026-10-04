@@ -44,3 +44,19 @@ defines the criterion lifecycle and acceptance catalog. See also the
 [testing guidelines](../../Engineering/Guidelines/Overview.md#testing).
 
 See the [backend](Backend%20Techstack.md) and [frontend](Frontend%20Techstack.md) notes for area-specific choices.
+
+## Reflection library adoption
+
+[@glacier/reflection](../../../packages/libraries/glacier-reflection/README.md) is the first technology-neutral
+library: root-only native ESM and generated declarations, ES2023, no runtime dependencies.
+Its verified runtime bounds are Node 24 LTS (workspace 24.21.0) and pinned Playwright Chromium only,
+not Firefox/WebKit compatibility. Public-root usage and compiler fixtures are checked independently of runtime coverage.
+
+A runtime root import intentionally activates only `Reflect.metadata`; type-only imports do not.
+Import before legacy decorated declarations execute, with `experimentalDecorators` and `emitDecoratorMetadata`
+enabled for compiler records. This does not start resources or install the general reflect-metadata API.
+Foreign handlers/duplicate physical copies fail without replacement; correct imports/dependencies and restart
+the process/browser realm rather than deleting handlers or calling an unsupported reset/uninstall.
+Compiler representations are bounded functions/undefined, not recovered interfaces, generics, parameter names
+or dependency constructors. Explicit typed symbol annotations can supply erased interface identity without DI.
+This selected package contract does not broaden other libraries' integration or dependency scopes.

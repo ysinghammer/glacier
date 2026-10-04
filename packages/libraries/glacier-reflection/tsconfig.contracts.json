@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": [],
+    "rootDir": ".",
+    "noEmit": true,
+    "experimentalDecorators": true
+  },
+  "include": ["index.ts", "tests/contracts/**/*.test-d.ts", "tests/data/examples/**/*.ts"],
+  "exclude": ["tests/artifacts", "dist", "node_modules"]
+}

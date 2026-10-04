@@ -288,17 +288,21 @@ export class RecordMetadataDefinition<in out T> extends MetadataDefinitionOperat
   readonly kind: "record";
 }
 
-export class MetadataDiscovery {
-  private constructor();
-  static definitions<R extends object>(
+/** Supporting facade contract, not an additional named package-root export. */
+interface IMetadataDiscovery {
+  readonly definitions: <R extends object>(
     target: R,
     address?: IMetadataReadAddress<NoInfer<R>> & IMetadataLookup,
-  ): IMetadataDefinitionsResult;
-  static definitionsDynamic(
+  ) => IMetadataDefinitionsResult;
+  readonly definitionsDynamic: (
     target: object,
     address?: IDynamicClassMetadataAddress & IMetadataLookup,
-  ): IMetadataDefinitionsResult;
+  ) => IMetadataDefinitionsResult;
 }
+
+/** Nonconstructible, shallow-frozen operation record; behavior remains in domain classes. */
+declare const metadataDiscovery: IMetadataDiscovery;
+export { metadataDiscovery as MetadataDiscovery };
 
 /** Runtime representations may be callable, constructable, or unavailable. */
 export type IRuntimeType = ((...arguments_: never[]) => unknown) | IClass | undefined;
@@ -343,15 +347,49 @@ declare global {
 ```
 
 The ambient `Reflect.metadata` function is an intentional platform-integration declaration, not another importable
-root function or a general custom-metadata entry point. The barrel exports exactly the public types, five runtime
-classes (`ValueMetadataDefinition`, `ListMetadataDefinition`, `RecordMetadataDefinition`, `MetadataDiscovery`,
-and `MetadataBoundaryError`), and the three predefined metadata constants above.
+root function or a general custom-metadata entry point. The barrel exports exactly 35 named erased types and eight
+runtime values: four runtime classes (`ValueMetadataDefinition`, `ListMetadataDefinition`,
+`RecordMetadataDefinition`, and `MetadataBoundaryError`), the nonconstructible `MetadataDiscovery` facade,
+and the three predefined metadata constants above. IMetadataDiscovery describes the facade without adding a
+named root type export. Internal supporting source exports do not enlarge the curated root API.
 The non-exported shared base shows the full inherited operation signatures once; each public definition class
 specializes them to its value/element contract. Consumers neither import nor construct that base.
 No `MetadataLocation`, unified `MetadataDefinition`, `DesignMetadata` class, static definition factory, public untyped `record` method,
 `getMetadata`, `defineMetadata`, installation toggle, reset, or uninstall API is planned.
 
 ### Public contract details
+
+**Nonconstructible discovery facade.** The approved 2026-10-04 revision replaces only the exported
+private-constructor discovery class representation. Keep `MetadataDiscovery.definitions(...)` and
+`MetadataDiscovery.definitionsDynamic(...)`, their exact generic `NoInfer`/readonly result contracts, and all
+discovery values, validation, inheritance and exceptional behavior unchanged. Expose a shallow-frozen plain record
+whose two operation properties are readonly, with no call or construct signature and no public prototype/instance
+API. Consumers describe it with `typeof MetadataDiscovery`; the former class instance type, subclassing,
+class identity and constructor/prototype introspection are not preserved public promises. The private-constructor
+class was never an approved consumer construction API. Changing this export kind is material and explicitly
+approved below, not claimed as an invisible internal refactor.
+
+Implement the existing substantial behavior as static methods on the purpose-specific internal domain class
+`MetadataDiscoveryOperations` in `src/domain/MetadataDiscoveryOperations.ts`, retaining normalization and storage
+delegation. Give it no explicit unused constructor or artificial instance state. In the existing
+`src/domain/MetadataDiscovery.ts`, declare the supporting IMetadataDiscovery contract and a camelCase
+`metadataDiscovery` binding initialized with `Object.freeze` over direct references to those static methods;
+export that binding as `MetadataDiscovery`. Methods must not require `this` binding or facade mutation.
+This record contains operation references, not standalone implementation functions. ADR-0003 already permits
+plain data contracts and requires class-first behavior: no ADR exception or change is needed. Keep one primary
+export per implementation file; the root re-export may remain unchanged, or change only if required to retain
+the exact public alias. This introduces one internal behavior-class source file, not a fifth root runtime class
+or a 36th named erased root export. Collect both files at the unchanged 100% per-file/overall thresholds.
+
+Before replacement, add public-root type checks for the readonly/noncallable/nonconstructible facade and observe
+meaningful type red for the newly approved readonly operation bindings against the existing writable static
+methods; missing-symbol failures are not red. Preserve the existing nonconstruction check and every checked/dynamic
+address guarantee. Add public runtime freeze/binding-stability assertions before implementation and observe their
+intended failure, without constructing or invoking private helpers. Independent generated-declaration checks and
+Node/Chromium discovery regression assertions must then pass, with actual mapped 100% coverage of both discovery
+files. No constructor sentinel, singleton, reset, testing hook, ignore, exclusion or weaker threshold is authorized.
+README/JSDoc and distribution/count companions must be renewed under separately bounded T-018 ownership after
+implementation; this prerequisite repair does not edit them.
 
 **Definitions and operations.** Each constructor's `name` argument is a descriptive label, with no uniqueness or registry semantics.
 Every `new` expression creates a distinct identity, even for the same name, class, and value type. Choose the class
@@ -645,7 +683,10 @@ Root composition must invoke the installation adapter; the domain must not depen
   and package-root runtime cases for each definition constructor, scoped checked/dynamic methods, discriminated
   addresses, numeric validation, explicit rejected outcomes, constructor-only mutation, and constructor/instance
   lookup equivalence. Include shadowed constructors, subclass resolution, plain/prototype-object rejection and
-  instance static/constructor-parameter restrictions. Observe intended failures, then implement private storage,
+  instance static/constructor-parameter restrictions. For the first declaration bootstrap only, author meaningful
+  accepted-use/rejected-misuse public-root type fixtures before the production declarations they cover, then add
+  the exact approved nonbehavioral declarations and verify their intended contracts/diagnostics. Preserve that
+  order as evidence under the bounded ADR-0006 exception. Observe meaningful runtime failures before implementing private storage,
   normalization and public contracts. Validate no unsafe widening, cross-class interchange, independent result-type
   selection, or permissive checked-method fallback. Dependencies: P-002.
 - **P-004 - Implement inheritance and ownership test-first:** Add failing public-contract cases for multi-level
@@ -673,8 +714,10 @@ Root composition must invoke the installation adapter; the domain must not depen
   human acceptance and explicit merge authorization for the unchanged current revision. Verify GitHub's merge
   confirmation rather than treating archival location as delivery. Dependencies: P-007.
 
-Within P-003 through P-007, repeat red/green/refactor for each newly introduced public behavior or type contract.
-Tooling/bootstrap failures do not count as contract failures. Steps describe sequencing, not completed progress;
+Within P-003 through P-007, repeat meaningful red/green/refactor for every new runtime behavior and every type
+behavior change after the first declaration bootstrap. Only that initial bootstrap uses the fixture-first,
+post-declaration type verification authorized below; it does not claim initial type red. Tooling/bootstrap failures
+and missing symbols alone do not count as contract failures. Steps describe sequencing, not completed progress;
 Tasks.md owns execution status and evidence.
 
 ## Data, lifecycle, and failure handling
@@ -737,47 +780,86 @@ All runtime tests import the package-root API. Tests must not import implementat
 private state, or export implementation helpers for coverage. Real compiler fixtures are test-owned inputs compiled
 to library `tests/artifacts/`; the emitted artifact imports the public root before its decorated declarations run.
 
-| Criterion | Verification method                                                                                                                                                                                                                                                                                                           |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AC-001    | Independent built-package Node and browser consumers resolve the root JS/declarations without DI or another Glacier package; verify export-map rejection of deep/subpath imports.                                                                                                                                             |
-| AC-002    | Real legacy fixtures and equivalent direct operations cover class, instance/static property/method/accessor, constructor and instance/static method parameters, including inaccessible-constructor cases.                                                                                                                     |
-| AC-003    | Matrix of unrelated classes, both sides, symbol/numeric names and parameter positions; object/instance annotation targets reject on mutations. Instance lookups share class declarations and do not create per-instance state; plain/prototype objects reject.                                                                |
-| AC-004    | Same-name instances within/across all three classes remain distinct; deliberately shared instances read the same declarations and discovery returns that identity; predefined constants have stable shared identities.                                                                                                        |
-| AC-005    | Positive inference fixtures for each constructor and its scoped methods; expected compile failures for wrong value/element/entry writes and decorators, generic read misuse, definition widening and cross-class assignment.                                                                                                  |
-| AC-006    | Negative type fixtures for unknown keys, noncallable method-parameter addresses, fixed-tuple bounds, instance static/constructor-parameter addressing and address-driven target widening. Positive optional/empty/rest/symbol/numeric and explicit dynamic cases cover every checked/dynamic operation.                       |
-| AC-007    | Same-shaped replacement object and homogeneous accumulating record yield different approved inheritance results; no per-write mode switch exists.                                                                                                                                                                             |
-| AC-008    | Three-level nearest replacement, including object identity, compared with own-only reads and presence.                                                                                                                                                                                                                        |
-| AC-009    | Exact `["a", "b", "b", "c"]` inherited result and own-only `["b", "c"]`; no deduplication.                                                                                                                                                                                                                                    |
-| AC-010    | Whole conflicting entry replacement removes the ancestor's nested `label`; nonconflicting entries remain, including reserved dictionary keys.                                                                                                                                                                                 |
-| AC-011    | Independent homogeneous contributions; wrong entry type fails compilation; undeclared key has a possibly absent result type.                                                                                                                                                                                                  |
-| AC-012    | Matching constructor/method positions inherit without signature equivalence; own-only excludes ancestors, including differing descendant signatures.                                                                                                                                                                          |
-| AC-013    | Consecutive set/decorator writes retain only the latest direct value/list/record, while ancestors still contribute.                                                                                                                                                                                                           |
-| AC-014    | Discriminated missing/present-undefined reads, has/discovery presence, and undefined overriding a base replacement.                                                                                                                                                                                                           |
-| AC-015    | True/false direct delete results, unchanged ancestors/other locations, inherited reappearance and own-only absence.                                                                                                                                                                                                           |
-| AC-016    | Empty own lists/records remain present and retain base contributions; exported API/type review confirms no reset/suppression facility.                                                                                                                                                                                        |
-| AC-017    | Mutate original containers after set and decorator creation; attempt returned outer mutation; verify unchanged stored structure and contained/whole-object identity.                                                                                                                                                          |
-| AC-018    | Identity-set discovery across ancestry and own-only mode; no duplicates, including undefined/empty declarations and deletion cleanup.                                                                                                                                                                                         |
-| AC-019    | Definition-owned locations discovery without supplied names/positions; verify target-free plain addresses, constructor-wide/instance-filtered results, both lookup modes, deduplication, normalized names and subsequent readDynamic calls.                                                                                   |
-| AC-020    | Actual TypeScript emission records all three keys automatically in fresh Node/browser realms; explicit runtime import precedes fixture execution.                                                                                                                                                                             |
-| AC-021    | All three predefined constants are value-definition instances; descendant scalar/whole-array replacement includes empty arrays and own-only lookup. Compiler-ingested arrays are snapshotted/frozen; ordinary typed direct writes retain value identity.                                                                      |
-| AC-022    | Table of unknown keys, wrong scalar/array shapes, sparse arrays and invalid targets/addresses; compare old valid declaration before/after rejection; global decorator callback throws matching observable error.                                                                                                              |
-| AC-023    | Fresh realms with foreign handler/nonwritable slot; import fails and preserves handler/descriptor; successful import preserves unrelated Reflect descriptors and behavior.                                                                                                                                                    |
-| AC-024    | Review README/JSDoc/checked examples for explicit erasure, dynamic-location, overload, parameter inheritance, custom-JavaScript validation and runtime-representation limits.                                                                                                                                                 |
-| AC-025    | Execute constructor representation and explicit symbol annotation examples with an interface-typed dependency; verify no resolver/registry/DI token abstraction or signature-equivalence claim.                                                                                                                               |
-| AC-026    | Every runtime class/constructor/method and each predefined constant has named success, applicable rejection and boundary assertions; V8 enforces 100% statements, branches, functions and lines overall and per relevant production file; type-only exports have independent contract checks.                                 |
-| AC-027    | Compare constructor/instance read, has and discovery on base/subclass targets in both lookup modes; verify two instances share declarations, shadowed constructors do not redirect lookup, mutations require constructors, invalid plain/prototype targets reject and instance static/constructor-parameter addresses reject. |
+| Criterion | Verification method                                                                                                                                                                                                                                                                                                                            |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-001    | Independent built-package Node and browser consumers resolve the root JS/declarations without DI or another Glacier package; verify export-map rejection of deep/subpath imports.                                                                                                                                                              |
+| AC-002    | Real legacy fixtures and equivalent direct operations cover class, instance/static property/method/accessor, constructor and instance/static method parameters, including inaccessible-constructor cases.                                                                                                                                      |
+| AC-003    | Matrix of unrelated classes, both sides, symbol/numeric names and parameter positions; object/instance annotation targets reject on mutations. Instance lookups share class declarations and do not create per-instance state; plain/prototype objects reject.                                                                                 |
+| AC-004    | Same-name instances within/across all three classes remain distinct; deliberately shared instances read the same declarations and discovery returns that identity; predefined constants have stable shared identities.                                                                                                                         |
+| AC-005    | Positive inference fixtures for each constructor and its scoped methods; expected compile failures for wrong value/element/entry writes and decorators, generic read misuse, definition widening and cross-class assignment.                                                                                                                   |
+| AC-006    | Negative type fixtures for unknown keys, noncallable method-parameter addresses, fixed-tuple bounds, instance static/constructor-parameter addressing and address-driven target widening. Positive optional/empty/rest/symbol/numeric and explicit dynamic cases cover every checked/dynamic operation.                                        |
+| AC-007    | Same-shaped replacement object and homogeneous accumulating record yield different approved inheritance results; no per-write mode switch exists.                                                                                                                                                                                              |
+| AC-008    | Three-level nearest replacement, including object identity, compared with own-only reads and presence.                                                                                                                                                                                                                                         |
+| AC-009    | Exact `["a", "b", "b", "c"]` inherited result and own-only `["b", "c"]`; no deduplication.                                                                                                                                                                                                                                                     |
+| AC-010    | Whole conflicting entry replacement removes the ancestor's nested `label`; nonconflicting entries remain, including reserved dictionary keys.                                                                                                                                                                                                  |
+| AC-011    | Independent homogeneous contributions; wrong entry type fails compilation; undeclared key has a possibly absent result type.                                                                                                                                                                                                                   |
+| AC-012    | Matching constructor/method positions inherit without signature equivalence; own-only excludes ancestors, including differing descendant signatures.                                                                                                                                                                                           |
+| AC-013    | Consecutive set/decorator writes retain only the latest direct value/list/record, while ancestors still contribute.                                                                                                                                                                                                                            |
+| AC-014    | Discriminated missing/present-undefined reads, has/discovery presence, and undefined overriding a base replacement.                                                                                                                                                                                                                            |
+| AC-015    | True/false direct delete results, unchanged ancestors/other locations, inherited reappearance and own-only absence.                                                                                                                                                                                                                            |
+| AC-016    | Empty own lists/records remain present and retain base contributions; exported API/type review confirms no reset/suppression facility.                                                                                                                                                                                                         |
+| AC-017    | Mutate original containers after set and decorator creation; attempt returned outer mutation; verify unchanged stored structure and contained/whole-object identity.                                                                                                                                                                           |
+| AC-018    | Identity-set discovery across ancestry and own-only mode; no duplicates, including undefined/empty declarations and deletion cleanup.                                                                                                                                                                                                          |
+| AC-019    | Definition-owned locations discovery without supplied names/positions; verify target-free plain addresses, constructor-wide/instance-filtered results, both lookup modes, deduplication, normalized names and subsequent readDynamic calls.                                                                                                    |
+| AC-020    | Actual TypeScript emission records all three keys automatically in fresh Node/browser realms; explicit runtime import precedes fixture execution.                                                                                                                                                                                              |
+| AC-021    | All three predefined constants are value-definition instances; descendant scalar/whole-array replacement includes empty arrays and own-only lookup. Compiler-ingested arrays are snapshotted/frozen; ordinary typed direct writes retain value identity.                                                                                       |
+| AC-022    | Table of unknown keys, wrong scalar/array shapes, sparse arrays and invalid targets/addresses; compare old valid declaration before/after rejection; global decorator callback throws matching observable error.                                                                                                                               |
+| AC-023    | Fresh realms with foreign handler/nonwritable slot; import fails and preserves handler/descriptor; successful import preserves unrelated Reflect descriptors and behavior.                                                                                                                                                                     |
+| AC-024    | Review README/JSDoc/checked examples for explicit erasure, dynamic-location, overload, parameter inheritance, custom-JavaScript validation and runtime-representation limits.                                                                                                                                                                  |
+| AC-025    | Execute constructor representation and explicit symbol annotation examples with an interface-typed dependency; verify no resolver/registry/DI token abstraction or signature-equivalence claim.                                                                                                                                                |
+| AC-026    | Every runtime class/constructor/method, readonly nonconstructible discovery facade operation and predefined constant has named success, applicable rejection and boundary assertions; V8 enforces 100% statements, branches, functions and lines overall and per relevant production file; type-only exports have independent contract checks. |
+| AC-027    | Compare constructor/instance read, has and discovery on base/subclass targets in both lookup modes; verify two instances share declarations, shadowed constructors do not redirect lookup, mutations require constructors, invalid plain/prototype targets reject and instance static/constructor-parameter addresses reject.                  |
 
-Planned library runtime suites under `tests/scenarios/` are `DefinitionContract.test.ts`,
-`AddressContract.test.ts`, `InstanceLookupContract.test.ts`, `InheritanceContract.test.ts`, `CollectionOwnership.test.ts`,
-`LegacyDecoratorContract.test.ts`, `DiscoveryContract.test.ts`, `CompilerMetadataContract.test.ts`,
-`ImportCompatibility.test.ts`, and `DistributionContract.test.ts`. Type contracts live under `tests/contracts/`,
-including `MetadataTypes.test-d.ts`, `AddressTypes.test-d.ts`, `InstanceLookupTypes.test-d.ts`, and `DecoratorTypes.test-d.ts`.
-These are planned paths, not links to completed tests.
+Implemented library runtime contracts:
+
+- [DefinitionContract](../../../packages/libraries/glacier-reflection/tests/scenarios/DefinitionContract.test.ts)
+  and [AddressContract](../../../packages/libraries/glacier-reflection/tests/scenarios/AddressContract.test.ts):
+  definition identity, presence, checked/dynamic addressing, isolation and atomic rejection.
+- [InstanceLookupContract](../../../packages/libraries/glacier-reflection/tests/scenarios/InstanceLookupContract.test.ts):
+  constructor/instance aliases, shadowed constructors, category restrictions and exceptional inspections.
+- [InheritanceContract](../../../packages/libraries/glacier-reflection/tests/scenarios/InheritanceContract.test.ts)
+  and [CollectionOwnership](../../../packages/libraries/glacier-reflection/tests/scenarios/CollectionOwnership.test.ts):
+  replacement/accumulation, deletion, no reset and shallow ownership.
+- [LegacyDecoratorContract](../../../packages/libraries/glacier-reflection/tests/scenarios/LegacyDecoratorContract.test.ts)
+  and [DecoratorMappedContract](../../../packages/libraries/glacier-reflection/tests/scenarios/DecoratorMappedContract.test.ts):
+  genuine emitted legacy locations and complementary source-mapped public callback contracts.
+- [DiscoveryContract](../../../packages/libraries/glacier-reflection/tests/scenarios/DiscoveryContract.test.ts):
+  identity/location discovery, canonical frozen outputs and readonly detached facade operations.
+- [CompilerMetadataContract](../../../packages/libraries/glacier-reflection/tests/scenarios/CompilerMetadataContract.test.ts)
+  and [ImportCompatibility](../../../packages/libraries/glacier-reflection/tests/scenarios/ImportCompatibility.test.ts):
+  genuine compiler recording, shape validation, atomic failures, exact exceptional causes and fresh import realms.
+- [DistributionContract](../../../packages/libraries/glacier-reflection/tests/scenarios/DistributionContract.test.ts):
+  independent generated-root ESM consumers, emission/import ordering, side-effect retention and subpath rejection.
+- [PublicOperationMatrix](../../../packages/libraries/glacier-reflection/tests/scenarios/PublicOperationMatrix.test.ts):
+  six definition objects × ten named operation cells, plus constructor/error/facade assertions.
+
+Implemented independent type contracts:
+[MetadataTypes](../../../packages/libraries/glacier-reflection/tests/contracts/MetadataTypes.test-d.ts),
+[AddressTypes](../../../packages/libraries/glacier-reflection/tests/contracts/AddressTypes.test-d.ts),
+[InstanceLookupTypes](../../../packages/libraries/glacier-reflection/tests/contracts/InstanceLookupTypes.test-d.ts),
+[DecoratorTypes](../../../packages/libraries/glacier-reflection/tests/contracts/DecoratorTypes.test-d.ts), and
+[DistributionTypes](../../../packages/libraries/glacier-reflection/tests/contracts/DistributionTypes.test-d.ts).
+Checked adoption examples are
+[AdoptionTypes](../../../packages/libraries/glacier-reflection/tests/data/examples/AdoptionTypes.ts) and
+[AdoptionExample](../../../packages/libraries/glacier-reflection/tests/data/compiler/AdoptionExample.ts), executed by
+the [native example owner](../../../packages/libraries/glacier-reflection/tests/data/AdoptionExampleRun.ts).
+The [current criterion/evidence join](Tasks.md#t-019-attempt-3-current-evidence-join),
+[complete local gate](Tasks.md#t-021---run-the-complete-local-automated-verification-gate), and
+[manual ADR review](Tasks.md#t-022---review-all-adrs-contracts-and-assertion-quality)
+own observed execution and fixed-revision results; these links do not replace separately required CI or human acceptance.
 
 Use a dedicated type-check configuration including contracts and consumer examples. Pair positive assertions with
 targeted `@ts-expect-error` negative cases, so an accepted misuse fails through an unused expected-error directive.
-Observe the intended failing contract before adding production declarations; missing tooling or unrelated diagnostics
-are not evidence of sound rejection. Generic signatures need explicit tests for parameter optionality/rest lists,
+For the first declaration bootstrap of this approved story only, author these meaningful accepted-use and
+rejected-misuse public-root fixtures before the production declarations they cover. Then add the exact approved
+nonbehavioral declarations, build the root declarations, and independently verify intended inference/contracts and
+negative diagnostics, including the unused `@ts-expect-error` guard. Record fixture-first/declaration-second order
+and commands/results in Tasks.md; do not claim missing exports, setup failures or unrelated diagnostics as intended
+type red, or introduce intentionally unsound signatures to manufacture it. This bounded exception does not authorize
+runtime behavior before meaningful runtime red. Type behavior changes after the first bootstrap still require
+meaningful type red/green/refactor against the established contracts; unchanged type contracts remain independently
+verified, not required to fail artificially. Erased types are not runtime-covered.
+Generic signatures need explicit tests for parameter optionality/rest lists,
 overloaded methods, private/protected constructors, inherited keys and definition variance. For each constructible
 definition class, check inferred read types and rejected value shapes; check that predefined constants expose exactly
 the ordinary value-definition API and that their parameter array is not an accumulating list.
@@ -842,21 +924,22 @@ scope. Reuse existing workspace TypeScript/Node tooling; any additional direct d
 approval. There is no requirement for `reflect-metadata`, a schema validator, React, Storybook, jsdom, a bundler
 dependency, or a DI package.
 
-| Risk/prerequisite                                                               | Mitigation and approval boundary                                                                                                                                                   |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| First library needs real test/coverage/CI wiring                                | P-002 supplies gates and negative controls before behavior; unavailable tooling does not count as a passing gate.                                                                  |
-| Compiler metadata is emitted only where TypeScript emits it                     | Real compiler fixtures include decorated declarations; do not promise metadata on every undecorated class/member.                                                                  |
-| Inheritance can obscure changed parameter meaning                               | Document position-only inheritance and use own-only examples for DI foundations.                                                                                                   |
-| Global activation conflicts or bundler removal                                  | Fail without replacing foreign handlers; declare side effects and document runtime import ordering and one-copy-per-realm operation.                                               |
-| Private signatures, overloads, index signatures and erased types limit checking | Separate checked and dynamic paths; test known guarantees and document where they stop.                                                                                            |
-| Embedded-address generics might infer a broader target to accept a typo         | Anchor inference to the target with NoInfer and test all checked signatures; use explicitly named dynamic operations for erased/discovered names.                                  |
-| Structural instance types do not prove canonical runtime class identity         | Normalize prototype data descriptors without invoking getters; reject plain/prototype inputs, ignore shadowed constructor properties and document prototype-based identity limits. |
-| Instances are lookup aliases, not annotation targets                            | Preserve constructor-only writes/deletion and verify the brief's AC-027 boundaries.                                                                                                |
-| Definition generic variance could allow unsound writes                          | Use invariant generic declarations, distinct private brands and negative widening/cross-class assignment tests, not casts or broad generic read methods.                           |
-| Browser source transforms may not emit design metadata                          | Compile test-owned fixtures with TypeScript first and import real emitted artifacts in isolated realms.                                                                            |
-| Coverage merging/source maps can falsely exclude paths                          | Include all production files and require negative controls for omitted branches/unloaded files before acceptance.                                                                  |
-| Foreign-handler tests cannot reuse an activated realm                           | Fresh child processes and browser realms; no reset/uninstall export, private-state inspection or module mocking.                                                                   |
-| Snyk evidence and supported Node activation are environment-owned               | Secure owner integration/runtime setup; unavailable applicable checks block acceptance.                                                                                            |
+| Risk/prerequisite                                                               | Mitigation and approval boundary                                                                                                                                                                |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| First library needs real test/coverage/CI wiring                                | P-002 supplies gates and negative controls before behavior; unavailable tooling does not count as a passing gate.                                                                               |
+| No existing declarations can establish meaningful initial type red              | The dated ADR-0006 exception requires public-root type fixtures before exact approved declarations and intended post-declaration verification; runtime and later type-change red remain strict. |
+| Compiler metadata is emitted only where TypeScript emits it                     | Real compiler fixtures include decorated declarations; do not promise metadata on every undecorated class/member.                                                                               |
+| Inheritance can obscure changed parameter meaning                               | Document position-only inheritance and use own-only examples for DI foundations.                                                                                                                |
+| Global activation conflicts or bundler removal                                  | Fail without replacing foreign handlers; declare side effects and document runtime import ordering and one-copy-per-realm operation.                                                            |
+| Private signatures, overloads, index signatures and erased types limit checking | Separate checked and dynamic paths; test known guarantees and document where they stop.                                                                                                         |
+| Embedded-address generics might infer a broader target to accept a typo         | Anchor inference to the target with NoInfer and test all checked signatures; use explicitly named dynamic operations for erased/discovered names.                                               |
+| Structural instance types do not prove canonical runtime class identity         | Normalize prototype data descriptors without invoking getters; reject plain/prototype inputs, ignore shadowed constructor properties and document prototype-based identity limits.              |
+| Instances are lookup aliases, not annotation targets                            | Preserve constructor-only writes/deletion and verify the brief's AC-027 boundaries.                                                                                                             |
+| Definition generic variance could allow unsound writes                          | Use invariant generic declarations, distinct private brands and negative widening/cross-class assignment tests, not casts or broad generic read methods.                                        |
+| Browser source transforms may not emit design metadata                          | Compile test-owned fixtures with TypeScript first and import real emitted artifacts in isolated realms.                                                                                         |
+| Coverage merging/source maps can falsely exclude paths                          | Include all production files and require negative controls for omitted branches/unloaded files before acceptance.                                                                               |
+| Foreign-handler tests cannot reuse an activated realm                           | Fresh child processes and browser realms; no reset/uninstall export, private-state inspection or module mocking.                                                                                |
+| Snyk evidence and supported Node activation are environment-owned               | Secure owner integration/runtime setup; unavailable applicable checks block acceptance.                                                                                                         |
 
 The user requested the embedded approach and instance read-side convenience on 2026-10-04. Their boundaries are
 specified above and in Brief.md AC-027, not left to implementation. Joint approval is recorded below;
@@ -889,6 +972,26 @@ Package publishing, release, deployment and execution of a consuming application
 
 ## Approval
 
+On 2026-10-04, after T-021 attempt2 and T-022 attempt2 completed corrected-revision local verification and
+manual review, the user explicitly selected **"Authorize closure preparation and story archival (Recommended)"**.
+This authorizes only T-023: move this story's three notes to `.docs/Archive/glacier-reflection/`, update the
+Stories/Archive indexes, repair directly affected relative references, link actual implemented tests and recheck
+affected documentation/gates under sole Tasks ownership. It changes no design or Brief.md AC-001 through AC-027.
+Archival is pre-merge review preparation, not delivery or human acceptance. It grants no staging, commit,
+push, PR publication, remote scan/action, or merge permission; T-024 onward retain their separate gates.
+
+On 2026-10-04, after T-013 attempt 2 demonstrated the inaccessible constructor's remaining coverage gap, the user
+explicitly selected **"Approve a nonconstructible static facade design preserving MetadataDiscovery.definitions
+calls and meaningful 100% coverage (Recommended)"**. This renews approval for the material discovery export-kind
+revision specified in Public contract details: the readonly frozen nonconstructible operation record backed by
+class-first domain behavior, with unchanged calls, generic NoInfer signatures, result types and discovery semantics.
+It supersedes only the previous exported MetadataDiscovery class/private-constructor representation; no public
+instance class-type, subclassing or prototype contract is retained. Brief.md AC-001 through AC-027 remain unchanged.
+No dependency, runtime baseline, coverage policy, other API, or non-goal changes are approved. T-013 attempt 3
+must establish the new readonly/frozen facade contracts test-first and renew independent types and mapped discovery
+coverage. This is design/implementation approval, not worker completion, final acceptance or authorization to stage,
+commit, push, publish, merge or archive.
+
 **Approved on 2026-10-04.** The user explicitly selected "Approve aligned plan, criteria, dependencies, and
 implementation" after prerequisite documentation alignment. Approval covers the complete public API and
 failure/typing contracts, P-001 through P-008, Brief.md AC-001 through AC-027 and the stated non-goals and
@@ -900,6 +1003,20 @@ On 2026-10-04 the user explicitly directed "Use only chromium for playwright tes
 approved three-engine matrix. This approves Chromium-only browser tests, installation and distribution verification;
 Firefox/WebKit are excluded from required verification, not silently skipped. Node tests and combined Node/Chromium
 100% coverage requirements remain unchanged. All other approved criteria and implementation scope remain unchanged.
+
+On 2026-10-04, after the first T-009 attempt exposed the absent-declaration type-red conflict, the user explicitly
+selected: "Approve a narrowly scoped type-bootstrap exception: author positive/negative type contracts before
+declarations, verify them afterward, and retain meaningful runtime red gates". This approves the corresponding
+bounded update to existing ADR-0006 and P-003/Validation: only the first declaration bootstrap of this approved
+Glacier reflection API may use meaningful accepted-use/rejected-misuse public-root fixtures authored before
+production declarations and verified afterward, with intended diagnostics/contracts and unused `@ts-expect-error`
+guards. Fixture/declaration order must be retained as evidence; missing symbols/setup failures are not intended red,
+and intentionally unsound production baselines are not authorized. Meaningful runtime red/green/refactor remains
+unchanged; type behavior changes after bootstrap still require meaningful type red/green/refactor. This decision
+changes no API signature, AC-001 through AC-027, dependency or other approved scope, and makes no runtime-coverage
+claim for erased types. ADR-0005 already requires independent type verification rather than pre-declaration red and
+does not need an exception. This approval is not completion evidence, human acceptance, or permission to stage,
+commit, push, publish, merge or archive.
 
 Earlier discovery: The user requested a plan including the full public API, confirmed reuse of the existing
 `feature/glacier-reflection` branch while preserving Brief.md, selected definition-owned operations, selected the
@@ -916,7 +1033,8 @@ Implementation approval does not authorize commits, push, PR publication, human 
 - [Brief](Brief.md)
 - [Tasks](Tasks.md)
 - [Story plan template](../../Templates/Story%20Plan.md)
-- [Stories](../Index.md)
+- [Stories](../../Stories/Index.md)
+- [Archive](../Index.md)
 - [Architecture decisions](../../Architecture/Decisions/Index.md)
 - [ADR-0001: Techstack](../../Architecture/Decisions/ADR-0001-Techstack.md)
 - [ADR-0002: Package architecture](../../Architecture/Decisions/ADR-0002-Package-architecture.md)

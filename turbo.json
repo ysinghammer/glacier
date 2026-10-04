@@ -48,11 +48,41 @@
       "dependsOn": ["//#format-check:root"]
     },
     "type-check": {
-      "dependsOn": ["//#type-check:root"]
+      "dependsOn": ["//#type-check:root", "build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.base.json",
+        "$TURBO_ROOT$/pnpm-lock.yaml"
+      ]
     },
     "build": {
       "dependsOn": ["^build", "//#build:root"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.base.json",
+        "$TURBO_ROOT$/pnpm-lock.yaml"
+      ],
       "outputs": ["dist/**"]
+    },
+    "test:prepare": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.base.json",
+        "$TURBO_ROOT$/pnpm-lock.yaml"
+      ],
+      "outputs": ["tests/artifacts/compiler/**"]
+    },
+    "test": {
+      "dependsOn": ["build", "type-check", "test:prepare"],
+      "cache": false,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig.base.json",
+        "$TURBO_ROOT$/pnpm-lock.yaml"
+      ],
+      "outputs": ["tests/artifacts/**"]
     },
     "catalog-check": {
       "dependsOn": ["//#catalog-check:root"],

@@ -1,0 +1,35 @@
+{
+  "name": "@glacier/reflection",
+  "version": "1.0.0",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "type-check": "tsc --project tsconfig.json --noEmit && tsc --project tsconfig.tests.json && pnpm run type-check:contracts",
+    "type-check:contracts": "tsc --project tsconfig.contracts.json",
+    "lint": "oxlint --deny-warnings --ignore-pattern 'tests/artifacts/**' --ignore-pattern 'dist/**' .",
+    "format-check": "oxfmt --check --ignore-path ../../../.gitignore --ignore-path ../../../.oxfmtignore .",
+    "test:prepare": "tsc --project tsconfig.fixtures.json && node tests/data/DistributionContractPrepare.ts",
+    "test": "node tests/data/CompilerContractRun.ts --coverage"
+  },
+  "devDependencies": {
+    "@vitest/browser-playwright": "5.0.3",
+    "@vitest/coverage-v8": "5.0.3",
+    "playwright": "1.63.0",
+    "vitest": "5.0.3"
+  },
+  "engines": {
+    "node": "24.21.0",
+    "pnpm": "11.9.0"
+  }
+}

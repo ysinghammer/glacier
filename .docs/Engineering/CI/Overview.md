@@ -25,15 +25,28 @@ branch, and manual dispatch. Actions are pinned to immutable revisions; workflow
 checkout credentials are not persisted, and job execution is bounded.
 
 The workflow installs the manifest-declared pnpm, activates [.node-version](../../../.node-version), installs
-the [lockfile](../../../pnpm-lock.yaml) with frozen mode, then runs `pnpm check` through Turbo.
+the [lockfile](../../../pnpm-lock.yaml) with frozen mode, installs the reflection library's pinned Chromium with
+`pnpm --filter @glacier/reflection exec playwright install --with-deps chromium`, then runs `pnpm check` through Turbo.
 `HUSKY=0` disables local hooks in CI: gates remain independent of contributor hook execution.
 Command failures fail the job. An always-run artifact step retains invocation-specific catalog/tooling diagnostics
-for seven days without converting a failed check into success.
+and library `packages/libraries/glacier-reflection/tests/artifacts/` diagnostics for seven days without converting
+a failed check into success.
 
 The current gates compile and validate actual workspace tooling, lint and check formatting, validate the empty
-acceptance catalog, and run positive/negative technical controls. No application/library suites or image scans are
-claimed: their packages/images do not exist. When added, their ADR-0005/0007 gates must become required here;
-full-stack execution must remain uncached and its reports include actual outcomes.
+acceptance catalog, and run positive/negative technical controls. They also route through reflection's generated
+root build/declarations, independent type contracts, genuine legacy fixture/distribution preparation, and uncached
+native Node/Chromium library tests with combined V8 coverage. The package test script owns bounded native server
+readiness and finally cleanup; browser tests use Chromium only. V8 must reach 100% statements, branches, functions
+and lines overall and per relevant production file. Passing assertions with a coverage failure still fail the job.
+No application full-stack suite or image scan is claimed because those packages/images do not exist.
+Future full-stack execution must remain uncached and its reports include actual outcomes.
+
+This describes [configured routing](../../../packages/libraries/glacier-reflection/package.json), not an observed
+remote Actions run. Current local development evidence and outstanding coverage/CI gates belong in
+[reflection Tasks](../../Archive/glacier-reflection/Tasks.md); neither local green assertions nor executable
+[adoption examples](../../../packages/libraries/glacier-reflection/tests/data/compiler/AdoptionExample.ts)
+establish remote CI success. The README documents root import activation/order and fresh-realm recovery;
+CI must not remove a foreign handler or weaken import conflict behavior to obtain a pass.
 
 For installation failures, confirm runtime/package-manager versions and restore the frozen dependency set.
 For gate failures, inspect the command diagnostic and retained `tests/artifacts/` report, reproduce with
@@ -43,7 +56,8 @@ Do not use `continue-on-error`, omit failing tasks, or treat unavailable checks 
 ## Snyk GitHub integration
 
 The repository owner must connect the GitHub repository in Snyk, authorize its GitHub App/integration, and import
-the root `package.json` project with `pnpm-lock.yaml`. Use the declared Node/pnpm environment and enable
+the workspace manifests, including the reflection library's approved development dependencies, with `pnpm-lock.yaml`.
+Use the declared Node/pnpm environment and enable
 dependency/PR tests and check reporting. Snyk configuration is account-managed; no npm scanner dependency,
 CLI workflow, credential, or ignore policy is committed.
 

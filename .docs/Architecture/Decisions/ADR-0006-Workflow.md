@@ -23,6 +23,11 @@ The story document model and its authoring skills are defined by [ADR-0008](ADR-
 Fresh task workers and explicit execution waves separate implementation ownership from orchestration and make
 parallelism conditional on demonstrably independent scopes rather than task count alone.
 
+The approved Glacier reflection story initially has no public declarations. Missing-symbol failures cannot establish
+the intended type guarantees, while deliberately unsound signatures would invent an unapproved baseline. The user's
+2026-10-04 decision therefore permits a narrowly scoped first-declaration bootstrap with fixtures authored first
+and verified afterward, without relaxing runtime test-first development or later type-change red gates.
+
 This workflow ends when GitHub confirms the PR merged into `main`. Releases, deployments, and continuous delivery are
 outside its scope.
 
@@ -99,7 +104,21 @@ are defined by [ADR-0008](ADR-0008-Story-documentation.md). The gates below appl
   follow strict test-first development: write or update a meaningful public-contract test, run it and observe the
   expected contract failure, implement the behavior, then refactor with passing tests. Application/service tests must
   use Playwright; library runtime tests must use Vitest through public exports; type-only API changes must use failing
-  type-contract checks. Missing tooling, startup failures, or unrelated errors must not count as the expected failure.
+  type-contract checks, except for the bounded first-declaration bootstrap below. Missing tooling, startup failures,
+  missing symbols alone, or unrelated errors must not count as the expected failure.
+- Only the first declaration bootstrap of the approved `glacier-reflection` story, explicitly authorized on
+  2026-10-04 and recorded in its [plan approval](../../Archive/glacier-reflection/Plan.md#approval), must be permitted
+  to replace pre-declaration type red with fixture-first, post-declaration verification. Contributors must author
+  meaningful accepted-use and rejected-misuse type fixtures through the curated public root before adding the
+  production declarations they cover, then verify intended inference, contracts and diagnostics after those
+  declarations exist. Negative fixtures must guard against unused `@ts-expect-error` directives; missing symbols
+  or setup failures must not be reported as intended type red. Contributors must preserve fixture/declaration order
+  as task evidence and must not introduce intentionally unsound production signatures to manufacture red.
+  This exception must cover only initial declarations of the already-approved API, not changed signatures, behavior,
+  criteria or dependencies. Meaningful runtime red/green/refactor must remain mandatory before runtime behavior;
+  type behavior changes after this bootstrap must retain strict meaningful type red/green/refactor. Erased types
+  must be independently type-checked and must not be claimed as runtime-covered. All remaining authorization gates
+  must remain unchanged.
 - For removals, contributors must obtain approval of the changed requirement first and test the intended resulting
   public contract; merely deleting the old test must not satisfy test-first development. Behavior-preserving internal
   refactors, documentation, and tooling must retain applicable verification without requiring artificial red tests.
@@ -178,7 +197,7 @@ flowchart TD
     E -->|Yes| F["Resolve ADR and dependency approvals"]
     F --> G["Register application criteria and scenarios if applicable"]
     G --> H{"Public behavior or type contract changes?"}
-    H -->|Yes| I["Write contract test and observe expected failure"]
+    H -->|Yes| I["Write contract test and observe expected failure; only the bounded reflection type bootstrap uses fixture-first verification"]
     I --> J["Implement and refactor with passing tests"]
     H -->|No| J
     J --> K["Run applicable local gates and manual review"]
@@ -221,6 +240,10 @@ parallelism and human waits; unavailable delegation blocks progress rather than 
 Every change has an approved purpose, traceable verification, and explicit human handoffs. One story branch and
 merge-commit history preserve both review context and package-level change attribution. Public-contract test-first
 development supplies evidence that the new test detects the intended behavior change.
+
+The one-story first-declaration exception establishes accepted-use and rejected-misuse type evidence without an
+invented unsound baseline, but does not supply pre-declaration type-red evidence. Auditable fixture-first order and
+post-declaration diagnostics are required; runtime red and subsequent type-change red remain mandatory.
 
 Stories, repeated full-stack checks, current-main integration, and renewed acceptance add coordination and runtime cost.
 Main advancing during final review can delay a merge. Missing tooling, external dependencies, unresolved security

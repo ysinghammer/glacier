@@ -69,11 +69,13 @@ inapplicability, and describe applicable verification in `Validation`. Do not in
 
 - [Agent task orchestration](agent-task-orchestration/Brief.md) - documentation-only worker execution policy;
   [plan](agent-task-orchestration/Plan.md) and [tasks](agent-task-orchestration/Tasks.md).
-- [Glacier reflection](glacier-reflection/Brief.md) - independent typed metadata library;
-  [plan](glacier-reflection/Plan.md) and [tasks](glacier-reflection/Tasks.md).
 
 The [initialize-workspace story](../Archive/initialize-workspace/Brief.md) is archived for pre-review
 preparation; its [remaining workflow gates](../Archive/initialize-workspace/Tasks.md) are not completed.
+
+The [Glacier reflection story](../Archive/glacier-reflection/Brief.md) is also archived for pre-merge review
+preparation; its [plan](../Archive/glacier-reflection/Plan.md) links implemented library contracts and its
+[remaining workflow gates](../Archive/glacier-reflection/Tasks.md) still require separate permissions and evidence.
 
 ## Closure
 

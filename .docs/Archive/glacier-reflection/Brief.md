@@ -260,7 +260,8 @@ verification sequencing, and other implementation decisions remain for the separ
 
 ## Related notes
 
-- [Stories](../Index.md)
+- [Stories](../../Stories/Index.md)
+- [Archive](../Index.md)
 - [Architecture decisions](../../Architecture/Decisions/Index.md)
 - [ADR-0001: Techstack](../../Architecture/Decisions/ADR-0001-Techstack.md)
 - [ADR-0002: Package architecture](../../Architecture/Decisions/ADR-0002-Package-architecture.md)

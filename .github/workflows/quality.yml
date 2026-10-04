@@ -26,12 +26,16 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install library Chromium
+        run: pnpm --filter @glacier/reflection exec playwright install --with-deps chromium
       - run: pnpm check
-      - name: Retain tooling and catalog diagnostics
+      - name: Retain tooling, catalog and library diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: workspace-tooling-${{ github.run_id }}-${{ github.run_attempt }}
-          path: tests/artifacts/
+          path: |
+            tests/artifacts/
+            packages/libraries/glacier-reflection/tests/artifacts/
           if-no-files-found: warn
           retention-days: 7
