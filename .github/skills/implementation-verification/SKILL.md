@@ -17,6 +17,7 @@ Focused or filtered runs are development feedback only and never satisfy the gat
 concealed failures, and pass-on-retry results do not count as passing.
 
 Reporting rules:
+
 - Report each gate as passed, failed, or not applicable with a reason. Never describe unavailable tooling, a missing
   script, or a skipped step as success; failed or unavailable applicable gates block acceptance until resolved.
 - Bootstrap work must establish and demonstrate its applicable gates.

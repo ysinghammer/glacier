@@ -21,3 +21,11 @@
 .idea/**/dbnavigator.xml
 .idea/**/mongoSettings.xml
 .idea/httpRequests
+
+# Workspace-generated dependencies, builds, caches, and invocation reports
+node_modules/
+dist/
+.turbo/
+tests/artifacts/
+**/tests/artifacts/
+*.tsbuildinfo

@@ -44,7 +44,7 @@ testing through public UI and HTTP boundaries, and library-only Vitest testing t
   entities, aggregates, repositories, or interfaces.
 
 | Path                                | Responsibility                                                                                       |
-|-------------------------------------|------------------------------------------------------------------------------------------------------|
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `domain/`                           | Capability-owned concepts, invariants, and policies.                                                 |
 | `application/`                      | Use cases coordinating domain behavior.                                                              |
 | `application/ports/inbound/`        | Optional contracts for invoking application operations.                                              |

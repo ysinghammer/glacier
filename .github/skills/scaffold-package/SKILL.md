@@ -15,13 +15,14 @@ current repository and generate appropriate files rather than relying on frozen 
 3. Derive identity and location from the answer:
 
    | Type           | Directory                           | npm `name`        |
-         |----------------|-------------------------------------|-------------------|
+   | -------------- | ----------------------------------- | ----------------- |
    | `library`      | `packages/libraries/glacier-<name>` | `@glacier/<name>` |
    | `application`  | `packages/apps/glacier-<name>`      | `@glacier/<name>` |
    | `microservice` | `packages/services/glacier-<name>`  | `@glacier/<name>` |
 
    Set `package.json` to `"version": "1.0.0"` and `"private": true`. The directory name and scoped npm identity are
    distinct; do not add a separate scope field or alias.
+
 4. For a library, subsequently ask for its target: backend/Node.js, frontend/React, or technology-independent
    TypeScript. An `application` is a React frontend; a `microservice` is a Node.js HTTP service.
 

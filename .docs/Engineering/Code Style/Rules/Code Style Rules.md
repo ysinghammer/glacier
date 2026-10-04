@@ -6,17 +6,17 @@ alongside the [general architecture rules](General%20Rules.md). React exceptions
 
 ## Naming
 
-| Construct | Convention | Example |
-|---|---|---|
-| Source folder | Descriptive kebab-case; prescribed architecture paths remain unchanged | `order-management/application/` |
-| Variable, parameter, property, method | camelCase | `orderId`, `findById` |
-| Class | PascalCase, no `I` prefix | `Order`, `PostgresOrderRepository` |
-| Interface or type alias | PascalCase with `I` prefix | `IOrderRepository`, `IOrderId`, `IOrderStatus` |
-| Union solely of class instance types | PascalCase without `I` | `OrderEvent = OrderCreated \| OrderCancelled` |
-| Affirmative boolean | Predicate name | `isReady`, `hasAccess`, `canSubmit` |
-| True module-level fixed constant | UPPER_SNAKE_CASE | `MAX_ORDER_ITEMS` |
-| React context value | PascalCase | `OrderContext` |
-| Acronym in an authored name | Treat as a word | `HttpClient`, `userId` |
+| Construct                             | Convention                                                             | Example                                        |
+| ------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
+| Source folder                         | Descriptive kebab-case; prescribed architecture paths remain unchanged | `order-management/application/`                |
+| Variable, parameter, property, method | camelCase                                                              | `orderId`, `findById`                          |
+| Class                                 | PascalCase, no `I` prefix                                              | `Order`, `PostgresOrderRepository`             |
+| Interface or type alias               | PascalCase with `I` prefix                                             | `IOrderRepository`, `IOrderId`, `IOrderStatus` |
+| Union solely of class instance types  | PascalCase without `I`                                                 | `OrderEvent = OrderCreated \| OrderCancelled`  |
+| Affirmative boolean                   | Predicate name                                                         | `isReady`, `hasAccess`, `canSubmit`            |
+| True module-level fixed constant      | UPPER_SNAKE_CASE                                                       | `MAX_ORDER_ITEMS`                              |
+| React context value                   | PascalCase                                                             | `OrderContext`                                 |
+| Acronym in an authored name           | Treat as a word                                                        | `HttpClient`, `userId`                         |
 
 The union exception depends on what the members are, not the alias's name. A union of interface types or string literals
 still needs `I`. Externally defined spellings remain unchanged. Avoid underscore prefixes, Hungarian notation, and vague
@@ -25,30 +25,30 @@ names where a precise responsibility can be named.
 Use PascalCase file stems for classes, types, and React contexts, and camelCase for permitted functions. Append a single role suffix when
 applicable, without repeating its terminal role word in the stem:
 
-| Role | Intended responsibility | Example filename |
-|---|---|---|
-| `repository` | Concrete capability-owned persistence implementation | `PostgresOrder.repository.ts` |
-| `controller` | Transport entry controller | `Order.controller.ts` |
-| `service` | A specifically named service responsibility, not a catch-all | `Pricing.service.ts` |
-| `model` | Data representation without an entity's domain identity | `OrderSummary.model.ts` |
-| `dto` | Boundary data contract | `ICreateOrder.dto.ts` |
-| `entity` | Domain concept with identity and invariants | `Order.entity.ts` |
-| `route` | Transport route definition/registration | `Order.route.ts` |
-| `view` | Screen/page | `OrderDetails.view.tsx` |
-| `element` | Low-level UI primitive | `Button.element.tsx` |
-| `component` | Reusable composite UI | `OrderSummary.component.tsx` |
-| `connected` | Smart React component handling side effects or external-state access | `OrderSummary.connected.tsx` |
-| `port` | Consumer-owned dependency or invocation contract | `IOrderRepository.port.ts` |
-| `adapter` | Integration implementation without a more specific role | `Payments.adapter.ts` |
-| `use-case` | Application operation | `CreateOrder.use-case.ts` |
-| `hook` | React custom hook | `useOrders.hook.ts` |
-| `context` | React context definition | `Order.context.ts` |
-| `provider` | React provider component | `Order.provider.tsx` |
-| `factory` | Construction responsibility | `Order.factory.ts` |
-| `mapper` | Representation conversion | `Order.mapper.ts` |
-| `schema` | Schema definition or validation responsibility | `Order.schema.ts` |
-| `error` | Exceptional failure type | `OrderPersistence.error.ts` |
-| `config` | Configuration contract or assembly | `IOrder.config.ts` |
+| Role         | Intended responsibility                                              | Example filename              |
+| ------------ | -------------------------------------------------------------------- | ----------------------------- |
+| `repository` | Concrete capability-owned persistence implementation                 | `PostgresOrder.repository.ts` |
+| `controller` | Transport entry controller                                           | `Order.controller.ts`         |
+| `service`    | A specifically named service responsibility, not a catch-all         | `Pricing.service.ts`          |
+| `model`      | Data representation without an entity's domain identity              | `OrderSummary.model.ts`       |
+| `dto`        | Boundary data contract                                               | `ICreateOrder.dto.ts`         |
+| `entity`     | Domain concept with identity and invariants                          | `Order.entity.ts`             |
+| `route`      | Transport route definition/registration                              | `Order.route.ts`              |
+| `view`       | Screen/page                                                          | `OrderDetails.view.tsx`       |
+| `element`    | Low-level UI primitive                                               | `Button.element.tsx`          |
+| `component`  | Reusable composite UI                                                | `OrderSummary.component.tsx`  |
+| `connected`  | Smart React component handling side effects or external-state access | `OrderSummary.connected.tsx`  |
+| `port`       | Consumer-owned dependency or invocation contract                     | `IOrderRepository.port.ts`    |
+| `adapter`    | Integration implementation without a more specific role              | `Payments.adapter.ts`         |
+| `use-case`   | Application operation                                                | `CreateOrder.use-case.ts`     |
+| `hook`       | React custom hook                                                    | `useOrders.hook.ts`           |
+| `context`    | React context definition                                             | `Order.context.ts`            |
+| `provider`   | React provider component                                             | `Order.provider.tsx`          |
+| `factory`    | Construction responsibility                                          | `Order.factory.ts`            |
+| `mapper`     | Representation conversion                                            | `Order.mapper.ts`             |
+| `schema`     | Schema definition or validation responsibility                       | `Order.schema.ts`             |
+| `error`      | Exceptional failure type                                             | `OrderPersistence.error.ts`   |
+| `config`     | Configuration contract or assembly                                   | `IOrder.config.ts`            |
 
 This is a closed vocabulary, not a required inventory. Choose the primary responsibility: a persistence adapter uses
 `repository`, while its consumer-owned contract uses `port`. Role suffixes do not change layer placement. Add new roles

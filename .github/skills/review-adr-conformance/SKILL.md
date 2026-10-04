@@ -7,6 +7,7 @@ Follow `.docs/Architecture/Decisions/Index.md`. Read the index and **every** acc
 (do not rely on memory); then inspect the working diff or branch diff (`git diff origin/main...HEAD`).
 
 For each ADR, state conforming, violating, or not applicable, with file/line evidence for violations. Also check:
+
 - new direct runtime/dev dependencies are approved in the dependency tables (ADR-0001) and no unapproved ones appear;
 - package boundaries and package-root API usage (ADR-0002), code style (ADR-0003), React conventions (ADR-0004),
   testing and catalog rules (ADR-0005, ADR-0007), workflow and story documents (ADR-0006, ADR-0008);

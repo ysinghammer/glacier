@@ -7,6 +7,7 @@ Follow `.docs/Architecture/Decisions/ADR-0006-Workflow.md` ("Prepare closure") a
 Edit only the story branch; closure changes are committed only with explicit authorization.
 
 Before final review the PR must contain:
+
 - lasting documentation updates (architecture, engineering, dependency/techstack notes) for what the story changed,
   and any ADR/index updates made consistently;
 - completed implementation and verification tasks with evidence, in `Tasks.md`;
