@@ -63,7 +63,10 @@ inapplicability, and describe applicable verification in `Validation`. Do not in
 
 ## Active stories
 
-None. The [initialize-workspace story](../Archive/initialize-workspace/Brief.md) is archived for pre-review
+- [Glacier reflection](glacier-reflection/Brief.md) - independent typed metadata library;
+  [plan](glacier-reflection/Plan.md) and [tasks](glacier-reflection/Tasks.md).
+
+The [initialize-workspace story](../Archive/initialize-workspace/Brief.md) is archived for pre-review
 preparation; its [remaining workflow gates](../Archive/initialize-workspace/Tasks.md) are not completed.
 
 ## Closure
