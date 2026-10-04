@@ -1,5 +1,5 @@
 ---
-created: {{date:YYYY-MM-DD}}
+created: { { date:YYYY-MM-DD } }
 tags:
   - story
 ---

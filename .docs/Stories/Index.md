@@ -9,11 +9,11 @@ belong to separate stories. Every repository change requires a proportionate sto
 
 Use a short, stable, lowercase kebab-case folder slug with exactly three story documents:
 
-| Document | Owns | Required content |
-|----------|------|------------------|
-| `Brief.md` | Why and what | Problem/audience, intended outcome, scope/non-goals, requirements/constraints, acceptance criteria, open questions, references, related notes. |
-| `Plan.md` | How and verification | Approach/alternatives, affected areas/interfaces, ordered implementation steps, data/lifecycle/failures, validation, E2E tests, dependencies/risks/open decisions, migration/rollout, approval, related notes. |
-| `Tasks.md` | Execution | Stable task IDs, actions, status, source references, dependencies, completion conditions, evidence, blockers, and applicable workflow gates. |
+| Document   | Owns                 | Required content                                                                                                                                                                                               |
+| ---------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Brief.md` | Why and what         | Problem/audience, intended outcome, scope/non-goals, requirements/constraints, acceptance criteria, open questions, references, related notes.                                                                 |
+| `Plan.md`  | How and verification | Approach/alternatives, affected areas/interfaces, ordered implementation steps, data/lifecycle/failures, validation, E2E tests, dependencies/risks/open decisions, migration/rollout, approval, related notes. |
+| `Tasks.md` | Execution            | Stable task IDs, actions, status, source references, dependencies, completion conditions, evidence, blockers, and applicable workflow gates.                                                                   |
 
 Keep template sections and use concise content or justified inapplicability. Plans must map every criterion to a
 verification method. Use stable story-local IDs such as `AC-001`, `P-001`, and `T-001`; do not renumber or reuse them.
@@ -63,7 +63,8 @@ inapplicability, and describe applicable verification in `Validation`. Do not in
 
 ## Active stories
 
-None.
+None. The [initialize-workspace story](../Archive/initialize-workspace/Brief.md) is archived for pre-review
+preparation; its [remaining workflow gates](../Archive/initialize-workspace/Tasks.md) are not completed.
 
 ## Closure
 

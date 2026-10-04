@@ -1,5 +1,5 @@
 ---
-created: {{date:YYYY-MM-DD}}
+created: { { date:YYYY-MM-DD } }
 tags:
   - story
 ---
@@ -35,9 +35,9 @@ observability. For work without these concerns, explain why this section is not 
 Map every brief criterion ID to its verification method. This is a criterion-to-method mapping, not a manually
 duplicated reverse mapping of the acceptance catalog. Name applicable checks and observable evidence to collect.
 
-| Criterion | Verification method |
-|-----------|---------------------|
-| AC-001 | [Specific check establishing the result] |
+| Criterion | Verification method                      |
+| --------- | ---------------------------------------- |
+| AC-001    | [Specific check establishing the result] |
 
 For public UI/HTTP or library API behavior changes, identify the public-contract tests to write and observe failing
 before production changes. Include type-contract checks for type-only public API changes. Identify applicable local

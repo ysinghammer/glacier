@@ -1,0 +1,66 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "agentGuidance": false,
+  "tasks": {
+    "//#lint:root": {
+      "inputs": [
+        "tests/**/*.ts",
+        "!tests/artifacts/**",
+        "package.json",
+        "pnpm-lock.yaml",
+        ".oxlintrc.json"
+      ]
+    },
+    "//#format-check:root": {
+      "cache": false
+    },
+    "//#type-check:root": {
+      "inputs": [
+        "tests/**/*.ts",
+        "!tests/artifacts/**",
+        "tsconfig*.json",
+        "package.json",
+        "pnpm-lock.yaml"
+      ]
+    },
+    "//#build:root": {
+      "inputs": [
+        "tests/**/*.ts",
+        "!tests/artifacts/**",
+        "tsconfig*.json",
+        "package.json",
+        "pnpm-lock.yaml"
+      ],
+      "outputs": ["dist/**"]
+    },
+    "//#catalog-check:root": {
+      "dependsOn": ["//#build:root"],
+      "cache": false
+    },
+    "//#tooling-check:root": {
+      "dependsOn": ["//#build:root"],
+      "cache": false
+    },
+    "lint": {
+      "dependsOn": ["//#lint:root"]
+    },
+    "format-check": {
+      "dependsOn": ["//#format-check:root"]
+    },
+    "type-check": {
+      "dependsOn": ["//#type-check:root"]
+    },
+    "build": {
+      "dependsOn": ["^build", "//#build:root"],
+      "outputs": ["dist/**"]
+    },
+    "catalog-check": {
+      "dependsOn": ["//#catalog-check:root"],
+      "cache": false
+    },
+    "tooling-check": {
+      "dependsOn": ["//#tooling-check:root"],
+      "cache": false
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "glacier",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "husky",
+    "hooks:setup": "husky",
+    "staged:check": "lint-staged --no-stash --no-revert",
+    "check": "turbo run lint:root format-check:root type-check:root build:root catalog-check:root tooling-check:root lint format-check type-check build",
+    "lint": "turbo run lint:root lint",
+    "format-check": "turbo run format-check:root format-check",
+    "type-check": "turbo run type-check:root type-check",
+    "build": "turbo run build:root build",
+    "catalog-check": "turbo run catalog-check:root",
+    "tooling-check": "turbo run tooling-check:root",
+    "lint:root": "oxlint --deny-warnings tests",
+    "format-check:root": "oxfmt --check --ignore-path .gitignore --ignore-path .oxfmtignore .",
+    "type-check:root": "tsc --project tsconfig.json --noEmit",
+    "build:root": "tsc --project tsconfig.json",
+    "catalog-check:root": "node dist/tests/acceptance/validation/RunCatalog.js",
+    "tooling-check:root": "node dist/tests/acceptance/validation/CatalogVerification.js && node dist/tests/verification/WorkspaceVerification.js"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0",
+    "turbo": "2.11.7",
+    "typescript": "7.0.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}": [
+      "oxlint --deny-warnings",
+      "oxfmt --check --ignore-path .gitignore --ignore-path .oxfmtignore"
+    ],
+    "*.{json,jsonc,yml,yaml,md,css,scss,html}": "oxfmt --check --ignore-path .gitignore --ignore-path .oxfmtignore"
+  },
+  "engines": {
+    "node": "24.21.0",
+    "pnpm": "11.9.0"
+  },
+  "packageManager": "pnpm@11.9.0"
+}

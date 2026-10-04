@@ -54,7 +54,8 @@ as completed tests.
 Husky manages the Git hook; lint-staged selects staged files and runs Oxlint and Oxfmt compliance checks through pnpm.
 These are lint and formatting checks, not security scans.
 
-Once workspace tooling is scaffolded:
+The root [manifest](../../../package.json) owns the staged-file commands; the
+[hook](../../../.husky/pre-commit) invokes `pnpm staged:check`.
 
 - Install workspace dependencies with pnpm and ensure the repository's local Husky hook setup is active.
 - Stage the intended changes. On commit, the Husky pre-commit hook runs lint-staged only on matching staged files.
@@ -63,5 +64,86 @@ Once workspace tooling is scaffolded:
 - Before acceptance, also run the required pnpm/Turbo lint and formatting checks and applicable type-check, build,
   and test tasks. A successful staged-file scan does not validate the whole project or replace CI.
 
-Workspace scaffolding must add the root development dependencies, hook activation, pre-commit hook, and staged-file
-configuration. Link the setup and manual scan command here.
+Use `pnpm staged:check` for a manual check of intended staged changes. The tools check compliance only; they
+do not auto-fix files. lint-staged uses `--no-stash --no-revert`: it does not create a backup stash, and all
+configured tasks are read-only. It hides/restores partially staged changes while checking the staged version.
+Keep the working tree intact if interrupted and inspect the reported patch/recovery instructions before retrying.
+Do not bypass failed hooks.
+
+## Workspace setup
+
+Use the exact runtime in [.node-version](../../../.node-version) / [.nvmrc](../../../.nvmrc) and the pnpm
+version in [package.json](../../../package.json). The baseline is Node.js 24.21.0 (active LTS) and pnpm 11.9.0.
+With an existing nvm installation:
+
+```sh
+nvm install
+nvm use
+node --version
+pnpm --version
+pnpm install --frozen-lockfile
+pnpm check
+```
+
+Install pnpm 11.9.0 using your chosen package-manager provisioning method if it is unavailable; no host-wide
+installation is performed automatically. `engineStrict` rejects a wrong runtime/package manager.
+Installation runs `prepare` to activate Husky. If lifecycle scripts were intentionally disabled, run
+`pnpm hooks:setup` and verify `git config --get core.hooksPath` is `.husky/_`.
+CI uses `HUSKY=0` and does not depend on this local hook.
+
+The [workspace configuration](../../../pnpm-workspace.yaml) discovers future packages under `packages/apps/*`,
+`packages/services/*`, and `packages/libraries/*`, matching the scaffolding conventions without creating
+placeholder directories or products. The [compiler baseline](../../../tsconfig.base.json) enables all
+mandatory strictness controls, with no internal aliases. [Root compilation](../../../tsconfig.json) covers
+authored foundation tooling and emits ignored `dist/`; future Playwright specs require their own runner/configuration.
+
+## Workspace commands
+
+The [manifest](../../../package.json) and [Turbo graph](../../../turbo.json) are authoritative.
+
+| Command              | Actual work                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `pnpm check`         | All applicable root gates, plus corresponding tasks of future workspace packages.                          |
+| `pnpm lint`          | Oxlint on authored test/tooling TypeScript and any package lint tasks.                                     |
+| `pnpm format-check`  | Oxfmt defaults across supported workspace files and any package formatting tasks.                          |
+| `pnpm type-check`    | Strict tooling compilation without emission and any package type checks.                                   |
+| `pnpm build`         | Compile tooling to `dist/` and any actual package builds.                                                  |
+| `pnpm catalog-check` | Validate catalog/discovered-test mappings and generate truthful traceability.                              |
+| `pnpm tooling-check` | Technical catalog controls, disposable frozen installation, negative Turbo controls, and real hook checks. |
+
+Root task names have a `:root` suffix and are selected explicitly, so an empty package inventory cannot produce
+a false passing no-task run. Their scripts invoke tools, not Turbo recursively. Compilation/lint may use the local
+Turbo cache; formatting, catalog discovery/reporting, and technical verification run each invocation.
+Turbo's automatic agent-guidance edits are disabled to preserve the repository-owned `AGENTS.md`; consult
+the installed `turbo/docs/README.md` when working with version-specific Turbo behavior.
+The disposable verification checkout installs offline from the store populated by the initial frozen install.
+An incomplete store fails verification explicitly; restore it with the normal frozen install before retrying.
+
+To format intended files, use `pnpm exec oxfmt --write --ignore-path .gitignore --ignore-path .oxfmtignore <paths>`,
+then rerun `pnpm check`. Formatting defaults are unmodified; [ignore rules](../../../.oxfmtignore) exclude generated
+output, the generated lockfile, and local IDE/Obsidian state rather than suppressing source checks.
+Existing wiki and skill Markdown was normalized with owner authorization for this baseline; IDE state is preserved.
+
+For a failed gate, fix its diagnostic and rerun the same command. Wrong engines require activating the declared runtime;
+lockfile errors require an intentionally approved dependency change and regenerated lockfile, not removing frozen mode.
+Do not clear failures with empty tasks, skipped checks, or broad suppressions.
+
+## Foundation applicability and future packages
+
+[Technical verification](../../../tests/verification/WorkspaceVerification.ts) and
+[catalog verification](../../../tests/acceptance/validation/CatalogVerification.ts) use Node built-in assertions,
+not Vitest or Playwright product suites. [Catalog guidance](../../../tests/acceptance/README.md) describes authoring
+and static scenario metadata. The empty catalog reports no test execution.
+
+No applications, services, libraries, stories for React components, or deployable images exist.
+Product builds, library coverage, Storybook builds, full-stack acceptance execution, and image scans are currently
+inapplicable. This is not a waiver when packages are added:
+
+- Libraries must add package-root public APIs, library-only Vitest/V8 checks, meaningful public-contract assertions,
+  and 100% coverage per file and library. React libraries additionally run Storybook play assertions in browser mode.
+- Applications/services must add the complete fresh-stack Testcontainers lifecycle and public-only Playwright suite,
+  restricted scenario discovery, execution-aware catalog reporting, and a Turbo task with `cache: false`.
+  Run the complete suite locally and in CI; a cache hit, focused/skipped test, or retry-only pass cannot satisfy it.
+
+Package owners must add real scripts to the existing Turbo conventions and extend `pnpm check`/CI for newly
+applicable tests. Dependency additions, runtime upgrades, and any new integration remain subject to ADR approval.

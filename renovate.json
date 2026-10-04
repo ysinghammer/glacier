@@ -1,0 +1,9 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "automerge": false,
+  "dependencyDashboard": true,
+  "enabledManagers": ["npm", "github-actions", "nvm", "nodenv"],
+  "rangeStrategy": "pin",
+  "ignorePaths": ["tests/artifacts/**", "dist/**"]
+}

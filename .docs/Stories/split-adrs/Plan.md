@@ -51,13 +51,13 @@ mechanical comparison described under Validation. No runtime behavior, data, or 
 
 ## Validation
 
-| Criterion | Verification method |
-|-----------|---------------------|
-| AC-001 | Script compares moved bullets before (from `git show HEAD:`) and after, normalizing whitespace and link targets; the diff must be empty. |
-| AC-002 | Search for distinctive phrases of moved rules in ADR-0005/0006; only ADR-0007/0008 match. |
-| AC-003 | Manual review of Context and Consequences of all four ADRs against the decision template. |
-| AC-004 | Script resolves every relative link and `#anchor` in `.docs/`, `AGENTS.md`, `.github/skills/`; the decisions index lists both new ADRs. |
-| AC-005 | Manual review: total count of "must" bullets before equals after, and a read-through for contradictions across ADR-0001 through ADR-0008. |
+| Criterion | Verification method                                                                                                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-001    | Script compares moved bullets before (from `git show HEAD:`) and after, normalizing whitespace and link targets; the diff must be empty.  |
+| AC-002    | Search for distinctive phrases of moved rules in ADR-0005/0006; only ADR-0007/0008 match.                                                 |
+| AC-003    | Manual review of Context and Consequences of all four ADRs against the decision template.                                                 |
+| AC-004    | Script resolves every relative link and `#anchor` in `.docs/`, `AGENTS.md`, `.github/skills/`; the decisions index lists both new ADRs.   |
+| AC-005    | Manual review: total count of "must" bullets before equals after, and a read-through for contradictions across ADR-0001 through ADR-0008. |
 
 Applicable gates: Oxfmt/Oxlint pre-commit checks on changed files if they cover Markdown. Code build/test/Playwright
 checks are not applicable to documentation-only work and are not claimed.

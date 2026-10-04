@@ -10,6 +10,7 @@ Before editing the catalog, confirm the user approved the brief's proposed crite
 removals) with the story plan. Resolve ambiguous outcomes, permissions, rejections, and boundaries with the user.
 
 Catalog (`tests/acceptance/`, typed declarative TypeScript, no executable test functions, no Gherkin):
+
 - Inventory features and public API operations (method and path) independently of tests and without importing
   application/service source.
 - Criteria follow `IAcceptanceCriterion`: one observable behavior each; `given` = actor, permissions, achievable public

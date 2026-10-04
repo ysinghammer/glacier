@@ -31,14 +31,14 @@ The example assumes the automatic JSX runtime; runtime imports must follow the e
 Custom hook names begin with `use`,
 as in `useOrders.hook.ts`. Files containing JSX use `.tsx`; other hook/context files use `.ts`.
 
-| Role | Meaning | Example |
-|---|---|---|
-| `view` | Screen/page | `OrderDetails.view.tsx` |
-| `component` | Reusable composite | `OrderSummary.component.tsx` |
+| Role        | Meaning                                                        | Example                      |
+| ----------- | -------------------------------------------------------------- | ---------------------------- |
+| `view`      | Screen/page                                                    | `OrderDetails.view.tsx`      |
+| `component` | Reusable composite                                             | `OrderSummary.component.tsx` |
 | `connected` | Smart component handling side effects or external-state access | `OrderSummary.connected.tsx` |
-| `element` | Low-level UI primitive | `Button.element.tsx` |
-| `context` | React context definition | `Order.context.ts` |
-| `provider` | Provider component | `Order.provider.tsx` |
+| `element`   | Low-level UI primitive                                         | `Button.element.tsx`         |
+| `context`   | React context definition                                       | `Order.context.ts`           |
+| `provider`  | Provider component                                             | `Order.provider.tsx`         |
 
 Name a context value in PascalCase, as in `OrderContext` exported from `Order.context.ts`.
 Roles do not require wrappers or a hierarchy. A context definition and its provider belong in separate files to respect
