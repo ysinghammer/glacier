@@ -20,9 +20,14 @@ Git-ignored `tests/artifacts/` locations it defines. Future package stories must
 
 ## Workspace quality workflow
 
-[Workspace quality](../../../.github/workflows/quality.yml) runs on PRs, pushes to main and the foundation story
-branch, and manual dispatch. Actions are pinned to immutable revisions; workflow permissions are read-only,
+[Workspace quality](../../../.github/workflows/quality.yml) runs on PRs, pushes to main, and manual dispatch. Actions are pinned to immutable revisions; workflow permissions are read-only,
 checkout credentials are not persisted, and job execution is bounded.
+
+On PRs the job first checks the head branch name against
+`^(feature|bugfix|chore|refactor)/[a-z0-9]+(-[a-z0-9]+)*$` (`renovate/*` branches are exempt), and after installation
+runs `pnpm exec commitlint --from <PR base SHA> --to <PR head SHA> --verbose` on every PR commit with the root
+[commitlint configuration](../../../commitlint.config.ts). Checkout fetches full history for that range; refs are
+passed through environment variables, not interpolated into scripts. Either failure fails `quality`.
 
 The workflow installs the manifest-declared pnpm, activates [.node-version](../../../.node-version), installs
 the [lockfile](../../../pnpm-lock.yaml) with frozen mode, installs the reflection library's pinned Chromium with
@@ -53,6 +58,32 @@ For gate failures, inspect the command diagnostic and retained `tests/artifacts/
 the [same local commands](../Guidelines/Overview.md#workspace-commands), correct the cause, and renew checks.
 Do not use `continue-on-error`, omit failing tasks, or treat unavailable checks as successful.
 
+## Branch protection
+
+`main` uses classic branch protection, applied by the owner with
+`gh api -X PUT repos/ysinghammer/glacier/branches/main/protection` (settings read back on 2026-10-11):
+
+| Setting                        | Value                                                   |
+| ------------------------------ | ------------------------------------------------------- |
+| Required status checks         | `quality`, branches must be up to date (`strict: true`) |
+| Enforce for administrators     | Enabled (`enforce_admins: true`)                        |
+| Pull request before merging    | Required, 0 approving reviews, no code-owner review     |
+| Push restrictions              | None (`restrictions: null`)                             |
+| Force pushes / branch deletion | Disabled / disabled                                     |
+| Linear history                 | Not required (merge commits must remain possible)       |
+| Repository merge methods       | Merge commit only; squash and rebase merging disabled   |
+
+Every change therefore reaches `main` through a PR whose current revision includes `main` and passes `quality`,
+merged with a merge commit as required by [ADR-0006](../../Architecture/Decisions/ADR-0006-Workflow.md). Direct pushes
+are rejected for every user, including administrators. Human acceptance remains a procedural ADR-0006 gate rather
+than a required approving review, because the project has a single maintainer.
+
+Read back the settings with `gh api repos/ysinghammer/glacier/branches/main/protection` and
+`gh repo view ysinghammer/glacier --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed`. Only the owner
+may change them; urgent fixes still go through a PR. If protection must be disabled temporarily (for example to
+recover from a broken required check), the owner runs `gh api -X DELETE .../branches/main/protection`, records the
+reason and duration in the affected story's task evidence, and reapplies the exact settings above afterwards.
+
 ## Snyk GitHub integration
 
 The repository owner must connect the GitHub repository in Snyk, authorize its GitHub App/integration, and import
@@ -73,7 +104,9 @@ Container-image scans become applicable with the first deployable image.
 
 The owner must install/authorize the Renovate GitHub App for this repository and allow its onboarding/run.
 [renovate.json](../../../renovate.json) enables npm/pnpm manifests and lockfiles, GitHub Actions, and Node runtime
-declarations. Updates are proposed with pinned ranges, a dependency dashboard, and `automerge: false`.
+declarations. Updates are proposed with pinned ranges, a dependency dashboard, and `automerge: false`. Commits use
+semantic messages with the `workspace` scope (`semanticCommits: enabled`, `semanticCommitScope: workspace`) so they
+pass the commit check; `renovate/*` branches are exempt from the branch-name check.
 Verify app/organization-level settings do not override the no-automerge policy.
 
 Record an observed run/log or dependency-dashboard link showing recognized workspace dependencies and either
@@ -89,4 +122,3 @@ failures without exposing credentials. Tokens belong in integration settings, no
 The foundation implementation session has read-only GitHub access. Owner activation, observed Snyk/Renovate results,
 and a passing published-revision Actions run remain required, pending external evidence and separately authorized
 commit/publication. Local setup or this documentation does not claim those integrations are active.
-Branch protection and organization-wide administration are outside this story's scope.

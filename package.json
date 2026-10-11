@@ -6,7 +6,7 @@
     "prepare": "husky",
     "hooks:setup": "husky",
     "staged:check": "lint-staged --no-stash --no-revert",
-    "check": "turbo run lint:root format-check:root type-check:root build:root catalog-check:root tooling-check:root lint format-check type-check build test",
+    "check": "turbo run lint:root format-check:root type-check:root build:root catalog-check:root tooling-check:root docs-check:root lint format-check type-check build test",
     "test": "turbo run test",
     "lint": "turbo run lint:root lint",
     "format-check": "turbo run format-check:root format-check",
@@ -14,14 +14,18 @@
     "build": "turbo run build:root build",
     "catalog-check": "turbo run catalog-check:root",
     "tooling-check": "turbo run tooling-check:root",
+    "docs-check": "turbo run docs-check:root",
     "lint:root": "oxlint --deny-warnings tests",
     "format-check:root": "oxfmt --check --ignore-path .gitignore --ignore-path .oxfmtignore .",
     "type-check:root": "tsc --project tsconfig.json --noEmit",
     "build:root": "tsc --project tsconfig.json",
     "catalog-check:root": "node dist/tests/acceptance/validation/RunCatalog.js",
-    "tooling-check:root": "node dist/tests/acceptance/validation/CatalogVerification.js && node dist/tests/verification/WorkspaceVerification.js"
+    "tooling-check:root": "node dist/tests/acceptance/validation/CatalogVerification.js && node dist/tests/verification/WorkspaceVerification.js",
+    "docs-check:root": "node dist/tests/verification/DocsVerification.js"
   },
   "devDependencies": {
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
     "@types/node": "24.19.1",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",

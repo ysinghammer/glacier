@@ -11,10 +11,11 @@ as alternatives to this policy. Subsequent tasks reuse their story's branch, not
 In-flight work adopts remaining gates without fabricating historical branch creation. Confirm its story association
 and resolve uncertainty with the user rather than assuming the current branch belongs to this story.
 
-Name the branch `<type>/<short-description>`, where `<type>` is exactly `feature`, `bugfix`, or `chore`. Use a brief, lowercase, kebab-case description of the intent:
+Name the branch `<type>/<short-description>`, where `<type>` is exactly `feature`, `bugfix`, `refactor`, or `chore`. Use a brief, lowercase, kebab-case description of the intent:
 
 - `feature/` for new behavior or capabilities.
 - `bugfix/` for correcting broken behavior.
+- `refactor/` for behavior-preserving restructuring.
 - `chore/` for maintenance, documentation, configuration, or other non-feature work.
 
 For example: `feature/add-export`, `bugfix/handle-empty-response`, `chore/update-dependencies`.

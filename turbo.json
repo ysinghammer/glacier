@@ -41,6 +41,10 @@
       "dependsOn": ["//#build:root"],
       "cache": false
     },
+    "//#docs-check:root": {
+      "dependsOn": ["//#build:root"],
+      "cache": false
+    },
     "lint": {
       "dependsOn": ["//#lint:root"]
     },

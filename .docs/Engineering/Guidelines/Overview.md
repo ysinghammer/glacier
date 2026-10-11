@@ -82,6 +82,12 @@ configured tasks are read-only. It hides/restores partially staged changes while
 Keep the working tree intact if interrupted and inspect the reported patch/recovery instructions before retrying.
 Do not bypass failed hooks.
 
+The [commit-msg hook](../../../.husky/commit-msg) runs `pnpm exec commitlint --edit "$1"` with the root
+[commitlint configuration](../../../commitlint.config.ts). It requires a Conventional Commits header with exactly one
+scope: a workspace package directory name without the `glacier-` prefix (for example `reflection`) or `workspace`.
+The allowed list is derived from `pnpm-workspace.yaml` package directories, so new packages need no manual update.
+Check a draft message with `echo "<message>" | pnpm exec commitlint`. CI checks every PR commit independently.
+
 ## Workspace setup
 
 Use the exact runtime in [.node-version](../../../.node-version) / [.nvmrc](../../../.nvmrc) and the pnpm
@@ -113,16 +119,17 @@ authored foundation tooling and emits ignored `dist/`; future Playwright specs r
 
 The [manifest](../../../package.json) and [Turbo graph](../../../turbo.json) are authoritative.
 
-| Command              | Actual work                                                                                                |
-| -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `pnpm check`         | Root gates and actual package lint/format/type/build/test gates, including reflection V8 coverage.         |
-| `pnpm lint`          | Oxlint on authored test/tooling TypeScript and any package lint tasks.                                     |
-| `pnpm format-check`  | Oxfmt defaults across supported workspace files and any package formatting tasks.                          |
-| `pnpm type-check`    | Strict tooling compilation without emission and any package type checks.                                   |
-| `pnpm build`         | Compile tooling to `dist/` and any actual package builds.                                                  |
-| `pnpm test`          | Uncached library Node/Chromium tests and combined V8 coverage through Turbo prerequisites.                 |
-| `pnpm catalog-check` | Validate catalog/discovered-test mappings and generate truthful traceability.                              |
-| `pnpm tooling-check` | Technical catalog controls, disposable frozen installation, negative Turbo controls, and real hook checks. |
+| Command              | Actual work                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check`         | Root gates and actual package lint/format/type/build/test gates, including reflection V8 coverage.                                                               |
+| `pnpm lint`          | Oxlint on authored test/tooling TypeScript and any package lint tasks.                                                                                           |
+| `pnpm format-check`  | Oxfmt defaults across supported workspace files and any package formatting tasks.                                                                                |
+| `pnpm type-check`    | Strict tooling compilation without emission and any package type checks.                                                                                         |
+| `pnpm build`         | Compile tooling to `dist/` and any actual package builds.                                                                                                        |
+| `pnpm test`          | Uncached library Node/Chromium tests and combined V8 coverage through Turbo prerequisites.                                                                       |
+| `pnpm catalog-check` | Validate catalog/discovered-test mappings and generate truthful traceability.                                                                                    |
+| `pnpm tooling-check` | Technical catalog controls, disposable frozen installation, negative Turbo controls, and real hook checks.                                                       |
+| `pnpm docs-check`    | Documentation links/anchors, ADR structure, story folders/indexes, task records, template residue, active-story limits and skill names, after negative controls. |
 
 Root task names have a `:root` suffix and are selected explicitly, so an empty package inventory cannot produce
 a false passing no-task run. Their scripts invoke tools, not Turbo recursively. Compilation/lint may use the local
@@ -134,7 +141,9 @@ An incomplete store fails verification explicitly; restore it with the normal fr
 
 To format intended files, use `pnpm exec oxfmt --write --ignore-path .gitignore --ignore-path .oxfmtignore <paths>`,
 then rerun `pnpm check`. Formatting defaults are unmodified; [ignore rules](../../../.oxfmtignore) exclude generated
-output, the generated lockfile, and local IDE/Obsidian state rather than suppressing source checks.
+output, the generated lockfile, local IDE/Obsidian state, and the Obsidian
+[templates](../../Templates/Index.md), whose `{{date:YYYY-MM-DD}}` token Oxfmt would rewrite, rather than suppressing
+source checks.
 Existing wiki and skill Markdown was normalized with owner authorization for this baseline; IDE state is preserved.
 
 For a failed gate, fix its diagnostic and rerun the same command. Wrong engines require activating the declared runtime;

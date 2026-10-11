@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { ReportDirectoryService } from "../reporting/ReportDirectory.service.js";
@@ -35,6 +44,8 @@ class WorkspaceVerification {
         ".gitignore",
         ".oxfmtignore",
         ".husky/pre-commit",
+        ".husky/commit-msg",
+        "commitlint.config.ts",
       ];
       for (const path of files) {
         await mkdir(dirname(join(root, path)), { recursive: true });
@@ -181,8 +192,10 @@ class WorkspaceVerification {
         evidence,
       );
       assert.equal(staged.output, valid, "hook changed the staged version");
+      await WorkspaceVerification.verifyCommitMessages(root, evidence);
+      await WorkspaceVerification.verifyReportRetention(root);
       console.log(
-        "Workspace fixtures passed: frozen clean install, Turbo positive/negative gates, strict compiler controls, and actual Husky staged-file checks.",
+        "Workspace fixtures passed: frozen clean install, Turbo positive/negative gates, strict compiler controls, actual Husky staged-file and commit-msg checks, derived commit scopes, and report retention.",
       );
     } finally {
       try {
@@ -283,6 +296,85 @@ class WorkspaceVerification {
         `${control.name}: expected ${control.diagnostic}`,
       );
     }
+  }
+
+  /** Runs the real commit-msg hook and proves scopes are derived from workspace package directories. */
+  private static async verifyCommitMessages(
+    root: string,
+    evidence: ICommandEvidence[],
+  ): Promise<void> {
+    for (const path of [
+      "packages/libraries/glacier-reflection",
+      "packages/services/glacier-orders",
+    ]) {
+      await mkdir(join(root, path), { recursive: true });
+    }
+    const config = WorkspaceVerification.command(
+      root,
+      "pnpm",
+      ["exec", "commitlint", "--print-config", "json"],
+      true,
+      evidence,
+    );
+    const resolved: unknown = JSON.parse(config.output);
+    assert.ok(typeof resolved === "object" && resolved !== null && "rules" in resolved);
+    const rules = resolved.rules;
+    assert.ok(typeof rules === "object" && rules !== null);
+    assert.deepEqual(
+      Reflect.get(rules, "scope-enum"),
+      [2, "always", ["orders", "reflection", "workspace"]],
+      "scope-enum must equal package directories without glacier- plus workspace",
+    );
+    const message = join(root, "COMMIT_MESSAGE");
+    const samples: readonly (readonly [string, boolean])[] = [
+      ["chore(workspace): update tooling", true],
+      ["feat(reflection): add metadata", true],
+      ["feat: add metadata", false],
+      ["feat(unknown): add metadata", false],
+      ["feat(reflection,workspace): add metadata", false],
+      ["update metadata", false],
+      ["feature(reflection): add metadata", false],
+    ];
+    for (const [header, isValid] of samples) {
+      await writeFile(message, header + "\n");
+      const result = WorkspaceVerification.command(
+        root,
+        "sh",
+        [".husky/_/commit-msg", message],
+        isValid,
+        evidence,
+      );
+      if (!isValid) assert.match(result.output, /✖/, `${header}: expected a commitlint rejection`);
+    }
+  }
+
+  /** Proves report directories of one kind are pruned to the five newest without touching other kinds. */
+  private static async verifyReportRetention(root: string): Promise<void> {
+    const other = await ReportDirectoryService.create(root, "acceptance-report");
+    const created: string[] = [];
+    for (let index = 0; index < 7; index += 1) {
+      const directory = await ReportDirectoryService.create(root, "tooling-verification");
+      const time = new Date(Date.UTC(2026, 0, 1, 0, 0, index));
+      await utimes(directory, time, time);
+      created.push(directory);
+    }
+    const remaining: string[] = [];
+    for (const run of await readdir(join(root, "tests/artifacts"))) {
+      const kinds = await readdir(join(root, "tests/artifacts", run));
+      if (kinds.includes("tooling-verification")) {
+        remaining.push(join(root, "tests/artifacts", run, "tooling-verification"));
+      }
+    }
+    assert.deepEqual(
+      remaining.sort(),
+      created.slice(-5).sort(),
+      "retains exactly the five newest runs",
+    );
+    assert.deepEqual(
+      await readdir(dirname(other)),
+      ["acceptance-report"],
+      "pruning one kind removed another kind",
+    );
   }
 
   /** Captures only process output and exit status; infrastructure failures cannot satisfy negative assertions. */

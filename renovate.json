@@ -5,5 +5,7 @@
   "dependencyDashboard": true,
   "enabledManagers": ["npm", "github-actions", "nvm", "nodenv"],
   "rangeStrategy": "pin",
+  "semanticCommits": "enabled",
+  "semanticCommitScope": "workspace",
   "ignorePaths": ["tests/artifacts/**", "dist/**"]
 }

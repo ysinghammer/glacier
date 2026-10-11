@@ -66,8 +66,9 @@ are defined by [ADR-0008](ADR-0008-Story-documentation.md). The gates below appl
   fetched `origin/main`. Read-only discovery may precede branch creation. Subsequent tasks of the same story must reuse
   that branch; unrelated stories must not share it.
 - Branch names must use `feature/<short-description>` for new behavior or capabilities, `bugfix/<short-description>`
-  for correcting broken behavior, or `chore/<short-description>` for documentation, configuration, maintenance, and
-  other non-feature work, with a lowercase kebab-case description. Contributors must not make story changes directly on `main`.
+  for correcting broken behavior, `refactor/<short-description>` for behavior-preserving restructuring, or
+  `chore/<short-description>` for documentation, configuration, maintenance, and other non-feature work, with a
+  lowercase kebab-case description. Contributors must not make story changes directly on `main`.
 - Contributors must inspect working-tree state and branch availability before switching. Conflicting or unrelated
   work must be resolved with the user; it must not be silently stashed, discarded, moved, or included. Missing base
   refs or an existing intended branch name must be resolved explicitly, not replaced with an arbitrary base or branch.
@@ -139,8 +140,9 @@ are defined by [ADR-0008](ADR-0008-Story-documentation.md). The gates below appl
 ### Commit and publish
 
 - After implementation and required local verification, contributors must obtain explicit authorization to commit.
-  Each commit must follow the implementation-commit skill: one declared package name or `workspace` scope, an
-  appropriate Conventional Commit type, and breaking-change markers where applicable. Changes owned by different
+  Each commit must follow the implementation-commit skill: exactly one scope, either the owning package's directory
+  name without the `glacier-` prefix or `workspace`, an appropriate Conventional Commit type, and breaking-change
+  markers where applicable. Changes owned by different
   packages and workspace changes must be committed separately, without unrelated files.
 - Applicable Husky/lint-staged pre-commit checks must pass. Contributors must resolve violations, stage corrections,
   and retry; they must not bypass failed checks or treat them as substitutes for workspace validation or CI.
