@@ -2,99 +2,27 @@
   "$schema": "https://turborepo.com/schema.json",
   "agentGuidance": false,
   "tasks": {
-    "//#lint:root": {
-      "inputs": [
-        "tests/**/*.ts",
-        "!tests/artifacts/**",
-        "package.json",
-        "pnpm-lock.yaml",
-        ".oxlintrc.json"
-      ]
-    },
-    "//#format-check:root": {
+    "//#lint:check": {
       "cache": false
     },
-    "//#type-check:root": {
-      "inputs": [
-        "tests/**/*.ts",
-        "!tests/artifacts/**",
-        "tsconfig*.json",
-        "package.json",
-        "pnpm-lock.yaml"
-      ]
-    },
-    "//#build:root": {
-      "inputs": [
-        "tests/**/*.ts",
-        "!tests/artifacts/**",
-        "tsconfig*.json",
-        "package.json",
-        "pnpm-lock.yaml"
-      ],
-      "outputs": ["dist/**"]
-    },
-    "//#catalog-check:root": {
-      "dependsOn": ["//#build:root"],
+    "//#format:check": {
       "cache": false
     },
-    "//#tooling-check:root": {
-      "dependsOn": ["//#build:root"],
-      "cache": false
-    },
-    "//#docs-check:root": {
-      "dependsOn": ["//#build:root"],
-      "cache": false
-    },
-    "lint": {
-      "dependsOn": ["//#lint:root"]
-    },
-    "format-check": {
-      "dependsOn": ["//#format-check:root"]
-    },
-    "type-check": {
-      "dependsOn": ["//#type-check:root", "build"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/tsconfig.base.json",
-        "$TURBO_ROOT$/pnpm-lock.yaml"
-      ]
+    "lint:types": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.base.json"]
     },
     "build": {
-      "dependsOn": ["^build", "//#build:root"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/tsconfig.base.json",
-        "$TURBO_ROOT$/pnpm-lock.yaml"
-      ],
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.base.json"],
       "outputs": ["dist/**"]
     },
-    "test:prepare": {
-      "dependsOn": ["build"],
-      "cache": false,
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/tsconfig.base.json",
-        "$TURBO_ROOT$/pnpm-lock.yaml"
-      ],
-      "outputs": ["tests/artifacts/compiler/**"]
-    },
     "test": {
-      "dependsOn": ["build", "type-check", "test:prepare"],
-      "cache": false,
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/tsconfig.base.json",
-        "$TURBO_ROOT$/pnpm-lock.yaml"
-      ],
-      "outputs": ["tests/artifacts/**"]
-    },
-    "catalog-check": {
-      "dependsOn": ["//#catalog-check:root"],
+      "dependsOn": ["build"],
       "cache": false
     },
-    "tooling-check": {
-      "dependsOn": ["//#tooling-check:root"],
-      "cache": false
+    "ci": {
+      "dependsOn": ["//#lint:check", "//#format:check", "lint:types", "build", "test"]
     }
   }
 }

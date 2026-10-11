@@ -47,7 +47,8 @@ jobs:
         run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
       - name: Install library Chromium
         run: pnpm --filter @glacier/reflection exec playwright install --with-deps chromium
-      - run: pnpm check
+      - name: Run workspace quality gate
+        run: pnpm exec turbo run ci --force
       - name: Retain tooling, catalog and library diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

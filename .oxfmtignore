@@ -1,8 +1,6 @@
 node_modules/
 dist/
 .turbo/
-tests/artifacts/
-.docs/.obsidian/
 .idea/
+.policies/
 pnpm-lock.yaml
-.docs/Templates/
