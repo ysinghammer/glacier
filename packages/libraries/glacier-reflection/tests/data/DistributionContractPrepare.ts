@@ -3,7 +3,7 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 /** Builds an isolated consumer containing only the copied distribution and its authored fixtures. */
-class DistributionContractPrepare {
+export class DistributionContractPrepare {
   /** Runs existing installed tools with bounded completion and preserved diagnostics. */
   private static command(arguments_: readonly string[]): void {
     const result = spawnSync("pnpm", [...arguments_], {
@@ -18,7 +18,7 @@ class DistributionContractPrepare {
 
   /** Copies generated ESM/declarations and verifies independent root declaration consumption. */
   public static async run(): Promise<void> {
-    const consumer = new URL("../artifacts/t017/attempt2/consumer/", import.meta.url);
+    const consumer = new URL("../artifacts/distribution/consumer/", import.meta.url);
     const packageDirectory = new URL("node_modules/@glacier/reflection/", consumer);
     await rm(consumer, { recursive: true, force: true });
     await mkdir(packageDirectory, { recursive: true });
@@ -38,12 +38,24 @@ class DistributionContractPrepare {
       "DistributionConsumer",
       "DistributionTypeOnly",
       "DistributionRetained",
+      "RecordedCompilerFixture",
+      "CompilerFixtureDecoration",
     ]) {
       await cp(
         new URL(`../artifacts/compiler/${name}.js`, import.meta.url),
         new URL(`${name}.js`, consumer),
       );
     }
+    const duplicate = new URL("duplicate/", consumer);
+    await mkdir(duplicate, { recursive: true });
+    await cp(packageDirectory, new URL("node_modules/@glacier/reflection/", duplicate), {
+      recursive: true,
+    });
+    await writeFile(
+      new URL("package.json", duplicate),
+      JSON.stringify({ private: true, type: "module" }),
+    );
+    await writeFile(new URL("entry.js", duplicate), 'import "@glacier/reflection";\n');
     await cp(
       new URL("../contracts/DistributionTypes.test-d.ts", import.meta.url),
       new URL("DistributionTypes.test-d.ts", consumer),
@@ -153,5 +165,3 @@ class DistributionContractPrepare {
     );
   }
 }
-
-await DistributionContractPrepare.run();

@@ -12,7 +12,7 @@ export class DistributionContractProbe {
     return value;
   }
 
-  /** Each mode executes in a new native process or Chromium realm. */
+  /** Each mode executes in a new native Node process. */
   public static async run(mode: string): Promise<unknown> {
     if (mode === "type-only") {
       const before = Object.getOwnPropertyDescriptor(Reflect, "metadata");
@@ -70,6 +70,38 @@ export class DistributionContractProbe {
       return rejected;
     }
     const root = await import("@glacier/reflection");
+    if (mode === "emission") {
+      const fixture = await import("./RecordedCompilerFixture.js");
+      return this.encode(fixture.RecordedCompilerFixture.read());
+    }
+    if (mode === "duplicate") {
+      const handler = Reflect.metadata;
+      const descriptor = Object.getOwnPropertyDescriptor(Reflect, "metadata");
+      class Consumer {}
+      root.DESIGN_TYPE_METADATA.set(Consumer, String);
+      let importCode: unknown = null;
+      try {
+        const entry = "./duplicate/entry.js";
+        await import(entry);
+      } catch (error) {
+        if (!(error instanceof Error) || !("code" in error)) throw error;
+        importCode = error.code;
+      }
+      const after = Object.getOwnPropertyDescriptor(Reflect, "metadata");
+      return {
+        importCode,
+        sameHandler: handler === Reflect.metadata,
+        descriptorPreserved:
+          descriptor?.value === after?.value &&
+          descriptor?.get === after?.get &&
+          descriptor?.set === after?.set &&
+          descriptor?.writable === after?.writable &&
+          descriptor?.enumerable === after?.enumerable &&
+          descriptor?.configurable === after?.configurable,
+        declaration: this.encode(root.DESIGN_TYPE_METADATA.read(Consumer)),
+      };
+    }
+    if (mode !== "root") throw new Error("Unknown distribution probe mode");
     const repeated = await import("@glacier/reflection");
     const fixture = await import("./DistributionConsumer.js");
     return {

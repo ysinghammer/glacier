@@ -15,13 +15,11 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "lint:types": "tsc --project tsconfig.json --noEmit",
-    "test": "node tests/data/CompilerContractRun.ts --coverage"
+    "lint:types": "tsc --project tsconfig.json --noEmit && tsc --project tsconfig.tests.json && tsc --project tsconfig.contracts.json",
+    "test": "vitest run --coverage"
   },
   "devDependencies": {
-    "@vitest/browser-playwright": "5.0.3",
     "@vitest/coverage-v8": "5.0.3",
-    "playwright": "1.63.0",
     "vite": "8.3.2",
     "vitest": "5.0.3"
   }
