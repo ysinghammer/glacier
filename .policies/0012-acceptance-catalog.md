@@ -1,0 +1,30 @@
+# 0012 — Acceptance catalog
+
+1. Application/service public criteria MUST be drafted during discovery from intended outcomes, public contracts, and relevant existing behavior, not inferred from finished code. Ambiguous outcomes/permissions/rejections/boundaries MUST be resolved with the user. Briefs MUST propose additions/modifications/removals with stable IDs and rationale; plan approval MUST include user criterion approval before implementation. Approved changes MUST enter the catalog before feature implementation. Planned scenarios lacking tests MUST remain visible unfinished work.
+2. Criteria MUST be declarative typed TypeScript records with this contract, not executable tests or a required Gherkin/Cucumber dependency:
+
+```ts
+/** Describes one approved public behavioral rule independently of its tests. */
+interface IAcceptanceCriterion {
+  readonly id: string;
+  readonly title: string;
+  readonly featureIds: readonly string[];
+  readonly apiOperationIds: readonly string[];
+  readonly given: readonly string[];
+  readonly when: string;
+  readonly then: readonly string[];
+  readonly sourceReferences: readonly string[];
+}
+```
+
+3. Each criterion MUST express one observable rule: Given specifies actor, permissions, independently achievable public preconditions; When specifies one business action/public request; Then specifies objectively assertable UI/API outcomes with measurable timing/limit bounds where relevant. Selectors, drivers, fixture implementation, internal calls, and database contents MUST NOT define criteria. Each criterion MUST reference at least one inventoried feature/API and documented requirement/public-contract sources. Distinct rejection/authorization rules MUST have separate criteria; one criterion MAY require multiple concrete scenarios.
+4. Catalog IDs MUST be stable and globally unique, not filename/story-dependent, renumbered, or reassigned. Modifications of the same rule MUST preserve its ID; distinct rules MUST get new IDs. Behavioral changes/removals MUST receive renewed user approval; removals MUST explain why behavior is no longer required, not cite inconvenient/failing tests. Deprecated but supported behavior and unaffected regression criteria MUST remain required. Behavior-preserving implementation changes need no renewed criterion approval. Git history MUST preserve prior definitions, not in-file revision logs.
+5. `tests/acceptance/` MUST own the durable current approved baseline; briefs MUST retain proposals/rationale and references without duplicating that baseline. Archival MUST preserve references without moving active criteria out. Nonapplication documentation/tooling/library work MUST retain story-local criteria (for example `AC-001`, qualified by story outside it), and applicable validation, without invented business catalog entries.
+6. The test-owned catalog MUST independently inventory typed features, public HTTP operations, criteria, required scenarios, personas, and datasets, not infer inventory solely from tests or import production code. Every record MUST have ID/title/source references; API operations MUST have method/path; scenarios MUST have criterion/persona/dataset IDs; persona/dataset records MUST describe their definitions. New/changed behavior MUST update inventory and required scenarios.
+7. Relationships MUST be one-way: criteria → feature/API IDs; scenarios → criterion/persona/dataset IDs; tests → scenario IDs. Reverse mappings MUST be derived, not duplicated manually. Every feature/API MUST map through criteria to scenarios covering applicable success, rejection, authorization, and boundaries.
+8. Validation MUST reject malformed records, missing/unknown/duplicate IDs, uncovered features/APIs, criteria without scenarios, scenarios without criteria/discovered tests, and dangling persona/data references. Missing planned tests MUST fail until completed, not disappear. Reports MUST show feature/API → criterion → scenario → test mappings and execution outcomes, with record IDs/reasons, retained `validation.json`, and nonzero failure; exceptional filesystem failure MUST propagate, not become an empty inventory.
+9. Current static foundation discovery MUST require one exact top-level `// @scenario SC-001` line per scenario ID in capability-owned specs. Missing/duplicate/unknown metadata and symbolic links in the scenario tree MUST fail discovery. Static discovery MUST NOT execute specs or imply assertion/execution success. Current reports MUST truthfully use `execution.status: "not-run"` and `execution.results: null` until actual results exist. The first application implementation MUST add per-test execution reporting and skipped/focused/retry-only failure controls.
+10. Review MUST establish that assertions prove mapped behavior. Mapping completeness, assertion quality, actual execution, and instrumentation code coverage MUST remain distinct; Playwright feature/contract coverage MUST NOT be described as code coverage. Before acceptance, catalog validation and the complete actual uncached Playwright suite MUST pass locally/CI through pnpm/Turborepo alongside applicable library gates. Filtered/focused/skipped tests and retry-only passes MUST NOT satisfy acceptance; diagnostic retries MUST NOT conceal flaky failure.
+11. Every story plan MUST retain `E2E tests`. Application/service changes MUST describe scenarios, catalog feature/API/criterion/scenario IDs, intended Playwright paths, and approved brief criterion proposals. Before completion, relative links MUST point to actual implemented tests/catalog entries, retaining scenario IDs identifying tests; planned paths MUST NOT masquerade as completed links. Plans without application/service changes MUST justify E2E inapplicability and describe applicable library/other checks in `Validation`. Criterion verification-method mapping MUST NOT duplicate catalog reverse mappings.
+
+Provenance: ADR-0007; acceptance README and typed contracts; criterion/E2E sections of Story Brief/Plan templates; Engineering Guidelines.
