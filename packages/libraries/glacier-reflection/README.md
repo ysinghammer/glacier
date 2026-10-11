@@ -15,9 +15,8 @@ import {
 
 The package currently has `private: true`; this is a workspace library, not a claim of npm publication.
 The root export map supplies generated `dist/index.js` and `dist/index.d.ts`, with no CommonJS entry,
-deep imports or public subpaths. Supported verification is Node.js 24 LTS (workspace 24.21.0) and
-the Chromium revision installed by Playwright 1.63.0 (observed 153.0.8010.12).
-Chromium evidence does not establish Firefox, WebKit or historical-browser compatibility.
+deep imports or public subpaths. Supported verification is Node.js 24 LTS (workspace 24.21.0).
+The Node-only suite does not establish browser or historical-runtime compatibility.
 
 The root exposes exactly **eight runtime values**: four classes (`ValueMetadataDefinition`,
 `ListMetadataDefinition`, `RecordMetadataDefinition`, `MetadataBoundaryError`), one nonconstructible
@@ -252,25 +251,44 @@ Metadata is transient class-owned state, not durable storage.
 Use Node 24.21.0 / pnpm 11.9.0. From the repository root:
 
 ```sh
-pnpm --filter @glacier/reflection exec playwright install chromium
-pnpm exec turbo run build type-check lint format-check test:prepare --filter=@glacier/reflection --force
-node packages/libraries/glacier-reflection/tests/data/AdoptionExampleRun.ts
-pnpm exec turbo run test --filter=@glacier/reflection --force
-pnpm check
-pnpm exec turbo run test --force
+pnpm exec turbo run build lint:types test --filter=@glacier/reflection --force
+pnpm --filter @glacier/reflection exec tsc --project tsconfig.contracts.json --noEmit
+pnpm --filter @glacier/reflection exec vitest run --coverage
+pnpm run ci
+pnpm exec turbo run ci --force
 ```
 
-Package `test:prepare` compiles genuine legacy compiler fixtures and prepares independent distribution consumers.
-Package `test` owns bounded native loopback delivery and runs real Vitest Node/Chromium projects with V8 coverage.
-Do not invoke the native-realm suites without their server owner. Runtime discovery is only `tests/scenarios/`;
-examples/data and independent `.test-d.ts` contracts are not runtime suites.
-Artifacts go under ignored `tests/artifacts/`. Test/preparation tasks are uncached.
+Package `test` is exactly `vitest run --coverage`, using isolated Node fork workers.
+[Vitest-owned global setup](tests/data/ReflectionTestPreparation.ts) rebuilds production and genuine legacy
+compiler fixtures, checks copied generated declarations in an independent consumer, and builds the actual
+ESM side-effect-retention bundle. A direct invocation works with clean generated outputs; no custom
+launcher, HTTP fixture server, browser installation or separate `test:prepare` task is required.
+Vite 8.3.2 is used only for this approved distribution-retention check, never production compilation.
 
-Vitest, coverage-v8 and browser-playwright are pinned to 5.0.3; Playwright is pinned to 1.63.0.
-The unchanged gate requires 100% statements, branches, functions and lines overall and per relevant production file.
-T-017 attempt 2 recorded 556 passing Node/Chromium cases and all-metric 100% mapped coverage under this
-unchanged gate. Those are retained development results, not final current-revision acceptance.
-[Story tasks](../../../.docs/Archive/glacier-reflection/Tasks.md) own exact revision/results and outstanding gates.
-[Quality CI](../../../.github/workflows/quality.yml) configures frozen installation, Chromium-only installation,
-`pnpm check` and always-retained root/library diagnostics; configuration is not evidence of remote execution.
-Current-main integration, complete final checks, CI/Snyk, human acceptance and Git publication remain separate gates.
+Ordinary scenarios consume the source public root; native generated consumers prove package resolution,
+repeated/duplicate module identity, compiler emission, type-only inactivity and bundle retention.
+Only the three unavailable/null/throwing Reflect preconditions need minimal native Node subprocesses:
+Vitest itself uses `Reflect.apply` and cannot safely execute those preconditions in its workers.
+[Native assertions](tests/data/ReflectActivationAssertions.ts) import the genuine compiled public root.
+The [V8 provider extension](tests/data/ReflectionCoverageProvider.ts) converts native and Vite contexts
+separately, remaps genuine compiler source maps and uniquely matches source spans before the built-in merge.
+It never changes hit counters or drops executable nodes; missing or ambiguous mappings fail.
+The same report enforces **100% statements, branches, functions and lines overall and per production file**,
+including unimported supporting files.
+
+`lint:types` independently checks production, test/config/support and all `.test-d.ts` contracts, including
+adoption typing. Global setup also runs strict fixture and copied-declaration compilation.
+DOM declarations are retained only for installed Vitest/Vite tool types, not DOM execution or browser tests.
+Runtime discovery is restricted to `tests/scenarios/**/*.test.ts` and `.test.tsx`; examples/data and erased
+type contracts are not runtime suites. Vitest and coverage-v8 remain pinned to 5.0.3.
+The Turbo test task is uncached.
+
+Generated diagnostics stay under ignored `tests/artifacts/`: combined reports in `coverage/`, runtime results
+in `results.json`, raw native activation coverage in `activation-coverage/`, genuine fixtures in `compiler/`
+and copied consumers/bundles in `distribution/`. Reports describe their actual invocation, not npm publication
+or broader compatibility.
+[Quality CI](../../../.github/workflows/quality.yml) configures frozen installation,
+`pnpm exec turbo run ci --force` and always-retained root/library diagnostics without reflection Chromium
+installation. Configuration is not evidence of remote execution. Other libraries' applicable browser/React
+and application/service acceptance standards remain unchanged.
+Complete final checks, remote CI/Snyk, human acceptance and Git publication remain separate gates.

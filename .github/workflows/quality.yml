@@ -45,8 +45,6 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
-      - name: Install library Chromium
-        run: pnpm --filter @glacier/reflection exec playwright install --with-deps chromium
       - name: Run workspace quality gate
         run: pnpm exec turbo run ci --force
       - name: Retain tooling, catalog and library diagnostics
