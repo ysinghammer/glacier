@@ -1,4 +1,4 @@
-import { ValueMetadataDefinition } from "./ValueMetadataDefinition.js";
+import { ValueMetadataDefinition } from "../definitions/ValueMetadataDefinition.js";
 import type { IRuntimeType } from "./IRuntimeType.js";
 
 /**

@@ -1,5 +1,5 @@
-import type { ICompilerMetadataDecorator } from "../../../domain/ICompilerMetadataDecorator.js";
-import { MetadataBoundaryError } from "../../../domain/MetadataBoundary.error.js";
+import type { ICompilerMetadataDecorator } from "../../../domain/compiler-metadata/ICompilerMetadataDecorator.js";
+import { MetadataBoundaryError } from "../../../domain/failures/MetadataBoundary.error.js";
 import { CompilerMetadataRecorder } from "./CompilerMetadataRecorder.adapter.js";
 
 /** Installs only the legacy compiler protocol; evaluated physical copies never share activation. */

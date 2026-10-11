@@ -1,4 +1,4 @@
-import type { IClass } from "./IClass.js";
+import type { IClass } from "../targets/IClass.js";
 
 /** Legacy compiler callback whose invalid boundary inputs fail observably. */
 export interface ICompilerMetadataDecorator {

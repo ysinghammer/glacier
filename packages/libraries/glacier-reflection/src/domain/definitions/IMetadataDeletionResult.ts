@@ -1,4 +1,4 @@
-import type { IMetadataAddressRejection } from "./IMetadataAddressRejection.js";
+import type { IMetadataAddressRejection } from "../addressing/IMetadataAddressRejection.js";
 /** Deletion affects only the target class's direct declaration. */
 export type IMetadataDeletionResult =
   | IMetadataAddressRejection

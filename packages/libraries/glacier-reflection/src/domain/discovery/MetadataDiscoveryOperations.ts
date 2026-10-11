@@ -1,10 +1,10 @@
-import type { IMetadataReadAddress } from "./IMetadataReadAddress.js";
-import type { IMetadataLookup } from "./IMetadataLookup.js";
-import type { IDynamicClassMetadataAddress } from "./IDynamicClassMetadataAddress.js";
+import type { IMetadataReadAddress } from "../addressing/IMetadataReadAddress.js";
+import type { IMetadataLookup } from "../addressing/IMetadataLookup.js";
+import type { IDynamicClassMetadataAddress } from "../addressing/IDynamicClassMetadataAddress.js";
 import type { IMetadataDefinitionsResult } from "./IMetadataDefinitionsResult.js";
-import { MetadataTarget } from "./MetadataTarget.js";
-import { MetadataAddress } from "./MetadataAddress.js";
-import { MetadataStorage } from "./MetadataStorage.js";
+import { MetadataTarget } from "../targets/MetadataTarget.js";
+import { MetadataAddress } from "../addressing/MetadataAddress.js";
+import { MetadataStorage } from "../storage/MetadataStorage.js";
 
 /** Internal class-backed discovery for the frozen facade; no public construction or instance API. */
 export class MetadataDiscoveryOperations {

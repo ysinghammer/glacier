@@ -1,4 +1,4 @@
-import type { IClass } from "./IClass.js";
+import type { IClass } from "../targets/IClass.js";
 import type { IClassMetadataAddress } from "./IClassMetadataAddress.js";
 import type { IInstanceMetadataAddress } from "./IInstanceMetadataAddress.js";
 /** Checked read-side address anchored to the supplied constructor or instance. */

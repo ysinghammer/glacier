@@ -1,4 +1,4 @@
-import type { IClass } from "./IClass.js";
+import type { IClass } from "../targets/IClass.js";
 import type { IInstanceMetadataAddress } from "./IInstanceMetadataAddress.js";
 import type { IStaticMemberMetadataAddress } from "./IStaticMemberMetadataAddress.js";
 import type { IStaticMethodParameterMetadataAddress } from "./IStaticMethodParameterMetadataAddress.js";

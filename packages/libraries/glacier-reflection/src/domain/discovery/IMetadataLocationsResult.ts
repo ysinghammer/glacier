@@ -1,5 +1,5 @@
-import type { IMetadataAddressRejection } from "./IMetadataAddressRejection.js";
-import type { IDiscoveredMetadataAddress } from "./IDiscoveredMetadataAddress.js";
+import type { IMetadataAddressRejection } from "../addressing/IMetadataAddressRejection.js";
+import type { IDiscoveredMetadataAddress } from "../addressing/IDiscoveredMetadataAddress.js";
 /** Valid discovery returns readonly metadata-bearing addresses, not all members. */
 export type IMetadataLocationsResult =
   | IMetadataAddressRejection

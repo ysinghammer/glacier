@@ -1,4 +1,4 @@
-import type { IClass } from "./IClass.js";
+import type { IClass } from "../targets/IClass.js";
 /** Legacy invocation shapes do not prove source keys or parameter tuple bounds. */
 export interface ILegacyMetadataDecorator {
   <C extends IClass>(target: C): void;

@@ -1,9 +1,9 @@
-import type { IClass } from "./IClass.js";
-import type { IDiscoveredMetadataAddress } from "./IDiscoveredMetadataAddress.js";
-import type { IMetadataDefinitionIdentity } from "./IMetadataDefinitionIdentity.js";
-import type { IMetadataRead } from "./IMetadataRead.js";
-import { MetadataAddress } from "./MetadataAddress.js";
-import { MetadataTarget } from "./MetadataTarget.js";
+import type { IClass } from "../targets/IClass.js";
+import type { IDiscoveredMetadataAddress } from "../addressing/IDiscoveredMetadataAddress.js";
+import type { IMetadataDefinitionIdentity } from "../definitions/IMetadataDefinitionIdentity.js";
+import type { IMetadataRead } from "../definitions/IMetadataRead.js";
+import { MetadataAddress } from "../addressing/MetadataAddress.js";
+import { MetadataTarget } from "../targets/MetadataTarget.js";
 
 /** Typed class-local declarations and a weak class-local identity/address index. */
 export class MetadataStorage<T> {

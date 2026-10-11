@@ -1,7 +1,7 @@
-import type { IClass } from "./IClass.js";
-import type { IDynamicClassMetadataAddress } from "./IDynamicClassMetadataAddress.js";
-import { MetadataTarget } from "./MetadataTarget.js";
-import { MetadataBoundaryError } from "./MetadataBoundary.error.js";
+import type { IClass } from "../targets/IClass.js";
+import type { IDynamicClassMetadataAddress } from "../addressing/IDynamicClassMetadataAddress.js";
+import { MetadataTarget } from "../targets/MetadataTarget.js";
+import { MetadataBoundaryError } from "../failures/MetadataBoundary.error.js";
 
 /** Translates legacy invocation shapes to constructor-owned metadata locations. */
 export class MetadataDecorator {

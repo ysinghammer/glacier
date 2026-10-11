@@ -21,6 +21,10 @@
       "dependsOn": ["build"],
       "cache": false
     },
+    "@glacier/reflection#test": {
+      "dependsOn": ["build", "lint:types"],
+      "cache": false
+    },
     "ci": {
       "dependsOn": ["//#lint:check", "//#format:check", "lint:types", "build", "test"]
     }

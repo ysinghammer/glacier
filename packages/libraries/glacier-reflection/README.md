@@ -24,6 +24,26 @@ The root exposes exactly **eight runtime values**: four classes (`ValueMetadataD
 are erased and checked independently, not runtime-covered. The supporting discovery interface and internal
 operation class are not named root exports; `Reflect.metadata` is an ambient compiler protocol, not a ninth export.
 
+## Internal responsibility organization
+
+This single reflection capability keeps its domain concepts and contracts together by responsibility
+under `src/domain/`, without separate interface/class buckets or nested barrels:
+
+| Directory            | Responsibility                                                           |
+| -------------------- | ------------------------------------------------------------------------ |
+| `definitions/`       | Value/list/record definitions, their operations, identities and results  |
+| `addressing/`        | Address normalization, lookup modes, checked keys and address rejections |
+| `targets/`           | Class contracts and canonical constructor/instance target normalization  |
+| `storage/`           | Weak class-owned declarations and the shared discovery index             |
+| `discovery/`         | Discovery facade, operations and discovery result contracts              |
+| `decorators/`        | Legacy decorator contract and invocation-location normalization          |
+| `compiler-metadata/` | Predefined compiler meanings, runtime types and compiler contracts       |
+| `failures/`          | Exceptional boundary errors and their codes                              |
+
+The compiler bridge and recorder remain inbound infrastructure adapters in
+`src/infrastructure/adapters/inbound/`, consuming domain files directly. These directories are
+internal organization, not public import paths; the package root remains the curated public API.
+
 ## Activation and compiler metadata
 
 Every **runtime root import** automatically installs `Reflect.metadata` before decorated declarations execute.

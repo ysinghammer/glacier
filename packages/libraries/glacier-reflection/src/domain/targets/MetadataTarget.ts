@@ -1,5 +1,5 @@
 import type { IClass } from "./IClass.js";
-import type { IMetadataAddressRejection } from "./IMetadataAddressRejection.js";
+import type { IMetadataAddressRejection } from "../addressing/IMetadataAddressRejection.js";
 
 /** A validated class owner; instances are aliases and never storage keys. */
 interface IMetadataTarget {

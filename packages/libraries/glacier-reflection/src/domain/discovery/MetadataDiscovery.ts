@@ -1,6 +1,6 @@
-import type { IMetadataReadAddress } from "./IMetadataReadAddress.js";
-import type { IMetadataLookup } from "./IMetadataLookup.js";
-import type { IDynamicClassMetadataAddress } from "./IDynamicClassMetadataAddress.js";
+import type { IMetadataReadAddress } from "../addressing/IMetadataReadAddress.js";
+import type { IMetadataLookup } from "../addressing/IMetadataLookup.js";
+import type { IDynamicClassMetadataAddress } from "../addressing/IDynamicClassMetadataAddress.js";
 import type { IMetadataDefinitionsResult } from "./IMetadataDefinitionsResult.js";
 import { MetadataDiscoveryOperations } from "./MetadataDiscoveryOperations.js";
 /**

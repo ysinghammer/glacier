@@ -1,21 +1,21 @@
-import type { IClass } from "./IClass.js";
-import type { IClassMetadataAddress } from "./IClassMetadataAddress.js";
-import type { IDynamicClassMetadataAddress } from "./IDynamicClassMetadataAddress.js";
-import type { IMetadataReadAddress } from "./IMetadataReadAddress.js";
-import type { IMetadataLookup } from "./IMetadataLookup.js";
+import type { IClass } from "../targets/IClass.js";
+import type { IClassMetadataAddress } from "../addressing/IClassMetadataAddress.js";
+import type { IDynamicClassMetadataAddress } from "../addressing/IDynamicClassMetadataAddress.js";
+import type { IMetadataReadAddress } from "../addressing/IMetadataReadAddress.js";
+import type { IMetadataLookup } from "../addressing/IMetadataLookup.js";
 import type { IMetadataKind } from "./IMetadataKind.js";
 import type { IMetadataDefinitionIdentity } from "./IMetadataDefinitionIdentity.js";
 import type { IMetadataWriteResult } from "./IMetadataWriteResult.js";
 import type { IMetadataRead } from "./IMetadataRead.js";
 import type { IMetadataPresenceResult } from "./IMetadataPresenceResult.js";
 import type { IMetadataDeletionResult } from "./IMetadataDeletionResult.js";
-import type { IMetadataLocationsResult } from "./IMetadataLocationsResult.js";
-import type { ILegacyMetadataDecorator } from "./ILegacyMetadataDecorator.js";
-import { MetadataTarget } from "./MetadataTarget.js";
-import { MetadataAddress } from "./MetadataAddress.js";
-import { MetadataStorage } from "./MetadataStorage.js";
-import { MetadataDecorator } from "./MetadataDecorator.js";
-import { MetadataBoundaryError } from "./MetadataBoundary.error.js";
+import type { IMetadataLocationsResult } from "../discovery/IMetadataLocationsResult.js";
+import type { ILegacyMetadataDecorator } from "../decorators/ILegacyMetadataDecorator.js";
+import { MetadataTarget } from "../targets/MetadataTarget.js";
+import { MetadataAddress } from "../addressing/MetadataAddress.js";
+import { MetadataStorage } from "../storage/MetadataStorage.js";
+import { MetadataDecorator } from "../decorators/MetadataDecorator.js";
+import { MetadataBoundaryError } from "../failures/MetadataBoundary.error.js";
 
 /**
  * Definition-owned direct operations over weak class-local storage.

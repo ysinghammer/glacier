@@ -1,4 +1,4 @@
-import type { IClass } from "./IClass.js";
+import type { IClass } from "../targets/IClass.js";
 import type { IMethodKey } from "./IMethodKey.js";
 import type { IMethodParameters } from "./IMethodParameters.js";
 import type { IParameterIndex } from "./IParameterIndex.js";

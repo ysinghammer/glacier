@@ -11,6 +11,7 @@ class ReflectionTestPreparation {
       recursive: true,
       force: true,
     });
+    await rm(new URL("../../dist/", import.meta.url), { recursive: true, force: true });
     for (const project of ["tsconfig.json", "tsconfig.fixtures.json"]) {
       const result = spawnSync("pnpm", ["exec", "tsc", "--project", project], {
         cwd: new URL("../..", import.meta.url),
