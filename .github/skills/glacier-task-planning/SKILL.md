@@ -12,10 +12,16 @@ a revision to the task execution plan.
 
 ## Inputs and prerequisites
 
-Require a fresh planning context, integration branch, committed approved epic and
-stories, prerequisite contracts, all policies, and available session/subagent
+Require a fresh planning context, integration branch/production prerequisite
+revisions, readable approved ignored local epic and stories, exact approval
+responses and plan content/version identifiers, prerequisite contracts, all policies,
+and available session/subagent
 tools. Read [workflow](../../../.policies/0013-development-workflow.md) and inspect
 permitted models and current quality commands rather than assuming availability.
+Isolated planners must obtain ignored local copies with matching identifiers
+before work; missing/stale plans block entry. All `.plan/` files stay secret-safe,
+local-only and never committed, force-added or copied into tracked locations;
+tracked plans require a safe approved resolution.
 
 ## Procedure
 
@@ -27,7 +33,8 @@ permitted models and current quality commands rather than assuming availability.
    at `TASK-001`; reserve `TASK-000` for story completion, never implementation.
 3. For every task specify objective, exact steps and owned files, inputs/outputs,
    acceptance criteria, tests with exact current commands and expected results,
-   dependencies by ID, initial status, and completion evidence fields.
+   dependencies by ID, initial status, and completion evidence fields distinguishing
+   local plan versions from actual product commit references.
 4. State sequential or parallel execution explicitly, naming tasks that may run
    safely alongside it. Represent actual prerequisites, not list order. Reject
    missing dependencies, cycles, and concurrent shared-file ownership.
@@ -41,14 +48,17 @@ permitted models and current quality commands rather than assuming availability.
    where isolated checkouts cannot be provided.
 7. Present aggregate counts, concurrency, model assignments, and dependency
    schedule for explicit user approval. Record the approved configuration exactly
-   and commit the plans with permission before implementation handoff.
+   and save approved ignored local task snapshots before implementation handoff.
 
 ## Outputs and handoff evidence
 
 Each story contains a complete approved task plan with statuses/evidence fields.
-Supply the fresh implementation orchestrator the branch, committed epic/story
-revisions, approvals, prerequisite contracts, dependency schedule, exclusive file
-ownership, approved resources, current checks, and remaining blockers.
+Supply the fresh implementation orchestrator readable ignored local epic/story
+paths, content/version identifiers and exact approval responses, separately from
+the branch and production prerequisite revisions. Include prerequisite contracts,
+dependency schedule, exclusive file ownership, approved resources, current checks,
+and remaining blockers. Isolated receivers must obtain matching ignored local
+copies before admission; product checkout alone does not supply local plans.
 
 ## Approval and stop gates
 

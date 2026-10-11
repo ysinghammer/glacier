@@ -16,7 +16,10 @@ procedure, not an installed third-party skill.
 Read every repository policy, especially [workflow](../../../.policies/0013-development-workflow.md)
 and [scenario criteria](../../../.policies/0012-acceptance-catalog.md). Obtain the
 user's request, relevant existing behavior, and the current phase. For HOW, require
-the committed approved epic and a distinct fresh agent context. Read relevant
+the readable approved ignored local epic, exact approval response, plan content/
+version identifier, and a distinct fresh agent context; supply branch/production
+revision separately. An isolated receiver must obtain an ignored local copy with
+matching identifier before work; missing/stale plans block HOW. Read relevant
 repository evidence before asking questions that inspection can answer.
 
 ## Procedure
@@ -66,8 +69,11 @@ Return findings to [technical planning](../glacier-technical-planning/SKILL.md).
 
 Supply the decision record, approved outcome/criteria, unresolved questions,
 source references, and the exact approval response. The calling workflow skill
-owns the epic/story artifact and its authorized commit. A renewed WHAT decision
-must update the epic and receive approval before HOW or implementation resumes.
+owns the ignored local epic/story snapshot and its approval/version evidence,
+never a planning commit. All `.plan/` files, including status updates, stay
+secret-safe, local-only and uncommitted; never force-add or copy plans into tracked
+locations. Tracked plans block work for a safe approved resolution. A renewed WHAT
+decision must update the epic and receive approval before HOW or implementation resumes.
 
 ## Approval and stop gates
 

@@ -37,16 +37,21 @@ Determine application/service versus library/tooling/documentation scope.
    Nonapplication changes use local criteria without invented business scenarios.
 5. Present the complete epic and criteria for explicit approval. Record the
    actual response and unresolved blockers; do not label a proposal approved.
-6. Commit the planning artifact only with Git permission using current
-   Conventional Commit rules. Hand off to a distinct technical agent through
+6. Save the approved epic as an ignored, secret-safe local snapshot with the exact
+   approval response and a content/version identifier. Never commit or force-add
+   `.plan/` artifacts or copy plans into tracked locations. Tracked plans require
+   a safe approved resolution. Hand off to a distinct technical agent through
    [technical planning](../glacier-technical-planning/SKILL.md).
 
 ## Outputs and handoff evidence
 
 Produce the approved epic, decision/source references, criterion IDs and scenario
 proposals, scope exclusions, and exact approval evidence. Supply the integration
-branch, committed epic path/revision, applicable policies, preserved contracts,
-and unresolved nonblocking questions to the fresh agent.
+branch and production revision separately from the readable ignored epic path,
+plan content/version identifier and exact approval response. Include applicable
+policies, preserved contracts, and unresolved nonblocking questions. An isolated
+fresh receiver must obtain an ignored local copy with matching identifier before
+work; missing/stale plans block technical planning.
 
 ## Approval and stop gates
 

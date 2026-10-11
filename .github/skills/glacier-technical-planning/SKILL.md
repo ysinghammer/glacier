@@ -12,8 +12,11 @@ in requirements or a newly discovered implementation blocker.
 
 ## Inputs and prerequisites
 
-Require a distinct fresh agent context, integration branch, committed approved
-epic, approval evidence, and relevant existing code. Read every policy and
+Require a distinct fresh agent context, integration branch/production revision,
+readable approved ignored local epic, exact approval response, plan content/version
+identifier, and relevant existing code. An isolated receiver must obtain an ignored
+local copy with matching identifier before work; missing/stale plans block entry.
+Read every policy and
 [workflow](../../../.policies/0013-development-workflow.md). Require
 [glacier-interview](../glacier-interview/SKILL.md), current manifests/CI, and
 active accepted ADRs where present.
@@ -45,15 +48,20 @@ acceptance criteria`, `Dependencies`, `Implementation`, `E2E tests`,
    work to become verifiable. Split or reorder stories when needed.
 7. Obtain user approval of technical decisions and the complete story set.
    Approved application scenarios must enter their durable capability Markdown
-   before feature implementation. Commit approved plans with permission, then
+   before feature implementation. Save approved ignored local plan snapshots, then
    hand off to a fresh [task planner](../glacier-task-planning/SKILL.md).
 
 ## Outputs and handoff evidence
 
-Supply committed epic/story paths and revisions, branch, exact approvals,
+Supply readable ignored local epic/story paths, plan content/version identifiers,
+branch and production prerequisite revisions separately, exact approval responses,
 requirement-to-story mapping, prerequisite public contracts, technical decisions,
 validation commands, scenario baseline references, and blockers. Keep criterion
 verification mapping distinct from derived scenario coverage reports.
+All `.plan/` files, including approvals and status/evidence, remain secret-safe,
+local-only and never committed, force-added or copied into tracked locations.
+Tracked plans block work for a safe approved resolution. Isolated receiving task
+planners need ignored local copies with matching identifiers before admission.
 
 ## Approval and stop gates
 
