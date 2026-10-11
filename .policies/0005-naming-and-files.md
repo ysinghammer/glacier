@@ -32,5 +32,3 @@
 
 5. The role vocabulary MUST NOT be extended without an explicitly approved update to this policy. Roles MUST NOT change layers or require unused classes, wrappers, directories, abstractions, or a fixed UI hierarchy. Required `src/Application.bootstrap.ts`, package-root `index.ts`, and externally mandated filenames MUST retain their prescribed names.
 6. Runner suffixes MUST replace, not chain with, production roles: Playwright `.spec.ts`, Vitest runtime `.test.ts`/`.test.tsx`, and type contracts `.test-d.ts`; stems MUST identify public scenarios/API contracts, not implementation files. Storybook MUST use PascalCase component stems with `.stories.tsx` (`Button.stories.tsx`), as a suffix rather than prefix, replacing production roles. These are filename exceptions, not additions to the production vocabulary. Supporting test code MUST retain ordinary naming rules.
-
-Provenance: ADR-0003/0004/0005; Code Style Rules; React Rules.

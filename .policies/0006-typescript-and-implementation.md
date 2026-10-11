@@ -10,5 +10,3 @@
 8. `.stories.tsx` MAY export default Storybook metadata and multiple named stories, but no unrelated exports or production barrels. A library's curated package-root `index.ts` is the sole barrel/multiple-public-export exception. All other barrels and convenience re-exports, including nested/application `index.ts`, MUST NOT exist. Public application capability APIs MUST be explicitly identified single-export files.
 9. Intra-package imports MUST be relative, including public cross-capability files. Inter-package imports MUST use the supplying package's public root, never relative traversal, deep imports, or public subpaths. TypeScript path aliases/equivalent internal import aliases MUST NOT be used; ordinary package names and type declarations are not aliases.
 10. Classes, methods, interfaces, named type aliases, and permitted standalone functions MUST have JSDoc describing purpose and applicable inputs, outcomes, failures, mutation, and lifecycle obligations, not merely repeating names. Inline comments MUST explain non-obvious reasons/constraints, not narrate code.
-
-Provenance: ADR-0003; Code Style Rules; React Rules; current tsconfig.base.json.

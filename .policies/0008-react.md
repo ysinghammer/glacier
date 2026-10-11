@@ -10,5 +10,3 @@
 8. `useMemo`, `useCallback`, and `memo` MUST address an identified performance/identity need, not be defaults. Lists MUST use stable identity-based keys, not rendering-generated keys or array positions when identity/order can change.
 9. UI MUST use semantic HTML/native controls where appropriate, accessible control names, input labels, keyboard operation, and visible focus. ARIA MUST supplement, not replace, suitable native semantics.
 10. Data-dependent UI MUST explicitly represent applicable loading, empty, and error states. User errors MUST be actionable and secret-safe, retaining expected-rejection/exception distinctions. These conventions prescribe neither a styling/router dependency nor a visual design system.
-
-Provenance: ADR-0004; React Rules; Frontend Application/Library Rules.

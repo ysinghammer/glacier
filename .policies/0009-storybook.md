@@ -5,5 +5,3 @@
 3. In React libraries, stories MUST also be component tests with play functions meaningfully asserting applicable success, failure, and boundary behavior. Parent stories MUST exercise exempt subcomponents. Smart/dumb separation MUST NOT create an additional story/testing exemption.
 4. Library component stories MUST execute through `@storybook/addon-vitest` as a separate Vitest browser-mode project using the Playwright provider, with discovery restricted to `src/**/*.stories.tsx`.
 5. Frontend scaffolding MUST configure Vite, Storybook, and `.stories.tsx` discovery; React-library scaffolding MUST configure the addon/browser project. Stories MUST be maintained alongside components.
-
-Provenance: ADR-0001/0004/0005; Frontend Techstack; React Rules.

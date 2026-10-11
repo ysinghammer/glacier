@@ -18,5 +18,3 @@
 6. Type-only exports MUST be verified through public type-contract checking, not runtime discovery/coverage. Erased types MUST NOT be described as runtime-covered; passing runtime tests MUST NOT replace type-checking.
 7. Library test tasks MUST collect coverage through pnpm/Turborepo locally/CI and fail unmet thresholds.
 8. Authored support MUST stay outside `artifacts/`; generated library results MUST stay under package-local `tests/artifacts/`, ignored by Git/test discovery and secret-safe.
-
-Provenance: ADR-0001/0002/0005; Workspace Dependencies; Engineering Guidelines; Backend/Frontend Library Rules.

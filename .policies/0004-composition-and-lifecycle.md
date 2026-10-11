@@ -6,5 +6,3 @@
 4. Libraries MUST NOT have a bootstrap entry or `bootstrap/` layer; importing a library MUST NOT start resources. Libraries needing integration/resource management MUST expose factories, registration functions, or explicit lifecycle operations in their public API for application invocation. A library without such responsibilities MUST NOT manufacture resource management.
 5. Resource construction MUST be separate from resource startup. Application composition MUST coordinate startup and cleanup of already-started resources after partial failure. Shutdown MUST respect dependencies so dependents stop before their dependencies. Startup, cleanup, and shutdown failures MUST remain observable, not swallowed.
 6. Exact lifecycle APIs, concurrency, and timeout policies remain unspecified; contributors MUST NOT treat a particular API, concurrency model, or timeout value as an established requirement.
-
-Provenance: ADR-0002; Backend Microservice/Library and Frontend Application/Library Rules.
