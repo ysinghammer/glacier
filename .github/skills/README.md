@@ -6,6 +6,18 @@ agent/model overrides, or publication. Read all policies before project work.
 Invoke the applicable skill through the host's skill loader; if unavailable,
 report the blocker and obtain an approved resolution rather than silently omitting it.
 
+All `.plan/` files, including epic/story/task plans, approvals and status/evidence,
+remain ignored, secret-safe and local-only: never commit, force-add or copy planning
+documents into tracked locations. Fresh-context handoffs use readable approved local
+snapshots, exact approval responses and content/version identifiers, separately from
+the integration branch and actual product prerequisite/task/story commits. Isolated
+receivers require matching ignored local copies before work; missing/stale or tracked
+plans block admission for a safe resolution. Actual authorized product completion
+commits and normal hooks remain mandatory; local evidence is not a substitute.
+Subjects use lowercase references (for example `story-001 task-000`) while canonical
+plan IDs remain uppercase. The quality entry point is `pnpm run ci`; required
+uncached story/epic execution uses `pnpm exec turbo run ci --force`.
+
 ## Workflow
 
 | Skill                                                                     | When to use                                                                   |

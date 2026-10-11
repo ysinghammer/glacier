@@ -19,6 +19,12 @@ Read all policies, especially [compliance](../../../.policies/0001-compliance.md
 [workflow](../../../.policies/0013-development-workflow.md).
 Require approved criteria, changed-file scope, integration revision, current
 manifests/Turbo/CI configuration, and previous evidence to identify regressions.
+Require readable approved ignored local plans, exact approval responses and plan
+content/version identifiers, separately from production revisions/commit evidence.
+Isolated receivers need ignored local copies with matching identifiers before
+admission; missing/stale plans block work. All `.plan/` artifacts stay secret-safe,
+local-only and never committed, force-added or copied into tracked locations;
+tracked plans require a safe approved resolution.
 
 ## Procedure
 
@@ -35,10 +41,12 @@ manifests/Turbo/CI configuration, and previous evidence to identify regressions.
    explain genuinely inapplicable product checks, never fabricate execution.
 4. After each story and for the final epic, execute the actual current
    CI-equivalent gate without cached acceptance evidence. Policy 0013 currently
-   identifies this command; re-read scripts if they change:
+   identifies the root script and its forced uncached equivalent; re-read scripts
+   if they change:
 
    ```sh
-   pnpm exec turbo run lint:root format-check:root type-check:root build:root catalog-check:root tooling-check:root docs-check:root lint format-check type-check build test --force
+   pnpm run ci
+   pnpm exec turbo run ci --force
    ```
 
 5. Apply [library contracts](../glacier-library-contracts/SKILL.md) or
@@ -58,7 +66,10 @@ manifests/Turbo/CI configuration, and previous evidence to identify regressions.
 
 Record criterion IDs, scope/revision, exact commands, pass/fail/not-run results,
 artifact paths, manual review findings, regressions, and limitations in story
-evidence. Keep scenario mapping completeness, assertion quality, actual execution,
+evidence in ignored local story files, not tracked planning records. Keep local
+snapshot identifiers separate from actual product prerequisite/task/story commits;
+local updates never replace required authorized completion commits.
+Keep scenario mapping completeness, assertion quality, actual execution,
 runtime code coverage, and erased-type checking distinct.
 Artifacts must follow their policy-owned ignored paths and remain secret-safe.
 

@@ -15,7 +15,13 @@ returns from a manual-edit handoff and authorizes publication.
 Read every policy and [workflow](../../../.policies/0013-development-workflow.md).
 Require the integration branch, complete approved epic/story/task records,
 completion commits, final criterion evidence, limitations, and actual Git/host
-publication capabilities. Inspect the PR template before drafting its body.
+publication capabilities. Require readable approved ignored local snapshots,
+exact approval responses and content/version identifiers separately from actual
+product revisions/commits. Isolated receivers need matching ignored local copies
+before admission; missing/stale plans block work. All `.plan/` files, including
+status/evidence, stay secret-safe, local-only and never committed, force-added or
+copied into tracked locations. Tracked plans block work for a safe approved
+resolution. Inspect the PR template before drafting its body.
 
 ## Procedure
 
@@ -27,17 +33,22 @@ publication capabilities. Inspect the PR template before drafting its body.
    unsolicited fixes or a replacement branch.
 3. Resume only when the user explicitly says additional edits are done and approves
    publication. Inspect/preserve those edits, reconcile changed requirements and
-   approvals, update evidence, and rerun affected story and final epic checks.
+   approvals, update ignored local evidence/snapshot identifiers, and rerun affected
+   story and final epic checks (`pnpm run ci` and `pnpm exec turbo run ci --force`).
    Obtain separate permission before committing user changes, using applicable
    story/task IDs. Failed checks or withdrawn acceptance stops publication.
 4. After acceptance and authorization, save the exact approved `.plan/EPIC.md`
    outside `.plan` in a recoverable secret-safe session artifact. Verify the saved
-   contents before cleanup. Durable policies/ADRs/scenarios/test links stay in place
+   contents against the approved snapshot's content identifier before cleanup;
+   the recovery artifact must remain untracked. Durable policies/ADRs/scenarios/test links stay in place
    and must not depend on planning paths that will be removed.
 5. Inspect the exact change-owned `.plan` scope. Delete only that verified directory
    with explicit permitted scope; never broad directories, unrelated files, or
-   `plan`. Commit its tracked removal with authorization. Re-run applicable final
-   quality gates and changed-link checks on the post-cleanup tree.
+   `plan`. Mixed or uncertain ownership blocks deletion. Cleanup is a local
+   filesystem operation, never a planning-removal commit; do not track plans to
+   manufacture a removal. Re-run applicable final quality gates and changed-link
+   checks on the post-cleanup tree. On failure stop, preserving the saved epic
+   and Git history for recovery.
 6. Push only the accepted integration branch with an upstream, using current
    policy 0013's command and explicit authorization. Never force-push, push `main`,
    or push unrelated branches. Failure retains branch and saved epic for recovery.
@@ -56,7 +67,8 @@ publication capabilities. Inspect the PR template before drafting its body.
 ## Outputs and handoff evidence
 
 Retain exact acceptance/publication approvals, manual-edit reconciliation,
-post-edit and post-cleanup check results, completion/removal commits, saved epic
+post-edit and post-cleanup check results, actual implementation completion commits,
+local snapshot identifiers, verified untracked saved epic
 and PR body, pushed revision/upstream, and verified PR URL. A partial failure must
 state precisely what succeeded and what remains blocked.
 
