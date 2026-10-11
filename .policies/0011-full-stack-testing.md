@@ -3,21 +3,22 @@
 1. Application/service verification MUST use Playwright only against the running system's public UI/HTTP APIs. All suites, fixtures, data, and orchestration MUST live in workspace-root `tests/`; application/service packages MUST NOT contain local tests/fixtures or Vitest/isolated unit/integration suites.
 2. Test code MUST NOT import project production code, shared libraries, or implementation types; inspect source/private runtime state; directly access storage/caches; invoke internal integrations; mock behavior/dependencies; use fake services; or intercept requests to fabricate responses. Test-owned helpers/data/assertions MAY be used. Developers MAY inspect source for debugging/development, but MUST NOT couple assertions/tests to it. Assertions MUST establish requirements/public contracts, not implementation details; logs MUST NOT substitute for public behavioral assertions.
 
-| Workspace-root path                                                 | Responsibility                                            |
-| ------------------------------------------------------------------- | --------------------------------------------------------- |
-| `tests/playwright.config.ts`                                        | Playwright configuration                                  |
-| `tests/acceptance/<capability>/`                                    | Independently declared inventory/criteria/scenarios       |
-| `tests/acceptance/validation/`                                      | Catalog/discovered-test consistency                       |
-| `tests/scenarios/<capability>/<scenario>.spec.ts`                   | UI, API, combined/cross-capability journeys               |
-| `tests/data/personas/`                                              | Representative actors                                     |
-| `tests/data/datasets/<capability>/`                                 | Deterministic business definitions                        |
-| `tests/fixtures/`                                                   | Scenario context and independent public data setup        |
-| `tests/drivers/ui/<capability>/`, `tests/drivers/api/<capability>/` | Public UI/HTTP interactions                               |
-| `tests/stack/`                                                      | Invocation-wide Testcontainers startup/readiness/teardown |
-| `tests/reporting/`                                                  | Mapping and execution results                             |
-| `tests/artifacts/<run-id>/`                                         | Generated invocation-isolated outputs                     |
+| Workspace-root path                                                 | Responsibility                                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `tests/playwright.config.ts`                                        | Playwright configuration                                                       |
+| `tests/scenarios/README.md`                                         | Global capability index with purpose and documentation links                   |
+| `tests/scenarios/<capability>/README.md`                            | Capability purpose, business value, and all required scenarios with test links |
+| `tests/verification/`                                               | Scenario documentation/discovered-test consistency and tooling checks          |
+| `tests/scenarios/<capability>/<scenario>.spec.ts`                   | UI, API, combined/cross-capability journeys                                    |
+| `tests/data/personas/`                                              | Representative actors                                                          |
+| `tests/data/datasets/<capability>/`                                 | Deterministic business definitions                                             |
+| `tests/fixtures/`                                                   | Scenario context and independent public data setup                             |
+| `tests/drivers/ui/<capability>/`, `tests/drivers/api/<capability>/` | Public UI/HTTP interactions                                                    |
+| `tests/stack/`                                                      | Invocation-wide Testcontainers startup/readiness/teardown                      |
+| `tests/reporting/`                                                  | Mapping and execution results                                                  |
+| `tests/artifacts/<run-id>/`                                         | Generated invocation-isolated outputs                                          |
 
-3. Runtime discovery MUST be only `tests/scenarios/**/*.spec.ts`, not catalog/support/reporting. Capability names MUST be descriptive kebab-case, not frontend/backend package names. UI/API/combined journeys, including cross-capability journeys, MUST group by verified capability outcome, not interface or production layers. Optional directories MUST be created only as needed.
+3. Runtime discovery MUST be only `tests/scenarios/**/*.spec.ts`, not Markdown documentation/support/reporting. Capability names MUST be descriptive kebab-case, not frontend/backend package names. UI/API/combined journeys, including cross-capability journeys, MUST group by verified capability outcome, not interface or production layers. Each capability directory MUST contain its Markdown scenario index as required by policy 0012; `tests/acceptance/` MUST NOT be used. Optional directories MUST be created only as needed.
 4. Every invocation, including filtered runs, MUST start a fresh entire real stack with Testcontainers: all frontend applications, backend services, and required real infrastructure such as PostgreSQL/Redis. Selection MUST NOT reduce the stack. One stack MUST be shared across scenarios/workers and torn down afterward; tests MUST NOT attach to developer stacks or start separate worker/scenario stacks.
 5. The harness MUST build/start real artifacts with normal startup/migrations. Orchestration MUST NOT permit production imports or direct storage seeding. Noncontainerizable dependencies MUST use real provider sandboxes with securely supplied credentials/configuration, not fake servers. Missing/unavailable dependencies MUST fail, not skip required scenarios or report success.
 6. Readiness MUST be bounded checks, not fixed sleeps; tests MUST wait for the entire stack. Startup failure/timeout MUST fail explicitly, retain useful secret-safe diagnostics, and clean already-started resources. Teardown MUST release resources in dependency-aware order after success/failure; cleanup failures MUST remain observable. Every requested execution MUST actually run its fresh stack/tests; Turbo cache hits or reused previous results MUST NOT satisfy it.
