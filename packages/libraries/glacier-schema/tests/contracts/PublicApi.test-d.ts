@@ -24,6 +24,12 @@ import {
   Transform,
   Refine,
   Default,
+  ExtendType,
+  OmitType,
+  PartialType,
+  PickType,
+  type IDerivedClass,
+  type IDerivedClassOptions,
   isSchemaError,
   parse,
   safeParse,
@@ -195,3 +201,21 @@ void [
   refinements,
   builtIn,
 ];
+
+class Account {
+  public id!: string;
+  public name!: string;
+}
+const update: IDerivedClass<Partial<Account>> = PartialType(Account);
+const picked: IDerivedClass<Pick<Account, "id">> = PickType(Account, ["id"]);
+const omitted: IDerivedClass<Omit<Account, "id">> = OmitType(Account, ["id"]);
+const derivedOptions: IDerivedClassOptions = { name: "Named" };
+const extended: IDerivedClass<Omit<Account, "name"> & { name: number }> = ExtendType(
+  Account,
+  class {
+    public name!: number;
+  },
+  derivedOptions,
+);
+const patch: Partial<Account> = parse(update, {});
+void [patch, picked, omitted, extended];
