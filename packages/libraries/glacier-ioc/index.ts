@@ -19,7 +19,6 @@ export type { IConstructorDependency } from "./src/domain/metadata/IConstructorD
 export type { IContainerErrorOptions } from "./src/domain/failures/IContainerErrorOptions.js";
 export { GlacierContainer } from "./src/application/GlacierContainer.js";
 export { Providers } from "./src/domain/providers/Providers.js";
-export type { IContainerRoot } from "./src/application/IContainerRoot.js";
 export type { IProvider } from "./src/domain/providers/IProvider.js";
 export type { IClassProvider } from "./src/domain/providers/IClassProvider.js";
 export type { IValueProvider } from "./src/domain/providers/IValueProvider.js";
@@ -27,3 +26,11 @@ export type { IFactoryProvider } from "./src/domain/providers/IFactoryProvider.j
 export type { IExistingProvider } from "./src/domain/providers/IExistingProvider.js";
 export type { IInjectedValues } from "./src/domain/providers/IInjectedValues.js";
 export type { IClassConstructor } from "./src/domain/providers/IClassConstructor.js";
+export { Module } from "./src/domain/decorators/Module.js";
+export { InvalidModuleError } from "./src/domain/failures/InvalidModule.error.js";
+export { ModuleLookup } from "./src/application/ModuleLookup.js";
+export type { IGetOptions } from "./src/application/IGetOptions.js";
+export type { IModuleOptions } from "./src/domain/modules/IModuleOptions.js";
+export type { IDynamicModule } from "./src/domain/modules/IDynamicModule.js";
+export type { IModuleReference } from "./src/domain/modules/IModuleReference.js";
+export type { IModuleExport } from "./src/domain/modules/IModuleExport.js";

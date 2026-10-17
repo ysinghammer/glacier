@@ -3,12 +3,16 @@
 // @scenario IOC-008
 // @scenario IOC-009
 import { DESIGN_PARAMETER_TYPES_METADATA } from "@glacier/reflection";
+
+class TestRoot {}
+Module()(TestRoot);
 import { describe, expect, it } from "vitest";
 import {
   CircularDependencyError,
   GlacierContainer,
   Inject,
   Injectable,
+  Module,
   InjectionToken,
   Optional,
   Providers,
@@ -35,6 +39,7 @@ emitParameterTypes(Service, [Repository]);
 describe("IOC-006 singletons are created once and shared", () => {
   it("shares one instance between direct lookups and dependents", () => {
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [Repository, Service],
     });
 
@@ -52,7 +57,10 @@ describe("IOC-006 singletons are created once and shared", () => {
         constructions += 1;
       }
     }
-    const container = GlacierContainer.create({ providers: [Counted] });
+    const container = GlacierContainer.create({
+      module: TestRoot,
+      providers: [Counted],
+    });
     expect(constructions).toBe(0);
 
     container.get(Counted);
@@ -65,6 +73,7 @@ describe("IOC-006 singletons are created once and shared", () => {
     const name = new InjectionToken<string>("name");
 
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [
         { provide: name, useValue: "first" },
         { provide: name, useValue: "second" },
@@ -77,6 +86,7 @@ describe("IOC-006 singletons are created once and shared", () => {
   it("uses useClass to construct a different implementation behind a token", () => {
     class Postgres extends Repository {}
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [{ provide: Repository, useClass: Postgres }],
     });
 
@@ -92,6 +102,7 @@ describe("IOC-007 useValue and useExisting", () => {
     const marker = Symbol("marker");
 
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [
         { provide: settings, useValue: configuration },
         { provide: nothing, useValue: undefined },
@@ -109,6 +120,7 @@ describe("IOC-007 useValue and useExisting", () => {
     class SystemClock extends Clock {}
 
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [SystemClock, { provide: Clock, useExisting: SystemClock }],
     });
 
@@ -118,6 +130,7 @@ describe("IOC-007 useValue and useExisting", () => {
 
   it("reports an alias to a missing target with the full path", () => {
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [{ provide: Service, useExisting: Repository }],
     });
 
@@ -131,6 +144,7 @@ describe("IOC-008 factories receive injected arguments in order", () => {
     const port = new InjectionToken<number>("port");
     const address = new InjectionToken<string>("address");
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [
         { provide: host, useValue: "localhost" },
         { provide: port, useValue: 8080 },
@@ -150,6 +164,7 @@ describe("IOC-008 factories receive injected arguments in order", () => {
   it("calls a factory without inject with no arguments and shares its result", () => {
     const created = new InjectionToken<object>("created");
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [{ provide: created, useFactory: () => ({}) }],
     });
 
@@ -160,6 +175,7 @@ describe("IOC-008 factories receive injected arguments in order", () => {
     const marker = Symbol("marker");
     const label = new InjectionToken<string>("label");
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [
         { provide: marker, useValue: "m" },
         {
@@ -182,6 +198,7 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
     Injectable()(Controller);
     emitParameterTypes(Controller, [Service]);
     const container = GlacierContainer.create({
+      module: TestRoot,
       providers: [Controller, Service],
     });
 
@@ -194,7 +211,7 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
   it("throws when the requested token itself is not provided", () => {
     const missing = new InjectionToken<string>("missing");
 
-    expect(() => GlacierContainer.create({ providers: [] }).get(missing)).toThrow(
+    expect(() => GlacierContainer.create({ module: TestRoot, providers: [] }).get(missing)).toThrow(
       "Unknown dependency: InjectionToken(missing)",
     );
   });
@@ -217,8 +234,12 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
     Optional()(Audited, undefined, 2);
     emitParameterTypes(Audited, [Repository, Object, String]);
 
-    const empty = GlacierContainer.create({ providers: [Audited] }).get(Audited);
+    const empty = GlacierContainer.create({
+      module: TestRoot,
+      providers: [Audited],
+    }).get(Audited);
     const filled = GlacierContainer.create({
+      module: TestRoot,
       providers: [Audited, Repository, { provide: name, useValue: "n" }],
     }).get(Audited);
 
@@ -236,7 +257,10 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
     Injectable()(Holder);
     Optional()(Holder, undefined, 0);
     emitParameterTypes(Holder, [Service]);
-    const container = GlacierContainer.create({ providers: [Holder, Service] });
+    const container = GlacierContainer.create({
+      module: TestRoot,
+      providers: [Holder, Service],
+    });
 
     expect(() => container.get(Holder)).toThrow(
       "Unknown dependency: Holder -> Service -> Repository",
@@ -256,7 +280,10 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
     Inject(Left)(Right, undefined, 0);
     emitParameterTypes(Left, [Object]);
     emitParameterTypes(Right, [Object]);
-    const container = GlacierContainer.create({ providers: [Left, Right] });
+    const container = GlacierContainer.create({
+      module: TestRoot,
+      providers: [Left, Right],
+    });
 
     expect(() => container.get(Left)).toThrow(CircularDependencyError);
     expect(() => container.get(Left)).toThrow("Circular dependency: Left -> Right -> Left");

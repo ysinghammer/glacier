@@ -3,17 +3,18 @@
 Private, native ESM dependency-injection foundation built on [`@glacier/reflection`](../glacier-reflection/README.md).
 It delivers tokens, the container error hierarchy, the `@Injectable`/`@Inject`/`@Optional` decorators with
 readable metadata, the four provider kinds and a minimal `GlacierContainer` resolving DEFAULT-scope singletons.
-Modules, scopes, async providers and lifecycle follow in later stories.
+`@Module` composition (imports, exports, global, dynamic modules) groups them. Scopes, async providers and
+lifecycle follow in later stories.
 
 ## Public API
 
 Only the package root is exported (`"."`); there are no subpaths or deep imports.
-The root exports **29 symbols: 15 runtime values and 14 type-only exports**.
+The root exports **36 symbols: 18 runtime values and 18 type-only exports**.
 
-| Kind    | Exports                                                                                                                                                                                                                                                                                                 |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime | `InjectionToken`, `Injectable`, `Inject`, `Optional`, `InjectionMetadata`, `ContainerError`, `UnknownDependencyError`, `CircularDependencyError`, `InvalidScopeError`, `InvalidProviderError`, `ContextIdMisuseError`, `UseAfterCloseError`, `AggregateContainerError`, `GlacierContainer`, `Providers` |
-| Types   | `IToken`, `ITokenReference`, `IProviderScope`, `IInjectableOptions`, `IConstructorDependency`, `IContainerErrorOptions`, `IContainerRoot`, `IProvider`, `IClassProvider`, `IValueProvider`, `IFactoryProvider`, `IExistingProvider`, `IInjectedValues`, `IClassConstructor`                             |
+| Kind    | Exports                                                                                                                                                                                                                                                                                                                                                 |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime | `InjectionToken`, `Injectable`, `Inject`, `Optional`, `InjectionMetadata`, `ContainerError`, `UnknownDependencyError`, `CircularDependencyError`, `InvalidScopeError`, `InvalidProviderError`, `ContextIdMisuseError`, `UseAfterCloseError`, `AggregateContainerError`, `GlacierContainer`, `Providers`, `Module`, `InvalidModuleError`, `ModuleLookup` |
+| Types   | `IToken`, `ITokenReference`, `IProviderScope`, `IInjectableOptions`, `IConstructorDependency`, `IContainerErrorOptions`, `IProvider`, `IClassProvider`, `IValueProvider`, `IFactoryProvider`, `IExistingProvider`, `IInjectedValues`, `IClassConstructor`, `IGetOptions`, `IModuleOptions`, `IDynamicModule`, `IModuleReference`, `IModuleExport`       |
 
 ## Tokens
 
@@ -56,14 +57,14 @@ parameter's emitted type is `Object`, `Function` or `undefined` and no `@Inject`
 
 A provider is a bare class (shorthand for `{ provide: Foo, useClass: Foo }`) or an object with `provide` and
 exactly one of `useClass`, `useValue`, `useFactory` (synchronous, optional `inject` tokens) or `useExisting`.
-Until `@Module` arrives, `GlacierContainer.create({ providers })` takes a single flat provider list and validates
-every provider shape, class metadata and scope up front, throwing one `AggregateContainerError`. Only DEFAULT
-scope is accepted for now. `get(token)` constructs lazily and shares one instance per token; a later provider
-for the same token replaces an earlier one.
+`GlacierContainer.create(RootModule)` traverses the module graph and validates modules, provider shapes, class
+metadata, scopes and exports up front, throwing one `AggregateContainerError`. Only DEFAULT scope is accepted
+for now. `get(token)` constructs lazily and shares one instance per provider; a later provider for the same
+token in the same module replaces an earlier one.
 
 ```ts
 const url = new InjectionToken<string>("url");
-const container = GlacierContainer.create({
+@Module({
   providers: [
     OrderRepository,
     OrderService,
@@ -74,7 +75,10 @@ const container = GlacierContainer.create({
       useFactory: (address) => new Connection(address), // `address` is inferred as string
     }),
   ],
-});
+})
+class AppModule {}
+
+const container = GlacierContainer.create(AppModule);
 container.get(OrderService); // OrderService, built once
 ```
 
@@ -82,6 +86,37 @@ container.get(OrderService); // OrderService, built once
 literal in the `providers` array is only loosely typed. A missing dependency throws `UnknownDependencyError`
 with the path (`OrderService -> OrderRepository -> Connection`) unless the parameter is `@Optional`;
 cycles throw `CircularDependencyError`.
+
+## Modules
+
+`@Module({ providers, imports, exports, global })` declares a module. A module sees its own providers, then the
+exports of its imports, then the exports of `global: true` modules (which must still be reachable from the
+root). Providers not exported stay private. `exports` lists own tokens, tokens imported from other modules, or
+imported modules to re-export. A module imported several times is one instance. Dynamic modules
+(`{ module, providers, imports, exports, global }`, typically returned by `forRoot()`) append to the static
+`@Module` metadata; their `global` flag, when given, wins. Invalid modules, undecorated classes and exports that
+are neither provided nor imported fail `create` with `InvalidModuleError` causes in an `AggregateContainerError`.
+
+```ts
+@Module({ providers: [Logger], exports: [Logger] })
+class LoggingModule {
+  static forRoot(level: string): IDynamicModule {
+    return {
+      module: LoggingModule,
+      providers: [{ provide: LEVEL, useValue: level }],
+      exports: [LEVEL],
+    };
+  }
+}
+
+@Module({ imports: [LoggingModule.forRoot("info")] })
+class AppModule {}
+
+const container = GlacierContainer.create(AppModule);
+container.get(Logger, { strict: true }); // restricted to what AppModule sees
+container.get(Logger); // strict: false searches the whole container
+container.select(LoggingModule).get(Logger); // lookup from one module (strict by default)
+```
 
 ## Errors
 

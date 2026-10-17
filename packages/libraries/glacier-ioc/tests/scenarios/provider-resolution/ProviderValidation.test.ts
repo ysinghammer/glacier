@@ -1,9 +1,13 @@
 // @scenario IOC-010
 import { describe, expect, it } from "vitest";
+
+class TestRoot {}
+Module()(TestRoot);
 import {
   AggregateContainerError,
   GlacierContainer,
   Injectable,
+  Module,
   InjectionToken,
   InvalidProviderError,
   InvalidScopeError,
@@ -15,7 +19,10 @@ const token = new InjectionToken<string>("token");
 
 /** Feeds a malformed declaration through the public boundary the way untrusted JavaScript callers would. */
 function createWith(...providers: unknown[]): GlacierContainer {
-  return GlacierContainer.create({ providers: providers as IProvider[] });
+  return GlacierContainer.create({
+    module: TestRoot,
+    providers: providers as IProvider[],
+  });
 }
 
 function problemsOf(action: () => unknown): readonly Error[] {

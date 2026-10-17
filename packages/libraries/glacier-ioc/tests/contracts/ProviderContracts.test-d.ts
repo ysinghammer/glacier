@@ -1,10 +1,14 @@
 import {
   GlacierContainer,
   InjectionToken,
+  Module,
   Providers,
   type IFactoryProvider,
   type IProvider,
 } from "../../index.js";
+
+class TestRoot {}
+Module()(TestRoot);
 
 class Repository {}
 const host = new InjectionToken<string>("host");
@@ -23,6 +27,7 @@ const typed = Providers.factory({
 });
 const asProvider: IProvider = typed;
 const container = GlacierContainer.create({
+  module: TestRoot,
   providers: [Repository, { provide: host, useValue: "h" }, typed],
 });
 const text: string = container.get(host);

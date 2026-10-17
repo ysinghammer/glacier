@@ -25,7 +25,7 @@ export class ProviderNormalization {
     }
     const record = candidate as Readonly<Record<string, unknown>>;
     const provide = record["provide"];
-    if (!ProviderNormalization.#isTokenReference(provide)) {
+    if (!ProviderNormalization.isTokenReference(provide)) {
       throw new InvalidProviderError(
         ProviderNormalization.#placeholder(position),
         "`provide` must be a class, symbol or InjectionToken",
@@ -52,7 +52,7 @@ export class ProviderNormalization {
     if (kind === "useClass" && !ProviderNormalization.#isClass(record["useClass"])) {
       throw new InvalidProviderError(provide, "`useClass` must be a class");
     }
-    if (kind === "useExisting" && !ProviderNormalization.#isTokenReference(record["useExisting"])) {
+    if (kind === "useExisting" && !ProviderNormalization.isTokenReference(record["useExisting"])) {
       throw new InvalidProviderError(
         provide,
         "`useExisting` must be a class, symbol or InjectionToken",
@@ -66,7 +66,7 @@ export class ProviderNormalization {
     const isValidInject =
       inject === undefined ||
       (Array.isArray(inject) &&
-        inject.every((token: unknown) => ProviderNormalization.#isTokenReference(token)));
+        inject.every((token: unknown) => ProviderNormalization.isTokenReference(token)));
     if (!isValidInject) {
       throw new InvalidProviderError(
         provide,
@@ -81,7 +81,7 @@ export class ProviderNormalization {
   }
 
   /** Accepts the token forms consumers may supply; string tokens are intentionally rejected. */
-  static #isTokenReference(candidate: unknown): candidate is ITokenReference {
+  public static isTokenReference(candidate: unknown): candidate is ITokenReference {
     return (
       ProviderNormalization.#isClass(candidate) ||
       typeof candidate === "symbol" ||

@@ -17,7 +17,10 @@ export class InjectionMetadata {
    * Throws `InvalidProviderError` when the target is not a readable class.
    */
   public static readScope(target: IClass): IProviderScope {
-    const result = INJECTABLE_SCOPE_METADATA.read(target, { kind: "class", inheritance: "own" });
+    const result = INJECTABLE_SCOPE_METADATA.read(target, {
+      kind: "class",
+      inheritance: "own",
+    });
     if (!result.isValid) {
       throw new InvalidProviderError(target, `unreadable class metadata (${result.code})`);
     }
