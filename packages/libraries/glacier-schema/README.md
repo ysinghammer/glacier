@@ -1,11 +1,51 @@
 # @glacier/schema
 
 Private, native ESM class-based schema validation and transformation built on
-[`@glacier/reflection`](../glacier-reflection/README.md). Decorated classes act as validator and
-transformer in one pipeline. Phases 2-7 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
-collections, nested objects, unions, `parse` / `safeParse` and typed errors and refinements. Composition (inheritance and mapped types) and JSON Schema output are included.
+[`@glacier/reflection`](../glacier-reflection/README.md). A decorated class is validator and transformer in one
+pipeline (coerce, transform, validate, instance), with typed issues and JSON Schema / OpenAPI 3.1 output.
 
-## Public API
+## Quick start
+
+Enable `experimentalDecorators` and `emitDecoratorMetadata`, and import `@glacier/reflection/register` first
+(this library never registers it itself).
+
+```ts
+import "@glacier/reflection/register";
+import { IsInt, IsString, parse } from "@glacier/schema";
+
+class Signup {
+  @IsString() public name!: string;
+  @IsInt() public age!: number;
+}
+
+const signup = parse(Signup, { name: "Ada", age: 36, ignored: true }); // Signup { name, age }
+```
+
+Instances are created with `Object.create(prototype)`: the constructor and field initializers never run and
+unknown keys are stripped. Declared fields are required unless `Optional` or `Default` applies. The first parse of a class compiles and caches its
+schema and freezes the metadata of the class and its ancestors; decorating afterwards throws
+`SchemaDefinitionError`. A primitive decorator that contradicts the emitted TypeScript type (for example
+`@IsString()` on a `number` property) also throws; unions and interfaces emit `Object` and are not checked.
+
+## Scenarios
+
+See [tests/scenarios/README.md](tests/scenarios/README.md).
+
+## JSON Schema
+
+`toJsonSchema(Class, { target: "draft-2020-12" | "openapi-3.1" })` takes a single class. The result is a `$ref` to
+the root definition plus `$defs` (`draft-2020-12`, with `$schema`) or `components.schemas` (`openapi-3.1`); nested
+classes, unions and cycles are `$ref`s. Definition names are the class name or `@Describe({ name })`, and two
+different classes with the same name throw `SchemaDefinitionError`. `Rename` aliases are the property names,
+`Optional` and `Default` fields are not `required`, and `Nullable` adds `null` to the type. Discriminated unions are
+`oneOf` plus `discriminator.mapping`; `IsOneOf` is `oneOf`. `@Describe({ title, description, example, deprecated })`
+works on classes and properties (`example` becomes `examples`), and `@JsonSchema({...})` merges a fragment over the
+generated keywords. `Refine` and `Transform` are skipped; regular expression flags other than none and `u` are not
+expressible and are ignored; maps are emitted like records and bigint as integer. OpenAPI 3.0 is not supported.
+
+## Decorator reference
+
+### Public API
 
 Only the package root is exported (`"."`); there are no subpaths or deep imports.
 
@@ -55,30 +95,49 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
   refinements. Each takes `{ name }` (default `Partial<Source>`, `Pick<Source>`, `Omit<Source>`, `Extend<Base>`).
   The result is a new decorated class, not a subclass of the source, without methods; it can be parsed,
   extended with `extends` and derived again. Sources are frozen when derived from. Unions cannot be a source.
-- Types: `IDerivedClass`, `IDerivedClassOptions`, `IRefineOptions`, `IIssueCode`, `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`, `ISchemaParseOptions`, `ITransformFunction`.
+- Types (interfaces carry the `I` prefix required by the repository naming policy, so `IResult` and `ISchemaIssue` stand for the design's `Result` and `SchemaIssue`): `ICollectionOptions`, `ISizeOptions`, `IElementType`, `IUnionOptions`, `IUnionVariants`, `IJsonSchema`, `IJsonSchemaFragment`, `IJsonSchemaOptions`, `IJsonSchemaTarget`, `IDescribeOptions`, `IDerivedClass`, `IDerivedClassOptions`, `IRefineOptions`, `IIssueCode`, `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`, `ISchemaParseOptions`, `ITransformFunction`.
+
+## Migrating from class-validator / class-transformer
+
+| class-validator / class-transformer                   | `@glacier/schema`                                                     |
+| ----------------------------------------------------- | --------------------------------------------------------------------- |
+| `validate(plainToInstance(C, input))`                 | `parse(C, input)` or `safeParse(C, input)`; one step, one result      |
+| `@IsEmail()`, `@IsUUID()`, `@IsUrl()`                 | `@IsString({ format: "email" \| "uuid" \| "url" })`                   |
+| `@Min`, `@Max`, `@Length`, `@Matches`                 | Decorator options `min`, `max`, `length`, `pattern`                   |
+| `@IsOptional()`                                       | `@Optional()`; never inferred from the TypeScript type                |
+| `@ValidateNested()` + `@Type(() => C)`                | `@IsObject(C)` / `@IsArray(C)`; no `@Type` needed                     |
+| `@Transform(fn)`                                      | `@Transform(fn)` (runs before validation)                             |
+| `@Expose({ name })`                                   | `@Rename("inputKey")`                                                 |
+| `@IsIn([...])`, `@Equals(x)`                          | `@IsEnum(...)`, `@IsLiteral(x)`                                       |
+| `@ValidateIf`, custom validators                      | `@Refine` on a property or the class (sync only)                      |
+| `enableImplicitConversion`                            | `parse(C, input, { coerce: true })`, per call only                    |
+| `whitelist: true`                                     | Always on: unknown keys are stripped                                  |
+| `PartialType` and friends from `@nestjs/mapped-types` | `PartialType`, `PickType`, `OmitType`, `ExtendType`                   |
+| `ValidationError[]` tree                              | Flat `ISchemaIssue[]` with `path`, stable `code`, `message`, `params` |
+
+Behaviour differences: the constructor and field initializers never run (use `@Default`); there is no
+`instanceToPlain`, expose/exclude groups, async validation, i18n or standard TC39 decorator support; the top-level
+target is always a class (map arrays and primitives yourself).
+
+## Adapter guidance
+
+This package has no HTTP concepts. An adapter (HTTP, queue, CLI) catches failures with `isSchemaError` and maps
+them itself; `isSchemaError` is a brand check, so it also works when two copies of the package are installed.
 
 ```ts
-import "@glacier/reflection/register";
-import { IsInt, IsString, parse } from "@glacier/schema";
-
-class Signup {
-  @IsString() public name!: string;
-  @IsInt() public age!: number;
+try {
+  const dto = parse(Signup, body);
+} catch (error) {
+  if (isSchemaError(error)) {
+    return { status: 400, body: error.toJSON() }; // issues: [{ path, code, message, params }]
+  }
+  throw error;
 }
-
-const signup = parse(Signup, { name: "Ada", age: 36, ignored: true }); // Signup { name, age }
 ```
 
-Instances are created with `Object.create(prototype)`: the constructor and field initializers never run and
-unknown keys are stripped. Declared fields are required unless `Optional` or `Default` applies. The first parse of a class compiles and caches its
-schema and freezes the metadata of the class and its ancestors; decorating afterwards throws
-`SchemaDefinitionError`. A primitive decorator that contradicts the emitted TypeScript type (for example
-`@IsString()` on a `number` property) also throws; unions and interfaces emit `Object` and are not checked.
-
-## Setup
-
-Requires legacy decorators and compiler metadata, so consumers enable `experimentalDecorators` and
-`emitDecoratorMetadata` and import `@glacier/reflection/register` first (this library never registers it itself).
+Alternatively use `safeParse` and branch on `result.ok`. Branch on the stable `code`, never on `message`.
+`SchemaDefinitionError` signals a programming error in a class declaration and should not be mapped to a client
+error.
 
 ## Scenarios
 
