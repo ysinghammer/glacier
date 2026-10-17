@@ -2,6 +2,7 @@
 // @scenario IOC-031
 // @scenario IOC-032
 // @scenario IOC-033
+// @scenario IOC-034
 import { describe, expect, it } from "vitest";
 import {
   AggregateContainerError,

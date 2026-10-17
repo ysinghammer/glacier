@@ -11,10 +11,10 @@ async, DEFAULT providers can hook into startup and shutdown, and `close()` ends 
 Only the package root is exported (`"."`); there are no subpaths or deep imports.
 The root exports **46 symbols: 23 runtime values and 23 type-only exports**.
 
-| Kind    | Exports                                                                                                                                                                                                                                                                                                                                                                                               |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime | `InjectionToken`, `Injectable`, `Inject`, `Optional`, `InjectionMetadata`, `ContainerError`, `UnknownDependencyError`, `CircularDependencyError`, `InvalidScopeError`, `InvalidProviderError`, `ContextIdMisuseError`, `UseAfterCloseError`, `AggregateContainerError`, `GlacierContainer`, `Providers`, `Module`, `InvalidModuleError`, `ModuleLookup`, `ContainerContext`, `ContextId`, `ModuleRef` |
-| Types   | `IToken`, `ITokenReference`, `IProviderScope`, `IInjectableOptions`, `IConstructorDependency`, `IContainerErrorOptions`, `IProvider`, `IClassProvider`, `IValueProvider`, `IFactoryProvider`, `IExistingProvider`, `IInjectedValues`, `IClassConstructor`, `IGetOptions`, `IModuleOptions`, `IDynamicModule`, `IModuleReference`, `IModuleExport`                                                     |
+| Kind    | Exports                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime | `InjectionToken`, `Injectable`, `Inject`, `Optional`, `InjectionMetadata`, `ContainerError`, `UnknownDependencyError`, `CircularDependencyError`, `InvalidScopeError`, `InvalidProviderError`, `ContextIdMisuseError`, `UseAfterCloseError`, `AggregateContainerError`, `GlacierContainer`, `Providers`, `Module`, `InvalidModuleError`, `ModuleLookup`, `ContainerContext`, `ContextId`, `ModuleRef`, `LifecycleHookError`, `ProviderCreationError`           |
+| Types   | `IToken`, `ITokenReference`, `IProviderScope`, `IInjectableOptions`, `IConstructorDependency`, `IContainerErrorOptions`, `IProvider`, `IClassProvider`, `IValueProvider`, `IFactoryProvider`, `IExistingProvider`, `IInjectedValues`, `IClassConstructor`, `IGetOptions`, `IModuleOptions`, `IDynamicModule`, `IModuleReference`, `IModuleExport`, `IOnModuleInit`, `IOnContainerInit`, `IOnModuleDestroy`, `IBeforeContainerShutdown`, `IOnContainerShutdown` |
 
 ## Tokens
 
@@ -202,6 +202,18 @@ await container.close();
 
 Every failure extends `ContainerError` (and `Error`), accepts an optional `cause`, and carries the
 dependency path in its message where one applies. `AggregateContainerError.causes` keeps every collected failure.
+
+## Known limitations
+
+- Lifecycle hooks run for DEFAULT-scope providers only.
+- There is no `forwardRef`; circular dependencies are rejected.
+- Shutdown is explicit: call `close()`; no process signal handlers are registered.
+- Providers are validated and DEFAULT ones constructed eagerly during `create`.
+
+## Post-v1 backlog
+
+`forwardRef`, `DiscoveryService`, `LazyModuleLoader`, `ContextIdStrategy`, custom decorators, `tryGet`,
+signal-based shutdown (HTTP controllers, guards, pipes and interceptors are out of scope).
 
 ## Verification
 
