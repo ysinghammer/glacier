@@ -32,7 +32,9 @@ export class ValueCoercer {
       case "any":
       case "object":
       case "lazy":
-        // Nested classes coerce their own fields when they are parsed.
+      case "union":
+      case "oneOf":
+        // Nested classes coerce their own fields when they are parsed, and a one-of tries coercion per option.
         return (value) => value;
       case "array":
         return ValueCoercer.#toArray(ValueCoercer.create(type.element));

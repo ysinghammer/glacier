@@ -3,6 +3,8 @@ import {
   IsArray,
   IsMap,
   IsObject,
+  IsOneOf,
+  IsUnion,
   IsRecord,
   IsSet,
   IsTuple,
@@ -38,6 +40,8 @@ import {
   type ITransformFunction,
   type IStringFormat,
   type IStringOptions,
+  type IUnionOptions,
+  type IUnionVariants,
 } from "../../index.js";
 
 class User {
@@ -93,6 +97,15 @@ const collections: PropertyDecorator[] = [
   IsObject(() => Node, { message: "m" }),
   IsObject(),
 ];
+const unionVariants: IUnionVariants = { cat: Node, dog: () => Node };
+const unionOptions: IUnionOptions = { discriminator: "type", variants: unionVariants };
+const unions: PropertyDecorator[] = [
+  IsUnion(unionOptions),
+  IsUnion(unionOptions, { message: "m" }),
+  IsOneOf([String, Number, Node]),
+  IsOneOf([() => Node, Date], { message: "m" }),
+];
+const classUnion: ClassDecorator = IsUnion(unionOptions);
 const depthOptions: ISchemaParseOptions = { maxDepth: 8 };
 const stringOptions: IStringOptions = { length: 3, format: "uuid" };
 const numberOptions: INumberOptions = { min: 0 };
@@ -139,10 +152,18 @@ IsRecord(String, { unique: true });
 IsArray("string");
 // @ts-expect-error The nested class argument cannot be an instance.
 IsObject(new User());
+// @ts-expect-error A union needs a discriminator.
+IsUnion({ variants: {} });
+// @ts-expect-error Variants must be classes or class references.
+IsUnion({ discriminator: "t", variants: { a: "x" } });
+// @ts-expect-error A one-of takes a list of types.
+IsOneOf(String);
 // @ts-expect-error Numbers have no pattern.
 IsNumber({ pattern: /a/ });
 
 void [
+  unions,
+  classUnion,
   collections,
   depthOptions,
   elementType,

@@ -6,6 +6,8 @@ import type { ISchemaIssue } from "../failures/ISchemaIssue.js";
 import { ReceivedType } from "../validation/ReceivedType.js";
 import { FieldProcessorFactory } from "../validation/FieldProcessorFactory.js";
 import type { IFieldProcessor } from "../validation/FieldProcessorFactory.js";
+import { RootUnionSchema } from "../validation/RootUnionSchema.js";
+import { UnionRegistry } from "./UnionRegistry.js";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 
 /** Nesting limit used when the call does not set `maxDepth`. */
@@ -30,6 +32,12 @@ export class SchemaCompiler {
     const cached = CompiledSchemaCache.get<T>(target);
     if (cached !== undefined) return cached;
     CompiledSchemaCache.freeze(target);
+    const union = UnionRegistry.get(target);
+    if (union !== undefined) {
+      const rootUnion = RootUnionSchema.create<T>(union);
+      CompiledSchemaCache.set(target, rootUnion);
+      return rootUnion;
+    }
     const fields: readonly ICompiledField[] = FieldRegistry.readAll(target).map((definition) => ({
       key: definition.name,
       inputKey: definition.modifiers.inputKey ?? definition.name,

@@ -7,7 +7,7 @@ import type { IStringRules } from "./IStringRules.js";
 /** Scalar values accepted by `IsLiteral`. */
 export type ILiteralValue = string | number | boolean | bigint | null;
 
-/** Declared type of one schema field; collections hold element specifications, and `object` and `lazy` nest another class. */
+/** Declared type of one schema field; collections hold element specifications, and `object` and `lazy` nest another class, `union` selects a class by discriminator and `oneOf` tries each option. */
 export type ITypeSpec =
   | { readonly kind: "string"; readonly rules: IStringRules }
   | { readonly kind: "number"; readonly rules: INumberRules }
@@ -29,4 +29,10 @@ export type ITypeSpec =
     }
   | { readonly kind: "record"; readonly value: ITypeSpec; readonly rules: ISizeRules }
   | { readonly kind: "object"; readonly target: IClass }
-  | { readonly kind: "lazy"; readonly resolve: () => IClass };
+  | { readonly kind: "lazy"; readonly resolve: () => IClass }
+  | {
+      readonly kind: "union";
+      readonly discriminator: string;
+      readonly variants: ReadonlyMap<string, ITypeSpec>;
+    }
+  | { readonly kind: "oneOf"; readonly options: readonly ITypeSpec[] };

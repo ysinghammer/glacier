@@ -9,5 +9,7 @@ export type ISchemaIssueCode =
   | "invalid_format"
   | "not_multiple_of"
   | "not_unique"
+  | "invalid_union"
+  | "invalid_discriminator"
   | "max_depth_exceeded"
   | "transform_failed";

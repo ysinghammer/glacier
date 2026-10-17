@@ -7,6 +7,8 @@ import { NestedSchemaValidator } from "./NestedSchemaValidator.js";
 import { NumberRuleChecker } from "./NumberRuleChecker.js";
 import { StringRuleChecker } from "./StringRuleChecker.js";
 import { TypeFailure } from "./TypeFailure.js";
+import { UnionValidatorFactory } from "./UnionValidatorFactory.js";
+import { ValueCoercer } from "./ValueCoercer.js";
 
 /** Validates one value against a declared type; created once per field at compile time. */
 export type IValueValidator = (value: unknown, context: IParseContext) => IValueOutcome;
@@ -70,6 +72,23 @@ export class ValueValidatorFactory {
         return NestedSchemaValidator.create(() => type.target);
       case "lazy":
         return NestedSchemaValidator.create(type.resolve);
+      case "union":
+        return UnionValidatorFactory.discriminated(
+          type.discriminator,
+          new Map(
+            [...type.variants].map(([name, variant]) => [
+              name,
+              ValueValidatorFactory.create(variant),
+            ]),
+          ),
+        );
+      case "oneOf":
+        return UnionValidatorFactory.oneOf(
+          type.options.map((option) => ({
+            validate: ValueValidatorFactory.create(option),
+            coerce: ValueCoercer.create(option),
+          })),
+        );
     }
   }
 
