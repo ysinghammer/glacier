@@ -2,9 +2,9 @@
 
 Private, native ESM class-based schema validation and transformation built on
 [`@glacier/reflection`](../glacier-reflection/README.md). Decorated classes act as validator and
-transformer in one pipeline. Phases 2-6 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
-collections, nested objects, unions, `parse` / `safeParse` and typed errors and refinements. Composition and JSON Schema follow
-in later phases.
+transformer in one pipeline. Phases 2-7 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
+collections, nested objects, unions, `parse` / `safeParse` and typed errors and refinements. Composition (inheritance and mapped types) is included; JSON Schema follows
+in a later phase.
 
 ## Public API
 
@@ -48,7 +48,15 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
   validated, so it never runs when a field failed; `path` uses input keys (`Rename` aliases) and defaults to
   the root, `code` to `custom`. A class may have several (all run); subclasses inherit them. Exceptions are
   rejections with `params.reason`.
-- Types: `IRefineOptions`, `IIssueCode`, `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`, `ISchemaParseOptions`, `ITransformFunction`.
+- Composition: subclasses inherit fields, modifiers and class refinements; a subclass type declaration replaces the
+  inherited field including its modifiers, while a modifier-only entry adds to it. `PartialType(Class)` makes every
+  field optional (dropping `Default`, so updates never inject values, and class refinements), `PickType(Class, keys)`
+  and `OmitType(Class, keys)` select fields (class refinements dropped, unknown keys throw) and
+  `ExtendType(Base, Extension)` merges the fields, extension fields replacing base fields, keeping both classes'
+  refinements. Each takes `{ name }` (default `Partial<Source>`, `Pick<Source>`, `Omit<Source>`, `Extend<Base>`).
+  The result is a new decorated class, not a subclass of the source, without methods; it can be parsed,
+  extended with `extends` and derived again. Sources are frozen when derived from. Unions cannot be a source.
+- Types: `IDerivedClass`, `IDerivedClassOptions`, `IRefineOptions`, `IIssueCode`, `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`, `ISchemaParseOptions`, `ITransformFunction`.
 
 ```ts
 import "@glacier/reflection/register";
