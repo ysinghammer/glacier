@@ -2,8 +2,11 @@ import { AggregateContainerError } from "../failures/AggregateContainer.error.js
 import { CircularDependencyError } from "../failures/CircularDependency.error.js";
 import { DependencyValidation } from "./DependencyValidation.js";
 import { InvalidModuleError } from "../failures/InvalidModule.error.js";
-import { InvalidScopeError } from "../failures/InvalidScope.error.js";
 import { InjectionMetadata } from "../metadata/InjectionMetadata.js";
+import type { IScopeProfile } from "../scopes/IScopeProfile.js";
+import { ModuleRef } from "../scopes/ModuleRef.js";
+import { ProviderScopes } from "../scopes/ProviderScopes.js";
+import { ScopeAnalysis } from "../scopes/ScopeAnalysis.js";
 import type { IClassConstructor } from "../providers/IClassConstructor.js";
 import { ProviderNormalization } from "../providers/ProviderNormalization.js";
 import type { IProviderRegistration } from "./IProviderRegistration.js";
@@ -24,16 +27,21 @@ export class ModuleGraph {
   /** Every reachable module, each after the modules it imports (import cycles are reported as errors). */
   readonly dependencyOrder: readonly ModuleNode[];
   readonly #globalModules: readonly ModuleNode[];
+  readonly #scopes: ScopeAnalysis;
 
   private constructor(root: ModuleNode, dependencyOrder: readonly ModuleNode[]) {
     this.root = root;
     this.dependencyOrder = dependencyOrder;
     this.#globalModules = dependencyOrder.filter((node) => node.isGlobal);
+    this.#scopes = ScopeAnalysis.create(
+      dependencyOrder.flatMap((node) => node.listRegistrations()),
+      this.#globalModules,
+    );
   }
 
   /**
    * Builds the graph, validating module metadata, provider shapes, class metadata, scopes, exports,
-   * unsatisfied provider dependencies and circular module or provider dependencies up front. Throws one `AggregateContainerError` listing every problem found; nothing is constructed.
+   * unsatisfied provider dependencies, scopes and circular module or provider dependencies up front. Throws one `AggregateContainerError` listing every problem found; nothing is constructed.
    */
   public static build(root: IModuleReference): ModuleGraph {
     const problems: Error[] = [];
@@ -58,6 +66,11 @@ export class ModuleGraph {
     );
     if (problems.length > 0 || rootNode === undefined) throw new AggregateContainerError(problems);
     return new ModuleGraph(rootNode, dependencyOrder);
+  }
+
+  /** Returns the effective scope of a registration, with REQUEST bubbled up from its dependencies. */
+  public profileOf(registration: IProviderRegistration): IScopeProfile {
+    return this.#scopes.profileOf(registration);
   }
 
   /** Finds the provider visible to a module: own, imports' exports, then global modules' exports. */
@@ -114,6 +127,7 @@ export class ModuleGraph {
       const resolved = ModuleMetadata.resolve(reference);
       const node = new ModuleNode(reference, resolved.moduleClass, resolved.isGlobal);
       nodes.set(reference, node);
+      node.register(ModuleRef, ModuleRef.PROVIDER);
       ModuleGraph.#registerProviders(node, resolved.providers, problems);
       for (const imported of resolved.imports) {
         const importedNode = ModuleGraph.#visit(
@@ -158,10 +172,7 @@ export class ModuleGraph {
   /** Checks a class provider's constructor metadata and scope so resolution can read them without failing. */
   static #inspectClass(provide: ITokenReference, implementation: IClassConstructor): void {
     InjectionMetadata.readDependencies(implementation);
-    const scope = InjectionMetadata.readScope(implementation);
-    if (scope !== "default") {
-      throw new InvalidScopeError([provide], `scope "${scope}" is not supported yet`);
-    }
+    ProviderScopes.assertValid(provide, InjectionMetadata.readScope(implementation));
   }
 
   /** Classifies exports as re-exports of imported modules or as provider tokens. */

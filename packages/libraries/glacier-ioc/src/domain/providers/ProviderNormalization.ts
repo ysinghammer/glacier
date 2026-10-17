@@ -1,4 +1,6 @@
 import { InvalidProviderError } from "../failures/InvalidProvider.error.js";
+import { InvalidScopeError } from "../failures/InvalidScope.error.js";
+import { ProviderScopes } from "../scopes/ProviderScopes.js";
 import { InjectionToken } from "../tokens/InjectionToken.js";
 import type { ITokenReference } from "../tokens/ITokenReference.js";
 import type { IClassConstructor } from "./IClassConstructor.js";
@@ -40,6 +42,7 @@ export class ProviderNormalization {
       );
     }
     ProviderNormalization.#assertKindMembers(provide, kind, record);
+    ProviderNormalization.#assertScope(provide, kind, record);
     return candidate as INormalizedProvider;
   }
 
@@ -73,6 +76,19 @@ export class ProviderNormalization {
         "`inject` must be an array of classes, symbols or InjectionTokens",
       );
     }
+  }
+
+  /** Checks the optional `scope`, which only class and factory providers can carry. */
+  static #assertScope(
+    provide: ITokenReference,
+    kind: (typeof PROVIDER_KINDS)[number],
+    record: Readonly<Record<string, unknown>>,
+  ): void {
+    if (record["scope"] === undefined) return;
+    if (kind === "useValue" || kind === "useExisting") {
+      throw new InvalidScopeError([provide], `${kind} providers cannot declare a scope`);
+    }
+    ProviderScopes.assertValid(provide, record["scope"]);
   }
 
   /** Arrow functions and methods have no prototype and cannot be constructed, so they are not classes. */

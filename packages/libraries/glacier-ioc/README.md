@@ -2,19 +2,19 @@
 
 Private, native ESM dependency-injection foundation built on [`@glacier/reflection`](../glacier-reflection/README.md).
 It delivers tokens, the container error hierarchy, the `@Injectable`/`@Inject`/`@Optional` decorators with
-readable metadata, the four provider kinds and a minimal `GlacierContainer` resolving DEFAULT-scope singletons.
-`@Module` composition (imports, exports, global, dynamic modules) groups them. Scopes, async providers and
+readable metadata, the four provider kinds and a `GlacierContainer` resolving DEFAULT, TRANSIENT and REQUEST
+providers. `@Module` composition (imports, exports, global, dynamic modules) groups them. Async providers and
 lifecycle follow in later stories.
 
 ## Public API
 
 Only the package root is exported (`"."`); there are no subpaths or deep imports.
-The root exports **36 symbols: 18 runtime values and 18 type-only exports**.
+The root exports **39 symbols: 21 runtime values and 18 type-only exports**.
 
-| Kind    | Exports                                                                                                                                                                                                                                                                                                                                                 |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime | `InjectionToken`, `Injectable`, `Inject`, `Optional`, `InjectionMetadata`, `ContainerError`, `UnknownDependencyError`, `CircularDependencyError`, `InvalidScopeError`, `InvalidProviderError`, `ContextIdMisuseError`, `UseAfterCloseError`, `AggregateContainerError`, `GlacierContainer`, `Providers`, `Module`, `InvalidModuleError`, `ModuleLookup` |
-| Types   | `IToken`, `ITokenReference`, `IProviderScope`, `IInjectableOptions`, `IConstructorDependency`, `IContainerErrorOptions`, `IProvider`, `IClassProvider`, `IValueProvider`, `IFactoryProvider`, `IExistingProvider`, `IInjectedValues`, `IClassConstructor`, `IGetOptions`, `IModuleOptions`, `IDynamicModule`, `IModuleReference`, `IModuleExport`       |
+| Kind    | Exports                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime | `InjectionToken`, `Injectable`, `Inject`, `Optional`, `InjectionMetadata`, `ContainerError`, `UnknownDependencyError`, `CircularDependencyError`, `InvalidScopeError`, `InvalidProviderError`, `ContextIdMisuseError`, `UseAfterCloseError`, `AggregateContainerError`, `GlacierContainer`, `Providers`, `Module`, `InvalidModuleError`, `ModuleLookup`, `ContainerContext`, `ContextId`, `ModuleRef` |
+| Types   | `IToken`, `ITokenReference`, `IProviderScope`, `IInjectableOptions`, `IConstructorDependency`, `IContainerErrorOptions`, `IProvider`, `IClassProvider`, `IValueProvider`, `IFactoryProvider`, `IExistingProvider`, `IInjectedValues`, `IClassConstructor`, `IGetOptions`, `IModuleOptions`, `IDynamicModule`, `IModuleReference`, `IModuleExport`                                                     |
 
 ## Tokens
 
@@ -58,8 +58,7 @@ parameter's emitted type is `Object`, `Function` or `undefined` and no `@Inject`
 A provider is a bare class (shorthand for `{ provide: Foo, useClass: Foo }`) or an object with `provide` and
 exactly one of `useClass`, `useValue`, `useFactory` (synchronous, optional `inject` tokens) or `useExisting`.
 `GlacierContainer.create(RootModule)` traverses the module graph and validates modules, provider shapes, class
-metadata, scopes and exports up front, throwing one `AggregateContainerError`. Only DEFAULT scope is accepted
-for now. `get(token)` constructs lazily and shares one instance per provider; a later provider for the same
+metadata, scopes and exports up front, throwing one `AggregateContainerError`. `get(token)` constructs lazily and shares one instance per DEFAULT provider; a later provider for the same
 token in the same module replaces an earlier one.
 
 ```ts
@@ -93,7 +92,7 @@ cycles are a `CircularDependencyError` (`A -> B -> A`). Both are found by `creat
 modules, imports and exports, required dependencies without a visible provider, and cycles between providers
 or between imported modules (there is no `forwardRef`). Every problem is collected and thrown together as one
 `AggregateContainerError` whose `causes` list each `ContainerError` with its dependency or module path.
-Missing `@Optional` dependencies are not errors. Scope consistency is validated by this pass in a later story.
+Missing `@Optional` dependencies are not errors. Scope declarations are validated by this pass too.
 
 ```ts
 try {
@@ -103,6 +102,41 @@ try {
     console.error(error.causes.map((cause) => cause.message));
 }
 ```
+
+## Scopes, context ids and `ModuleRef`
+
+A provider is DEFAULT (one shared instance, the default), TRANSIENT (a new instance per resolution) or REQUEST
+(one instance per context id). Declare the scope with `@Injectable({ scope })` or, for class and factory
+providers, with `scope` on the provider object, which wins over the class. Scopes are the string literals of
+`IProviderScope`; unknown literals and scopes on `useValue`/`useExisting` providers fail `create`. REQUEST
+bubbles: a provider depending on a REQUEST provider becomes REQUEST, transitively; TRANSIENT does not bubble,
+though a TRANSIENT provider with a REQUEST dependency still makes its dependents REQUEST. An alias takes the
+scope of its target. `get` serves DEFAULT providers only and throws `InvalidScopeError` otherwise;
+`resolve(token, contextId?, { strict? })` is async and serves every scope, using a fresh context without an id
+and rejecting ids not created by `ContainerContext` with `ContextIdMisuseError`.
+
+```ts
+@Injectable({ scope: "request" })
+class RequestSession {}
+
+@Injectable()
+class Handler {
+  constructor(
+    readonly session: RequestSession,
+    readonly moduleRef: ModuleRef,
+  ) {} // Handler becomes REQUEST
+}
+
+const contextId = ContainerContext.createContextId();
+const first = await container.resolve(Handler, contextId);
+(await container.resolve(Handler, contextId)) === first; // true: same context
+(await container.resolve(Handler)) === first; // false: fresh context
+container.get(Handler); // throws InvalidScopeError, use resolve()
+```
+
+Every module owns an injectable `ModuleRef` (also the type returned by `select`'s lookups). `moduleRef.get`
+and `moduleRef.resolve` search what the module sees (`strict` defaults to `true`; `{ strict: false }` searches
+the whole container).
 
 ## Modules
 

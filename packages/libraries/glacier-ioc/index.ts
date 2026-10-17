@@ -28,8 +28,11 @@ export type { IInjectedValues } from "./src/domain/providers/IInjectedValues.js"
 export type { IClassConstructor } from "./src/domain/providers/IClassConstructor.js";
 export { Module } from "./src/domain/decorators/Module.js";
 export { InvalidModuleError } from "./src/domain/failures/InvalidModule.error.js";
+export { ContainerContext } from "./src/domain/scopes/ContainerContext.js";
+export { ContextId } from "./src/domain/scopes/ContextId.js";
+export { ModuleRef } from "./src/domain/scopes/ModuleRef.js";
 export { ModuleLookup } from "./src/application/ModuleLookup.js";
-export type { IGetOptions } from "./src/application/IGetOptions.js";
+export type { IGetOptions } from "./src/domain/modules/IGetOptions.js";
 export type { IModuleOptions } from "./src/domain/modules/IModuleOptions.js";
 export type { IDynamicModule } from "./src/domain/modules/IDynamicModule.js";
 export type { IModuleReference } from "./src/domain/modules/IModuleReference.js";

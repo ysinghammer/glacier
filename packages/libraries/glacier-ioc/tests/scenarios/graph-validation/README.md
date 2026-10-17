@@ -17,4 +17,4 @@ of story 004.
 
 Each scenario is identified in its spec by a top-level `// @scenario IOC-nnn` line.
 
-Scope-consistency validation (TRANSIENT/REQUEST dependents) joins this pass in story 005.
+Scope declarations are validated by the same pass; see [scopes](../scopes/README.md).

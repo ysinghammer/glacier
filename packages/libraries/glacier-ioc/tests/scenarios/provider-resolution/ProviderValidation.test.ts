@@ -114,15 +114,15 @@ describe("IOC-010 invalid provider shapes are rejected", () => {
     expect(causes[0]?.message).toContain("constructor parameter types are unavailable");
   });
 
-  it("rejects classes whose declared scope is not DEFAULT yet", () => {
-    class PerRequest {}
-    Injectable({ scope: "request" })(PerRequest);
+  it("rejects classes declaring an unknown scope", () => {
+    class Unknown {}
+    Injectable({ scope: "singleton" as never })(Unknown);
 
-    const causes = problemsOf(() => createWith(PerRequest));
+    const causes = problemsOf(() => createWith(Unknown));
 
     expect(causes[0]).toBeInstanceOf(InvalidScopeError);
     expect(causes[0]?.message).toBe(
-      'Invalid scope: PerRequest: scope "request" is not supported yet',
+      "Invalid scope: Unknown: unknown scope singleton, expected one of default, transient, request",
     );
   });
 });
