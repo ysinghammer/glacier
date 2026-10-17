@@ -1,83 +1,30 @@
 ---
 name: glacier-interview
-description: Conduct Glacier requirement discovery or technical planning interviews. Use to clarify WHAT and WHY before an epic, or HOW in a fresh agent after epic approval; resolve ambiguity through focused questions and explicit decisions.
+description: Interview the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'interview' trigger phrases.
 ---
 
-# Glacier interview
+Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
 
-## Triggers
+Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round: number each question and give your recommended answer. Then wait for the user's answers before the next round.
 
-Use for either discovery session required by policy 0013, or when an approved
-change needs renewed clarification. This is an original project-local interview
-procedure, not an installed third-party skill.
+Format a round like so:
 
-## Inputs and prerequisites
+```
+❓ **Q1** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
 
-Read every repository policy, especially [workflow](../../../.policies/0013-development-workflow.md)
-and [scenario criteria](../../../.policies/0012-acceptance-catalog.md). Obtain the
-user's request, relevant existing behavior, and the current phase. For HOW, require
-the readable approved ignored local epic, exact approval response, plan content/
-version identifier, and a distinct fresh agent context; supply branch/production
-revision separately. An isolated receiver must obtain an ignored local copy with
-matching identifier before work; missing/stale plans block HOW. Read relevant
-repository evidence before asking questions that inspection can answer.
+➡️ <your recommended answer>
 
-## Procedure
+---
 
-1. Select WHAT or HOW from the workflow phase. If ambiguous, ask which outcome
-   the session should produce. Never combine both phases to avoid a fresh handoff.
-2. Keep a decision record: question, answer, rationale, affected requirement,
-   unresolved ambiguity, and approval state. Distinguish user decisions from
-   repository facts and agent recommendations.
-3. Ask one focused question at a time using the host's question tool. Provide
-   concrete choices when useful, put the recommendation first, and explain its
-   tradeoff without making it a default decision. Allow freeform answers; do not
-   bundle independent choices or ask for information already available locally.
-4. Follow ambiguous answers with concrete examples or counterexamples. Probe the
-   highest-impact unresolved decision next rather than administering a fixed
-   questionnaire. Do not manufacture scope, permissions, bounds, or dependencies.
-5. Periodically summarize resolved decisions and remaining blockers. At the end,
-   present the complete outcome and criteria for explicit approval using the
-   question tool. Silence or general enthusiasm is not approval.
+❓ **Q2** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
 
-### WHAT: problem and observable outcomes
+➡️ <your recommended answer>
+```
 
-Clarify intended users, the problem, business value, actions and observable
-results, scope/non-goals, constraints, preserved behavior, success measures, and
-failure/rejection/authorization cases. Ask about timing or limits only where
-meaningful; obtain exact bounds rather than inventing them.
+Word each question so "yes" accepts your recommended answer.
 
-Stay nontechnical. Do not prescribe libraries, architecture, symbols, file edits,
-agent resources, or execution strategy. For application/service work, propose
-publicly achievable Given/When/Then scenarios and stable IDs. For library,
-documentation, or tooling work, use story-local acceptance criteria instead.
-Return approved findings to [discovery](../glacier-discovery/SKILL.md).
+Each round the user answers reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
 
-### HOW: technical contracts and independent verification
+Finding _facts_ is your job, never the user's. When a frontier question needs a fact from the environment (filesystem, tools, etc.), dispatch a sub-agent to find it; don't ask the user for anything you could look up yourself. Don't block on it: a running exploration is an unsettled prerequisite, so only the questions downstream of it wait for the sub-agent to report; ask the rest of the frontier now. The _decisions_ are the user's: put each to them and wait.
 
-Preserve the approved WHAT. Inspect relevant source and public APIs; resolve exact
-contracts, architecture, file/symbol ownership, dependency approvals, persistence
-and migrations if applicable, compatibility, failures, lifecycle, tests,
-documentation, and integration. Explain concrete alternatives and tradeoffs.
-
-Identify how each proposed story can be independently verified after completed
-prerequisites. Surface unavailable tooling or agent capabilities. Proposed agent
-counts/model overrides need later task-plan approval, not implied permission.
-Return findings to [technical planning](../glacier-technical-planning/SKILL.md).
-
-## Outputs and handoff evidence
-
-Supply the decision record, approved outcome/criteria, unresolved questions,
-source references, and the exact approval response. The calling workflow skill
-owns the ignored local epic/story snapshot and its approval/version evidence,
-never a planning commit. All `.plan/` files, including status updates, stay
-secret-safe, local-only and uncommitted; never force-add or copy plans into tracked
-locations. Tracked plans block work for a safe approved resolution. A renewed WHAT
-decision must update the epic and receive approval before HOW or implementation resumes.
-
-## Approval and stop gates
-
-Stop on implementation-blocking ambiguity, missing required fresh context,
-unavailable question capability, or absent approval. Explain the blocker and
-obtain an approved resolution; never invent an answer. Interviewing does not
-authorize implementation, dependency installation, Git mutations, or publication.
+The session is done when the frontier is empty: every branch of the design tree visited, nothing left silently assumed. Do not act on it until the user confirms you have reached a shared understanding.
