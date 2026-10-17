@@ -18,7 +18,10 @@ import {
   type IResult,
   type ISchemaDecoratorOptions,
   type ISchemaIssue,
+  type INumberOptions,
   type ISchemaIssueCode,
+  type IStringFormat,
+  type IStringOptions,
 } from "../../index.js";
 
 class User {
@@ -47,8 +50,9 @@ if (isSchemaError(thrown)) {
 const options: ISchemaDecoratorOptions = { message: "custom" };
 const decorators: PropertyDecorator[] = [
   IsString(options),
-  IsNumber(),
-  IsInt(),
+  IsString({ min: 1, max: 2, pattern: /a/, format: "email", trim: true, lowercase: true }),
+  IsNumber({ min: 1, exclusiveMax: 3, multipleOf: 0.5 }),
+  IsInt({ exclusiveMin: 0, max: 9, message: "custom" }),
   IsBoolean(),
   IsBigInt(),
   IsDate(),
@@ -56,6 +60,9 @@ const decorators: PropertyDecorator[] = [
   IsLiteral(null),
   IsEnum(["a", 1]),
 ];
+const stringOptions: IStringOptions = { length: 3, format: "uuid" };
+const numberOptions: INumberOptions = { min: 0 };
+const format: IStringFormat = "date-time";
 const literal: ILiteralValue = 10n;
 const enumSource: IEnumSource = { Up: "up" };
 const definitionError: Error = new SchemaDefinitionError("late");
@@ -68,7 +75,24 @@ IsLiteral({});
 const missing = ((failed: IResult<User>) => (failed.ok ? undefined : failed.value))(result);
 // @ts-expect-error Unknown issue codes are not part of the stable set.
 const unknownCode: ISchemaIssueCode = "unknown";
-// @ts-expect-error Decorator options only know `message`.
+// @ts-expect-error Decorator options only know `message` and the constraints.
 IsString({ other: true });
+// @ts-expect-error Unknown string formats are rejected.
+IsString({ format: "phone" });
+// @ts-expect-error Strings have no numeric bounds.
+IsString({ exclusiveMin: 1 });
+// @ts-expect-error Numbers have no pattern.
+IsNumber({ pattern: /a/ });
 
-void [instance, decorators, literal, enumSource, definitionError, missing, unknownCode];
+void [
+  stringOptions,
+  numberOptions,
+  format,
+  instance,
+  decorators,
+  literal,
+  enumSource,
+  definitionError,
+  missing,
+  unknownCode,
+];

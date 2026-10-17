@@ -3,4 +3,8 @@ export type ISchemaIssueCode =
   | "invalid_type"
   | "invalid_literal"
   | "invalid_enum_value"
-  | "invalid_date";
+  | "invalid_date"
+  | "too_small"
+  | "too_big"
+  | "invalid_format"
+  | "not_multiple_of";

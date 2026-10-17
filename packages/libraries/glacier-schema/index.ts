@@ -18,3 +18,6 @@ export type { ILiteralValue } from "./src/domain/schema/ITypeSpec.js";
 export type { IResult } from "./src/domain/failures/IResult.js";
 export type { ISchemaIssue } from "./src/domain/failures/ISchemaIssue.js";
 export type { ISchemaIssueCode } from "./src/domain/failures/ISchemaIssueCode.js";
+export type { IStringOptions } from "./src/domain/decorators/IStringOptions.js";
+export type { INumberOptions } from "./src/domain/decorators/INumberOptions.js";
+export type { IStringFormat } from "./src/domain/schema/IStringFormat.js";

@@ -1,6 +1,8 @@
 import type { ITypeSpec } from "../schema/ITypeSpec.js";
 import type { IValueOutcome } from "./IValueOutcome.js";
+import { NumberRuleChecker } from "./NumberRuleChecker.js";
 import { ReceivedType } from "./ReceivedType.js";
+import { StringRuleChecker } from "./StringRuleChecker.js";
 
 /** Validates one value against a declared type; created once per field at compile time. */
 export type IValueValidator = (value: unknown) => IValueOutcome;
@@ -11,15 +13,24 @@ export class ValueValidatorFactory {
   public static create(type: ITypeSpec): IValueValidator {
     switch (type.kind) {
       case "string":
-        return ValueValidatorFactory.#typeOf("string", "string");
+        return ValueValidatorFactory.#withRules(
+          ValueValidatorFactory.#typeOf("string", "string"),
+          StringRuleChecker.create(type.rules),
+        );
       case "boolean":
         return ValueValidatorFactory.#typeOf("boolean", "boolean");
       case "bigint":
         return ValueValidatorFactory.#typeOf("bigint", "bigint");
       case "number":
-        return ValueValidatorFactory.#number("number", Number.isFinite);
+        return ValueValidatorFactory.#withRules(
+          ValueValidatorFactory.#number("number", Number.isFinite),
+          NumberRuleChecker.create(type.rules),
+        );
       case "int":
-        return ValueValidatorFactory.#number("integer", Number.isInteger);
+        return ValueValidatorFactory.#withRules(
+          ValueValidatorFactory.#number("integer", Number.isInteger),
+          NumberRuleChecker.create(type.rules),
+        );
       case "date":
         return ValueValidatorFactory.#date();
       case "literal":
@@ -29,6 +40,18 @@ export class ValueValidatorFactory {
       case "any":
         return (value) => ({ isValid: true, value });
     }
+  }
+
+  /** Runs `checker` on a value that already passed `typeValidator`. */
+  static #withRules<TValue>(
+    typeValidator: IValueValidator,
+    checker: (value: TValue) => IValueOutcome,
+  ): IValueValidator {
+    return (value) => {
+      const outcome = typeValidator(value);
+      // The type validator only accepts values of the checker's type.
+      return outcome.isValid ? checker(outcome.value as TValue) : outcome;
+    };
   }
 
   /** Builds the standard `invalid_type` rejection. */
@@ -67,7 +90,11 @@ export class ValueValidatorFactory {
       if (Number.isNaN(value.getTime())) {
         return {
           isValid: false,
-          failure: { code: "invalid_date", message: "Invalid date", params: {} },
+          failure: {
+            code: "invalid_date",
+            message: "Invalid date",
+            params: {},
+          },
         };
       }
       return { isValid: true, value };

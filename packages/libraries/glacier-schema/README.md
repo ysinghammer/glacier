@@ -14,9 +14,14 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
   `IResult<T>` (`{ ok: true, value } | { ok: false, issues }`).
 - Decorators: `IsString`, `IsNumber`, `IsInt`, `IsBoolean`, `IsBigInt`, `IsDate`, `IsLiteral`, `IsEnum`, `IsAny`.
   Each takes `{ message }` to override the English message of that field's issues.
+- Constraints are decorator options. `IsString`: `min`, `max`, `length` (UTF-16 code units), `pattern`
+  (RegExp), `format` (`email`, `uuid`, `url`, `date-time`, `date`, `ipv4`), `trim`, `lowercase` (applied before
+  the checks). `IsNumber` / `IsInt`: `min`, `max`, `exclusiveMin`, `exclusiveMax`, `multipleOf`. The type is
+  checked first, then the first violated constraint is reported per field (`too_small`, `too_big`,
+  `invalid_format`, `not_multiple_of`). Impossible options throw `SchemaDefinitionError` when decorating.
 - `SchemaError` (`code = "SCHEMA_VALIDATION_FAILED"`, `issues`, `toJSON()`), `isSchemaError(error)` (a brand
   check that works across duplicate package copies) and `SchemaDefinitionError` for incorrectly declared classes.
-- Types: `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`.
+- Types: `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`.
 
 ```ts
 import "@glacier/reflection/register";
