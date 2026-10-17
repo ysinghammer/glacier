@@ -19,9 +19,9 @@ import {
 } from "../../../index.js";
 import { ParameterTypes } from "../module-composition/ParameterTypes.js";
 
-function problemsOf(root: IModuleReference): readonly Error[] {
+async function problemsOf(root: IModuleReference): Promise<readonly Error[]> {
   try {
-    GlacierContainer.create(root);
+    await GlacierContainer.create(root);
   } catch (error) {
     if (error instanceof AggregateContainerError) return error.causes;
     throw error;
@@ -49,7 +49,7 @@ function named(name: string, ...dependencies: unknown[]): new (...arguments_: ne
 }
 
 describe("IOC-018 create fails before instantiating any provider", () => {
-  it("does not construct anything when the graph is invalid", () => {
+  it("does not construct anything when the graph is invalid", async () => {
     let constructed = 0;
     class Probe {
       public constructor() {
@@ -61,17 +61,17 @@ describe("IOC-018 create fails before instantiating any provider", () => {
     class Broken {}
     Module({ providers: [Probe, { provide: Symbol("x") } as never] })(Broken);
 
-    expect(problemsOf(Broken)[0]).toBeInstanceOf(InvalidProviderError);
+    expect((await problemsOf(Broken))[0]).toBeInstanceOf(InvalidProviderError);
     expect(constructed).toBe(0);
   });
 
-  it("rejects an invalid import and an invalid export", () => {
+  it("rejects an invalid import and an invalid export", async () => {
     class Undecorated {}
     class Hidden {}
     class Root {}
     Module({ imports: [Undecorated], providers: [Hidden], exports: [Symbol("nothing")] })(Root);
 
-    const problems = problemsOf(Root);
+    const problems = await problemsOf(Root);
 
     expect(problems.map((problem) => problem.constructor)).toEqual([
       InvalidModuleError,
@@ -82,7 +82,7 @@ describe("IOC-018 create fails before instantiating any provider", () => {
 });
 
 describe("IOC-019 all problems are reported together", () => {
-  it("lists missing dependencies, cycles and invalid modules in one aggregate error", () => {
+  it("lists missing dependencies, cycles and invalid modules in one aggregate error", async () => {
     const missing = new InjectionToken<string>("missing");
     const Needy = named("Needy", missing);
     const Left = named("Left");
@@ -93,7 +93,7 @@ describe("IOC-019 all problems are reported together", () => {
     class Root {}
     Module({ imports: [Undecorated], providers: [Needy, Left, Right] })(Root);
 
-    const problems = problemsOf(Root);
+    const problems = await problemsOf(Root);
 
     expect(problems.map((problem) => problem.constructor)).toEqual([
       InvalidModuleError,
@@ -107,7 +107,7 @@ describe("IOC-019 all problems are reported together", () => {
     ]);
   });
 
-  it("reports an unsatisfied alias and factory inject", () => {
+  it("reports an unsatisfied alias and factory inject", async () => {
     const alias = Symbol("alias");
     const target = Symbol("target");
     const made = Symbol("made");
@@ -120,13 +120,13 @@ describe("IOC-019 all problems are reported together", () => {
       ],
     })(Root);
 
-    expect(problemsOf(Root).map((problem) => problem.message)).toEqual([
+    expect((await problemsOf(Root)).map((problem) => problem.message)).toEqual([
       "Unknown dependency: Symbol(alias) -> Symbol(target)",
       "Unknown dependency: Symbol(made) -> Symbol(input)",
     ]);
   });
 
-  it("reports a dependency on a private provider of an imported module", () => {
+  it("reports a dependency on a private provider of an imported module", async () => {
     class Secret {}
     class Feature {}
     Module({ providers: [Secret] })(Feature);
@@ -134,14 +134,14 @@ describe("IOC-019 all problems are reported together", () => {
     class Root {}
     Module({ imports: [Feature], providers: [Needy] })(Root);
 
-    expect(problemsOf(Root).map((problem) => problem.message)).toEqual([
+    expect((await problemsOf(Root)).map((problem) => problem.message)).toEqual([
       "Unknown dependency: Needy -> Secret",
     ]);
   });
 });
 
 describe("IOC-020 cycles report their path", () => {
-  it("reports provider cycles through classes, aliases and factories", () => {
+  it("reports provider cycles through classes, aliases and factories", async () => {
     const first = Symbol("first");
     const second = Symbol("second");
     const third = Symbol("third");
@@ -154,7 +154,7 @@ describe("IOC-020 cycles report their path", () => {
       ],
     })(Root);
 
-    const [problem, ...rest] = problemsOf(Root);
+    const [problem, ...rest] = await problemsOf(Root);
 
     expect(problem).toBeInstanceOf(CircularDependencyError);
     expect(problem?.message).toBe(
@@ -163,17 +163,17 @@ describe("IOC-020 cycles report their path", () => {
     expect(rest).toHaveLength(0);
   });
 
-  it("reports a provider that depends on itself", () => {
+  it("reports a provider that depends on itself", async () => {
     const Selfish = named("Selfish");
     Inject(Selfish)(Selfish, undefined, 0);
     ParameterTypes.emit(Selfish, [Object]);
     class Root {}
     Module({ providers: [Selfish] })(Root);
 
-    expect(problemsOf(Root)[0]?.message).toBe("Circular dependency: Selfish -> Selfish");
+    expect((await problemsOf(Root))[0]?.message).toBe("Circular dependency: Selfish -> Selfish");
   });
 
-  it("reports module import cycles with the module path", () => {
+  it("reports module import cycles with the module path", async () => {
     class Alpha {}
     class Beta {}
     class Gamma {}
@@ -181,27 +181,27 @@ describe("IOC-020 cycles report their path", () => {
     Module({ imports: [Gamma] })(Beta);
     Module({ imports: [Alpha] })(Gamma);
 
-    const [problem, ...rest] = problemsOf(Alpha);
+    const [problem, ...rest] = await problemsOf(Alpha);
 
     expect(problem).toBeInstanceOf(CircularDependencyError);
     expect(problem?.message).toBe("Circular dependency: Alpha -> Beta -> Gamma -> Alpha");
     expect(rest).toHaveLength(0);
   });
 
-  it("still reports missing dependencies when modules re-export each other", () => {
+  it("still reports missing dependencies when modules re-export each other", async () => {
     const Needy = named("Needy", Symbol("absent"));
     class Alpha {}
     class Beta {}
     Module({ imports: [Beta], exports: [Beta], providers: [Needy] })(Alpha);
     Module({ imports: [Alpha], exports: [Alpha] })(Beta);
 
-    expect(problemsOf(Alpha).map((problem) => problem.constructor)).toEqual([
+    expect((await problemsOf(Alpha)).map((problem) => problem.constructor)).toEqual([
       CircularDependencyError,
       UnknownDependencyError,
     ]);
   });
 
-  it("does not treat a shared import as a cycle", () => {
+  it("does not treat a shared import as a cycle", async () => {
     class Shared {}
     Module()(Shared);
     class Left {}
@@ -211,12 +211,12 @@ describe("IOC-020 cycles report their path", () => {
     class Root {}
     Module({ imports: [Left, Right] })(Root);
 
-    expect(() => GlacierContainer.create(Root)).not.toThrow();
+    await expect(GlacierContainer.create(Root)).resolves.toBeDefined();
   });
 });
 
 describe("IOC-021 optional dependencies are not errors", () => {
-  it("accepts missing @Optional dependencies and resolves them to undefined", () => {
+  it("accepts missing @Optional dependencies and resolves them to undefined", async () => {
     const missing = new InjectionToken<string>("missing");
     class Needy {
       public constructor(readonly value: unknown) {}
@@ -228,10 +228,10 @@ describe("IOC-021 optional dependencies are not errors", () => {
     class Root {}
     Module({ providers: [Needy] })(Root);
 
-    expect(GlacierContainer.create(Root).get(Needy).value).toBeUndefined();
+    expect((await GlacierContainer.create(Root)).get(Needy).value).toBeUndefined();
   });
 
-  it("still reports cycles through optional dependencies that exist", () => {
+  it("still reports cycles through optional dependencies that exist", async () => {
     const Left = named("Left");
     const Right = named("Right", Left);
     Inject(Right)(Left, undefined, 0);
@@ -240,6 +240,6 @@ describe("IOC-021 optional dependencies are not errors", () => {
     class Root {}
     Module({ providers: [Left, Right] })(Root);
 
-    expect(problemsOf(Root)[0]).toBeInstanceOf(CircularDependencyError);
+    expect((await problemsOf(Root))[0]).toBeInstanceOf(CircularDependencyError);
   });
 });

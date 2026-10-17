@@ -30,7 +30,7 @@ describe("IOC-024 scope bubbling", () => {
     const leaf = scoped("request");
     const middle = scoped("default", leaf);
     const top = scoped("default", middle);
-    const container = GlacierContainer.create(moduleOf(leaf, middle, top));
+    const container = await GlacierContainer.create(moduleOf(leaf, middle, top));
     const contextId = ContainerContext.createContextId();
 
     const first = await container.resolve(top, contextId);
@@ -53,7 +53,7 @@ describe("IOC-024 scope bubbling", () => {
     }
     ParameterTypes.emit(Left, [request]);
     ParameterTypes.emit(Right, [request]);
-    const container = GlacierContainer.create(moduleOf(request, Left, Right));
+    const container = await GlacierContainer.create(moduleOf(request, Left, Right));
     const contextId = ContainerContext.createContextId();
 
     const left = await container.resolve(Left, contextId);
@@ -68,7 +68,7 @@ describe("IOC-024 scope bubbling", () => {
       public constructor(readonly inner: object) {}
     }
     ParameterTypes.emit(Holder, [transient]);
-    const container = GlacierContainer.create(moduleOf(transient, Holder));
+    const container = await GlacierContainer.create(moduleOf(transient, Holder));
 
     expect(container.get(Holder)).toBe(container.get(Holder));
     expect((await container.resolve(Holder)).inner).toBe(container.get(Holder).inner);
@@ -78,7 +78,7 @@ describe("IOC-024 scope bubbling", () => {
     const request = scoped("request");
     const transient = scoped("transient", request);
     const dependent = scoped("default", transient);
-    const container = GlacierContainer.create(moduleOf(request, transient, dependent));
+    const container = await GlacierContainer.create(moduleOf(request, transient, dependent));
     const contextId = ContainerContext.createContextId();
 
     expect(await container.resolve(transient, contextId)).not.toBe(
@@ -96,7 +96,7 @@ describe("IOC-024 scope bubbling", () => {
     const transient = scoped("transient");
     const requestAlias = Symbol("requestAlias");
     const transientAlias = Symbol("transientAlias");
-    const container = GlacierContainer.create(
+    const container = await GlacierContainer.create(
       moduleOf(
         request,
         transient,
@@ -114,30 +114,32 @@ describe("IOC-024 scope bubbling", () => {
     );
   });
 
-  it("leaves cycles through scoped providers to graph validation", () => {
+  it("leaves cycles through scoped providers to graph validation", async () => {
     const first = scoped("request");
     const second = scoped("default", first);
     ParameterTypes.emit(first, [second]);
 
-    expect(() => GlacierContainer.create(moduleOf(first, second))).toThrow(AggregateContainerError);
+    await expect(GlacierContainer.create(moduleOf(first, second))).rejects.toThrow(
+      AggregateContainerError,
+    );
   });
 });
 
 describe("IOC-027 invalid scope declarations", () => {
-  function causesOf(root: IModuleReference): readonly Error[] {
+  async function causesOf(root: IModuleReference): Promise<readonly Error[]> {
     try {
-      GlacierContainer.create(root);
+      await GlacierContainer.create(root);
     } catch (error) {
       if (error instanceof AggregateContainerError) return error.causes;
     }
     throw new Error("expected create to throw");
   }
 
-  it("rejects unknown scope literals on classes and provider objects at create", () => {
+  it("rejects unknown scope literals on classes and provider objects at create", async () => {
     class Bogus {}
     Injectable({ scope: "singleton" as never })(Bogus);
 
-    const causes = causesOf(
+    const causes = await causesOf(
       moduleOf(Bogus, { provide: Symbol("f"), useFactory: () => 1, scope: "forever" }),
     );
 
@@ -147,8 +149,8 @@ describe("IOC-027 invalid scope declarations", () => {
     expect(causes[1]?.message).toContain("unknown scope forever");
   });
 
-  it("rejects scopes on value and alias providers", () => {
-    const causes = causesOf(
+  it("rejects scopes on value and alias providers", async () => {
+    const causes = await causesOf(
       moduleOf(
         { provide: Symbol("v"), useValue: 1, scope: "request" },
         { provide: Symbol("e"), useExisting: Symbol("v"), scope: "request" },

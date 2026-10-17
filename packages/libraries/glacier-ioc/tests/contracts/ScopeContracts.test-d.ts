@@ -15,7 +15,7 @@ class Service {
 class AppModule {}
 Module({ providers: [Service] })(AppModule);
 const token = new InjectionToken<string>("name");
-const container = GlacierContainer.create(AppModule);
+const container = await GlacierContainer.create(AppModule);
 const contextId: ContextId = ContainerContext.createContextId();
 
 const typedClass: Promise<Service> = container.resolve(Service, contextId);

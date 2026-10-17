@@ -26,7 +26,7 @@ const typed = Providers.factory({
   },
 });
 const asProvider: IProvider = typed;
-const container = GlacierContainer.create({
+const container = await GlacierContainer.create({
   module: TestRoot,
   providers: [Repository, { provide: host, useValue: "h" }, typed],
 });

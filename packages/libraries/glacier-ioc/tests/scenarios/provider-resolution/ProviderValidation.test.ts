@@ -18,16 +18,16 @@ class Service {}
 const token = new InjectionToken<string>("token");
 
 /** Feeds a malformed declaration through the public boundary the way untrusted JavaScript callers would. */
-function createWith(...providers: unknown[]): GlacierContainer {
+async function createWith(...providers: unknown[]): Promise<GlacierContainer> {
   return GlacierContainer.create({
     module: TestRoot,
     providers: providers as IProvider[],
   });
 }
 
-function problemsOf(action: () => unknown): readonly Error[] {
+async function problemsOf(action: () => Promise<unknown>): Promise<readonly Error[]> {
   try {
-    action();
+    await action();
   } catch (error) {
     if (error instanceof AggregateContainerError) return error.causes;
     throw error;
@@ -77,8 +77,8 @@ describe("IOC-010 invalid provider shapes are rejected", () => {
       { provide: token, useFactory: () => 1, inject: ["x"] },
       "`inject` must be an array",
     ],
-  ])("rejects %s", (_title, candidate, message) => {
-    const causes = problemsOf(() => createWith(candidate));
+  ])("rejects %s", async (_title, candidate, message) => {
+    const causes = await problemsOf(() => createWith(candidate));
 
     expect(causes).toHaveLength(1);
     expect(causes[0]).toBeInstanceOf(InvalidProviderError);
@@ -97,28 +97,28 @@ describe("IOC-010 invalid provider shapes are rejected", () => {
     ).not.toThrow();
   });
 
-  it("reports every invalid provider together", () => {
-    const causes = problemsOf(() => createWith(1, { provide: token }, Service));
+  it("reports every invalid provider together", async () => {
+    const causes = await problemsOf(() => createWith(1, { provide: token }, Service));
 
     expect(causes).toHaveLength(2);
   });
 
-  it("rejects a class whose constructor metadata is unavailable", () => {
+  it("rejects a class whose constructor metadata is unavailable", async () => {
     class NeedsMetadata {
       public constructor(readonly service: Service) {}
     }
 
-    const causes = problemsOf(() => createWith(NeedsMetadata));
+    const causes = await problemsOf(() => createWith(NeedsMetadata));
 
     expect(causes[0]).toBeInstanceOf(InvalidProviderError);
     expect(causes[0]?.message).toContain("constructor parameter types are unavailable");
   });
 
-  it("rejects classes declaring an unknown scope", () => {
+  it("rejects classes declaring an unknown scope", async () => {
     class Unknown {}
     Injectable({ scope: "singleton" as never })(Unknown);
 
-    const causes = problemsOf(() => createWith(Unknown));
+    const causes = await problemsOf(() => createWith(Unknown));
 
     expect(causes[0]).toBeInstanceOf(InvalidScopeError);
     expect(causes[0]?.message).toBe(

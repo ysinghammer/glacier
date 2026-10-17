@@ -16,19 +16,19 @@ class Application {}
 Module({ imports: [ClockModule, Feature] })(Application);
 
 describe("IOC-013 global modules", () => {
-  it("shows global exports to modules that do not import the global module", () => {
-    const container = GlacierContainer.create(Application);
+  it("shows global exports to modules that do not import the global module", async () => {
+    const container = await GlacierContainer.create(Application);
 
     expect(container.select(Feature).get(Clock)).toBeInstanceOf(Clock);
   });
 
-  it("keeps non-exported providers of a global module private", () => {
-    const container = GlacierContainer.create(Application);
+  it("keeps non-exported providers of a global module private", async () => {
+    const container = await GlacierContainer.create(Application);
 
     expect(() => container.select(Feature).get(Hidden)).toThrow(UnknownDependencyError);
   });
 
-  it("injects global providers into providers of other modules", () => {
+  it("injects global providers into providers of other modules", async () => {
     class Reporter {
       public constructor(readonly clock: Clock) {}
     }
@@ -38,17 +38,18 @@ describe("IOC-013 global modules", () => {
     class Root {}
     Module({ imports: [ClockModule, Reporting] })(Root);
 
-    const container = GlacierContainer.create(Root);
+    const container = await GlacierContainer.create(Root);
 
     expect(container.get(Reporter).clock).toBe(container.get(Clock));
   });
 
-  it("does not register a global module that the root cannot reach", () => {
+  it("does not register a global module that the root cannot reach", async () => {
     class Unreachable {}
     Module({ providers: [Clock], exports: [Clock], global: true })(Unreachable);
     class Root {}
     Module({})(Root);
 
-    expect(() => GlacierContainer.create(Root).get(Clock)).toThrow(UnknownDependencyError);
+    const container = await GlacierContainer.create(Root);
+    expect(() => container.get(Clock)).toThrow(UnknownDependencyError);
   });
 });

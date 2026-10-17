@@ -25,21 +25,21 @@ class ConfigModule {
 Module({ providers: [Logger], exports: [Logger] })(ConfigModule);
 
 describe("IOC-014 dynamic modules extend static metadata", () => {
-  it("provides and exports both static and dynamic members", () => {
+  it("provides and exports both static and dynamic members", async () => {
     class Root {}
     Module({ imports: [ConfigModule.forRoot("prod")] })(Root);
 
-    const container = GlacierContainer.create(Root);
+    const container = await GlacierContainer.create(Root);
 
     expect(container.get(settings, { strict: true })).toBe("prod");
     expect(container.get(Logger, { strict: true })).toBeInstanceOf(Logger);
   });
 
-  it("accepts a dynamic module as the container root and merges imports", () => {
+  it("accepts a dynamic module as the container root and merges imports", async () => {
     class Extra {}
     Module({ providers: [Cache], exports: [Cache] })(Extra);
 
-    const container = GlacierContainer.create({
+    const container = await GlacierContainer.create({
       module: ConfigModule,
       imports: [Extra],
       exports: [Cache],
@@ -50,7 +50,7 @@ describe("IOC-014 dynamic modules extend static metadata", () => {
     expect(container.get(settings)).toBe("root");
   });
 
-  it("lets a dynamic global flag override the static one", () => {
+  it("lets a dynamic global flag override the static one", async () => {
     class Feature {}
     Module({})(Feature);
     class Root {}
@@ -60,13 +60,14 @@ describe("IOC-014 dynamic modules extend static metadata", () => {
     class GlobalRoot {}
     Module({ imports: [{ module: Wrapped, global: true }, Feature] })(GlobalRoot);
 
-    expect(GlacierContainer.create(GlobalRoot).select(Feature).get(Cache)).toBeInstanceOf(Cache);
-    expect(() => GlacierContainer.create(Root).select(Feature).get(settings)).toThrow(
-      UnknownDependencyError,
+    expect((await GlacierContainer.create(GlobalRoot)).select(Feature).get(Cache)).toBeInstanceOf(
+      Cache,
     );
+    const rooted = await GlacierContainer.create(Root);
+    expect(() => rooted.select(Feature).get(settings)).toThrow(UnknownDependencyError);
   });
 
-  it("keeps separately configured dynamic modules isolated", () => {
+  it("keeps separately configured dynamic modules isolated", async () => {
     class First {}
     class Second {}
     Module({ imports: [ConfigModule.forRoot("one")] })(First);
@@ -74,20 +75,22 @@ describe("IOC-014 dynamic modules extend static metadata", () => {
     class Root {}
     Module({ imports: [First, Second] })(Root);
 
-    const container = GlacierContainer.create(Root);
+    const container = await GlacierContainer.create(Root);
 
     expect(container.select(First).get(settings)).toBe("one");
     expect(container.select(Second).get(settings)).toBe("two");
   });
 
-  it("re-exports a dynamic module through its class or its configuration", () => {
+  it("re-exports a dynamic module through its class or its configuration", async () => {
     const configured = ConfigModule.forRoot("shared");
     class ByClass {}
     Module({ imports: [configured], exports: [ConfigModule] })(ByClass);
     class ByReference {}
     Module({ imports: [configured], exports: [configured] })(ByReference);
 
-    expect(GlacierContainer.create(ByClass).get(settings, { strict: true })).toBe("shared");
-    expect(GlacierContainer.create(ByReference).get(settings, { strict: true })).toBe("shared");
+    expect((await GlacierContainer.create(ByClass)).get(settings, { strict: true })).toBe("shared");
+    expect((await GlacierContainer.create(ByReference)).get(settings, { strict: true })).toBe(
+      "shared",
+    );
   });
 });

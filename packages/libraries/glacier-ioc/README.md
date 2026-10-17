@@ -3,13 +3,13 @@
 Private, native ESM dependency-injection foundation built on [`@glacier/reflection`](../glacier-reflection/README.md).
 It delivers tokens, the container error hierarchy, the `@Injectable`/`@Inject`/`@Optional` decorators with
 readable metadata, the four provider kinds and a `GlacierContainer` resolving DEFAULT, TRANSIENT and REQUEST
-providers. `@Module` composition (imports, exports, global, dynamic modules) groups them. Async providers and
-lifecycle follow in later stories.
+providers. `@Module` composition (imports, exports, global, dynamic modules) groups them. Factories may be
+async, DEFAULT providers can hook into startup and shutdown, and `close()` ends the container.
 
 ## Public API
 
 Only the package root is exported (`"."`); there are no subpaths or deep imports.
-The root exports **39 symbols: 21 runtime values and 18 type-only exports**.
+The root exports **46 symbols: 23 runtime values and 23 type-only exports**.
 
 | Kind    | Exports                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -56,10 +56,12 @@ parameter's emitted type is `Object`, `Function` or `undefined` and no `@Inject`
 ## Providers and the container
 
 A provider is a bare class (shorthand for `{ provide: Foo, useClass: Foo }`) or an object with `provide` and
-exactly one of `useClass`, `useValue`, `useFactory` (synchronous, optional `inject` tokens) or `useExisting`.
+exactly one of `useClass`, `useValue`, `useFactory` (sync or async, optional `inject` tokens) or `useExisting`.
 `GlacierContainer.create(RootModule)` traverses the module graph and validates modules, provider shapes, class
-metadata, scopes and exports up front, throwing one `AggregateContainerError`. `get(token)` constructs lazily and shares one instance per DEFAULT provider; a later provider for the same
-token in the same module replaces an earlier one.
+metadata, scopes and exports up front, rejecting with one `AggregateContainerError`. `create` is async: it then constructs every DEFAULT provider once, in
+module dependency order, awaiting async factories before their dependents, and `get(token)` returns that shared
+instance. A factory that throws or rejects fails `create` (or `resolve`) with `ProviderCreationError`, keeping the
+`cause`. A later provider for the same token in the same module replaces an earlier one.
 
 ```ts
 const url = new InjectionToken<string>("url");
@@ -77,7 +79,7 @@ const url = new InjectionToken<string>("url");
 })
 class AppModule {}
 
-const container = GlacierContainer.create(AppModule);
+const container = await GlacierContainer.create(AppModule);
 container.get(OrderService); // OrderService, built once
 ```
 
@@ -96,7 +98,7 @@ Missing `@Optional` dependencies are not errors. Scope declarations are validate
 
 ```ts
 try {
-  GlacierContainer.create(AppModule);
+  await GlacierContainer.create(AppModule);
 } catch (error) {
   if (error instanceof AggregateContainerError)
     console.error(error.causes.map((cause) => cause.message));
@@ -163,10 +165,37 @@ class LoggingModule {
 @Module({ imports: [LoggingModule.forRoot("info")] })
 class AppModule {}
 
-const container = GlacierContainer.create(AppModule);
+const container = await GlacierContainer.create(AppModule);
 container.get(Logger, { strict: true }); // restricted to what AppModule sees
 container.get(Logger); // strict: false searches the whole container
 container.select(LoggingModule).get(Logger); // lookup from one module (strict by default)
+```
+
+## Lifecycle and `close()`
+
+DEFAULT-scope instances (never TRANSIENT or REQUEST ones) may implement hooks, discovered by method name; the
+`IOnModuleInit`, `IOnContainerInit`, `IOnModuleDestroy`, `IBeforeContainerShutdown` and `IOnContainerShutdown`
+interfaces are exported for typing only. During `create`, every `onModuleInit` is awaited in module dependency
+order (dependencies before dependents) before any `onContainerInit` starts. `close()` awaits `onModuleDestroy`,
+then `beforeContainerShutdown`, then `onContainerShutdown`, each over the reverse order. A failing hook never
+skips the others: a startup failure rejects `create` with `LifecycleHookError` after the shutdown hooks ran, and
+`close()` rejects with the `LifecycleHookError` (or an `AggregateContainerError` of several) once all hooks ran.
+`close()` is idempotent, and afterwards `get`, `resolve` and `select` throw `UseAfterCloseError`. Nothing
+registers process signal handlers; call `close()` yourself.
+
+```ts
+@Injectable()
+class Database implements IOnModuleInit, IOnModuleDestroy {
+  async onModuleInit(): Promise<void> {
+    await this.connect();
+  }
+  async onModuleDestroy(): Promise<void> {
+    await this.disconnect();
+  }
+}
+
+const container = await GlacierContainer.create(AppModule);
+await container.close();
 ```
 
 ## Errors

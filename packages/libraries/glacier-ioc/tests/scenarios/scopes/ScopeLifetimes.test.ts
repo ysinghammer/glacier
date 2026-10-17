@@ -35,7 +35,7 @@ Module({
 
 describe("IOC-022 TRANSIENT providers", () => {
   it("creates a new instance per resolve, even with the same context id", async () => {
-    const container = GlacierContainer.create(AppModule);
+    const container = await GlacierContainer.create(AppModule);
     const contextId = ContainerContext.createContextId();
 
     const first = await container.resolve(Transient, contextId);
@@ -48,7 +48,7 @@ describe("IOC-022 TRANSIENT providers", () => {
 
   it("honors the scope of a provider object over the class scope", async () => {
     const token = Symbol.for("override");
-    const container = GlacierContainer.create(AppModule);
+    const container = await GlacierContainer.create(AppModule);
 
     expect(await container.resolve(token)).not.toBe(await container.resolve(token));
   });
@@ -56,7 +56,7 @@ describe("IOC-022 TRANSIENT providers", () => {
 
 describe("IOC-023 REQUEST providers", () => {
   it("shares one instance per context id and separates different ids", async () => {
-    const container = GlacierContainer.create(AppModule);
+    const container = await GlacierContainer.create(AppModule);
     const contextId = ContainerContext.createContextId();
 
     const first = await container.resolve(PerRequest, contextId);
@@ -69,13 +69,13 @@ describe("IOC-023 REQUEST providers", () => {
   });
 
   it("uses a fresh context when no id is given", async () => {
-    const container = GlacierContainer.create(AppModule);
+    const container = await GlacierContainer.create(AppModule);
 
     expect(await container.resolve(PerRequest)).not.toBe(await container.resolve(PerRequest));
   });
 
   it("scopes factory providers by context id too", async () => {
-    const container = GlacierContainer.create(AppModule);
+    const container = await GlacierContainer.create(AppModule);
     const contextId = ContainerContext.createContextId();
 
     expect(await container.resolve(factoryToken, contextId)).toBe(
@@ -90,7 +90,7 @@ describe("IOC-023 REQUEST providers", () => {
   });
 
   it("rejects an id that was not created by ContainerContext", async () => {
-    const container = GlacierContainer.create(AppModule);
+    const container = await GlacierContainer.create(AppModule);
 
     await expect(container.resolve(PerRequest, { sequence: 1 } as never)).rejects.toBeInstanceOf(
       ContextIdMisuseError,
@@ -99,20 +99,20 @@ describe("IOC-023 REQUEST providers", () => {
 
   it("rejects resolving an unknown token", async () => {
     await expect(
-      GlacierContainer.create(AppModule).resolve(Symbol("absent")),
+      (await GlacierContainer.create(AppModule)).resolve(Symbol("absent")),
     ).rejects.toBeInstanceOf(UnknownDependencyError);
   });
 
   it("resolves DEFAULT providers as the shared singleton", async () => {
-    const container = GlacierContainer.create(AppModule);
+    const container = await GlacierContainer.create(AppModule);
 
     expect(await container.resolve(Shared)).toBe(container.get(Shared));
   });
 });
 
 describe("IOC-025 get() on scoped providers", () => {
-  it("throws a typed invalid-scope error that points to resolve()", () => {
-    const container = GlacierContainer.create(AppModule);
+  it("throws a typed invalid-scope error that points to resolve()", async () => {
+    const container = await GlacierContainer.create(AppModule);
 
     expect(() => container.get(Transient)).toThrow(InvalidScopeError);
     expect(() => container.get(PerRequest)).toThrow(/use resolve\(\) instead of get\(\)/);
