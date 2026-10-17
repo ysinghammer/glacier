@@ -2,8 +2,8 @@
 
 Private, native ESM class-based schema validation and transformation built on
 [`@glacier/reflection`](../glacier-reflection/README.md). Decorated classes act as validator and
-transformer in one pipeline. Phases 2-5 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
-collections, nested objects, unions, `parse` / `safeParse` and typed errors. Refinements, composition and JSON Schema follow
+transformer in one pipeline. Phases 2-6 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
+collections, nested objects, unions, `parse` / `safeParse` and typed errors and refinements. Composition and JSON Schema follow
 in later phases.
 
 ## Public API
@@ -42,7 +42,13 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
   numeric strings, `"true"`/`"false"`, integer strings to bigint, ISO 8601 strings and timestamps to dates and
   primitives to strings, before validation. Values that cannot be converted are left for validation to reject.
   There is no field-level or class-level switch.
-- Types: `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`, `ISchemaParseOptions`, `ITransformFunction`.
+- `Refine` (sync only): on a property, `Refine((value) => boolean, message?)` runs last on the validated value
+  (not for absent or `null` values) and reports `custom` at the field path; one per property. On a class,
+  `Refine<T>((instance) => boolean, { path?, code?, message? })` runs on the instance only after every field
+  validated, so it never runs when a field failed; `path` uses input keys (`Rename` aliases) and defaults to
+  the root, `code` to `custom`. A class may have several (all run); subclasses inherit them. Exceptions are
+  rejections with `params.reason`.
+- Types: `IRefineOptions`, `IIssueCode`, `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`, `ISchemaParseOptions`, `ITransformFunction`.
 
 ```ts
 import "@glacier/reflection/register";
