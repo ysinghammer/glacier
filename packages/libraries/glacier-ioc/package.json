@@ -1,0 +1,28 @@
+{
+  "name": "@glacier/ioc",
+  "version": "1.0.0",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "lint:types": "tsc --project tsconfig.json --noEmit && tsc --project tsconfig.tests.json && tsc --project tsconfig.contracts.json",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@glacier/reflection": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "5.0.3",
+    "vitest": "5.0.3"
+  }
+}
