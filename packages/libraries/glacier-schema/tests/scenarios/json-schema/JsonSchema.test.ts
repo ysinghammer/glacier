@@ -38,8 +38,8 @@ import {
   Rename,
   SchemaDefinitionError,
   Transform,
-  toJsonSchema,
   type IJsonSchemaTarget,
+  Schema,
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 import { JsonSchemaStructure } from "../../support/JsonSchemaStructure.js";
@@ -74,7 +74,7 @@ function fieldSchema(
     public value!: unknown;
   }
   FieldDeclaration.declare(Holder, "value", designType as StringConstructor, ...decorators);
-  return propertiesOf(toJsonSchema(Holder, DRAFT), "Holder")["value"] ?? {};
+  return propertiesOf(Schema.toJsonSchema(Holder, DRAFT), "Holder")["value"] ?? {};
 }
 
 describe("SCH-120 Document layout per target", () => {
@@ -90,7 +90,7 @@ describe("SCH-120 Document layout per target", () => {
   FieldDeclaration.declare(Person, "home", Object, IsObject(Address));
 
   it("draft-2020-12 returns $schema, a $ref to the root and every class in $defs", () => {
-    expect(toJsonSchema(Person, DRAFT)).toEqual({
+    expect(Schema.toJsonSchema(Person, DRAFT)).toEqual({
       $schema: "https://json-schema.org/draft/2020-12/schema",
       $ref: `${DEFS}Person`,
       $defs: {
@@ -105,7 +105,7 @@ describe("SCH-120 Document layout per target", () => {
   });
 
   it("openapi-3.1 returns the root $ref next to components.schemas", () => {
-    expect(toJsonSchema(Person, OPENAPI)).toEqual({
+    expect(Schema.toJsonSchema(Person, OPENAPI)).toEqual({
       $ref: `${SCHEMAS}Person`,
       components: {
         schemas: {
@@ -131,7 +131,7 @@ describe("SCH-120 Document layout per target", () => {
     }
     FieldDeclaration.declare(Pair, "first", Object, IsObject(Address));
     FieldDeclaration.declare(Pair, "second", Object, IsArray(Address));
-    const definitions = defsOf(toJsonSchema(Pair, DRAFT));
+    const definitions = defsOf(Schema.toJsonSchema(Pair, DRAFT));
     expect(Object.keys(definitions)).toEqual(["Pair", "Address"]);
   });
 
@@ -155,7 +155,7 @@ describe("SCH-120 Document layout per target", () => {
       Array,
       IsArray(() => Node),
     );
-    const document = toJsonSchema(Node, DRAFT);
+    const document = Schema.toJsonSchema(Node, DRAFT);
     expect(propertiesOf(document, "Node")["next"]).toEqual({ $ref: `${DEFS}Node` });
     expect(propertiesOf(document, "Node")["children"]).toMatchObject({
       type: "array",
@@ -170,13 +170,13 @@ describe("SCH-120 Document layout per target", () => {
     }
     Describe({ name: "a/b~c d" })(Odd);
     FieldDeclaration.declare(Odd, "id", String, IsString());
-    const document = toJsonSchema(Odd, DRAFT);
+    const document = Schema.toJsonSchema(Odd, DRAFT);
     expect(document.$ref).toBe(`${DEFS}a~1b~0c%20d`);
     expect(JsonSchemaStructure.problems(document)).toEqual([]);
   });
 
   it("is deterministic and leaves the class parseable", () => {
-    expect(toJsonSchema(Person, DRAFT)).toEqual(toJsonSchema(Person, DRAFT));
+    expect(Schema.toJsonSchema(Person, DRAFT)).toEqual(Schema.toJsonSchema(Person, DRAFT));
   });
 });
 
@@ -317,7 +317,7 @@ describe("SCH-123 Modifiers", () => {
   FieldDeclaration.declare(Account, "age", Number, IsInt(), Nullable());
 
   it("keeps optional and defaulted fields out of required and uses Rename aliases as property names", () => {
-    const definition = defsOf(toJsonSchema(Account, DRAFT))["Account"] ?? {};
+    const definition = defsOf(Schema.toJsonSchema(Account, DRAFT))["Account"] ?? {};
     expect(definition.required).toEqual(["id", "mail", "age"]);
     expect(Object.keys(definition.properties as object)).toEqual([
       "id",
@@ -333,7 +333,7 @@ describe("SCH-123 Modifiers", () => {
       public a?: string;
     }
     FieldDeclaration.declare(Loose, "a", String, IsString(), Optional());
-    expect(defsOf(toJsonSchema(Loose, DRAFT))["Loose"]).not.toHaveProperty("required");
+    expect(defsOf(Schema.toJsonSchema(Loose, DRAFT))["Loose"]).not.toHaveProperty("required");
   });
 
   it("maps Nullable to a type union with null", () => {
@@ -371,7 +371,7 @@ describe("SCH-123 Modifiers", () => {
       Describe({ title: "Value" }),
       IsString(),
     );
-    expect(propertiesOf(toJsonSchema(Reordered, DRAFT), "Reordered")["value"]).toEqual({
+    expect(propertiesOf(Schema.toJsonSchema(Reordered, DRAFT), "Reordered")["value"]).toEqual({
       type: ["string", "null"],
       title: "Value",
     });
@@ -400,7 +400,7 @@ describe("SCH-124 Unions", () => {
       Object,
       IsUnion({ discriminator: "type", variants: { cat: Cat, dog: () => Dog } }),
     );
-    const document = toJsonSchema(Owner, DRAFT);
+    const document = Schema.toJsonSchema(Owner, DRAFT);
     expect(propertiesOf(document, "Owner")["pet"]).toEqual({
       oneOf: [{ $ref: `${DEFS}Cat` }, { $ref: `${DEFS}Dog` }],
       discriminator: {
@@ -414,7 +414,7 @@ describe("SCH-124 Unions", () => {
   it("maps a union base class to a oneOf definition and uses components in openapi-3.1", () => {
     class Pet {}
     IsUnion({ discriminator: "type", variants: { cat: Cat, dog: Dog } })(Pet);
-    const document = toJsonSchema(Pet, OPENAPI);
+    const document = Schema.toJsonSchema(Pet, OPENAPI);
     const schemas = (document.components as { schemas: Record<string, unknown> }).schemas;
     expect(schemas["Pet"]).toEqual({
       oneOf: [{ $ref: `${SCHEMAS}Cat` }, { $ref: `${SCHEMAS}Dog` }],
@@ -480,7 +480,7 @@ describe("SCH-125 Describe and JsonSchema", () => {
     }
     Describe({ name: "Customer", title: "A customer", description: "Someone who buys" })(Buyer);
     FieldDeclaration.declare(Buyer, "id", String, IsString());
-    const document = toJsonSchema(Buyer, DRAFT);
+    const document = Schema.toJsonSchema(Buyer, DRAFT);
     expect(document.$ref).toBe(`${DEFS}Customer`);
     expect(defsOf(document)["Customer"]).toEqual({
       type: "object",
@@ -504,7 +504,7 @@ describe("SCH-125 Describe and JsonSchema", () => {
       IsString({ min: 1 }),
       JsonSchema({ minLength: 3, $comment: "manual" }),
     );
-    expect(defsOf(toJsonSchema(Strict, DRAFT))["Strict"]).toEqual({
+    expect(defsOf(Schema.toJsonSchema(Strict, DRAFT))["Strict"]).toEqual({
       type: "object",
       properties: { code: { type: "string", minLength: 3, $comment: "manual" } },
       required: ["code"],
@@ -521,7 +521,7 @@ describe("SCH-125 Describe and JsonSchema", () => {
     Describe({ name: "Base", title: "Base" })(Parent);
     FieldDeclaration.declare(Parent, "id", String, IsString());
     class Child extends Parent {}
-    expect(defsOf(toJsonSchema(Child, DRAFT))["Child"]).toEqual({
+    expect(defsOf(Schema.toJsonSchema(Child, DRAFT))["Child"]).toEqual({
       type: "object",
       properties: { id: { type: "string" } },
       required: ["id"],
@@ -576,8 +576,8 @@ describe("SCH-126 Names, collisions and invalid input", () => {
     }
     FieldDeclaration.declare(Holder, "first", Object, IsObject(First));
     FieldDeclaration.declare(Holder, "second", Object, IsObject(Imposter));
-    expect(() => toJsonSchema(Holder, DRAFT)).toThrow(/share the JSON Schema name "First"/u);
-    expect(() => toJsonSchema(other(), DRAFT)).not.toThrow();
+    expect(() => Schema.toJsonSchema(Holder, DRAFT)).toThrow(/share the JSON Schema name "First"/u);
+    expect(() => Schema.toJsonSchema(other(), DRAFT)).not.toThrow();
   });
 
   it("lets Describe({ name }) resolve a collision", () => {
@@ -597,20 +597,24 @@ describe("SCH-126 Names, collisions and invalid input", () => {
     }
     FieldDeclaration.declare(Both, "left", Object, IsObject(Left));
     FieldDeclaration.declare(Both, "right", Object, IsObject(Right));
-    expect(Object.keys(defsOf(toJsonSchema(Both, DRAFT)))).toEqual(["Both", "Left", "Left2"]);
+    expect(Object.keys(defsOf(Schema.toJsonSchema(Both, DRAFT)))).toEqual([
+      "Both",
+      "Left",
+      "Left2",
+    ]);
   });
 
   it("rejects anonymous classes", () => {
     const Anonymous = (() => class {})();
     Object.defineProperty(Anonymous, "name", { value: "" });
-    expect(() => toJsonSchema(Anonymous, DRAFT)).toThrow(/anonymous class/u);
+    expect(() => Schema.toJsonSchema(Anonymous, DRAFT)).toThrow(/anonymous class/u);
   });
 
   it("rejects unknown targets", () => {
     class Plain {}
-    expect(() => toJsonSchema(Plain, { target: "openapi-3.0" as IJsonSchemaTarget })).toThrow(
-      /target must be/u,
-    );
+    expect(() =>
+      Schema.toJsonSchema(Plain, { target: "openapi-3.0" as IJsonSchemaTarget }),
+    ).toThrow(/target must be/u);
   });
 
   it("surfaces fields that have modifiers but no type", () => {
@@ -618,7 +622,7 @@ describe("SCH-126 Names, collisions and invalid input", () => {
       public value!: string;
     }
     Optional()(Broken.prototype, "value");
-    expect(() => toJsonSchema(Broken, DRAFT)).toThrow(SchemaDefinitionError);
+    expect(() => Schema.toJsonSchema(Broken, DRAFT)).toThrow(SchemaDefinitionError);
   });
 });
 
@@ -640,7 +644,7 @@ describe("SCH-127 Derived classes and structural validity", () => {
 
   it("describes derived classes by their names, with Describe kept and Partial making fields optional", () => {
     const partial = PartialType(Base);
-    expect(defsOf(toJsonSchema(partial, DRAFT))["PartialBase"]).toEqual({
+    expect(defsOf(Schema.toJsonSchema(partial, DRAFT))["PartialBase"]).toEqual({
       type: "object",
       properties: {
         id: { type: "string", format: "uuid" },
@@ -649,11 +653,13 @@ describe("SCH-127 Derived classes and structural validity", () => {
       },
     });
     expect(
-      Object.keys(defsOf(toJsonSchema(PickType(Base, ["id"], { name: "IdOnly" }), DRAFT))),
+      Object.keys(defsOf(Schema.toJsonSchema(PickType(Base, ["id"], { name: "IdOnly" }), DRAFT))),
     ).toEqual(["IdOnly"]);
-    expect(Object.keys(defsOf(toJsonSchema(OmitType(Base, ["id"]), DRAFT)))).toEqual(["OmitBase"]);
+    expect(Object.keys(defsOf(Schema.toJsonSchema(OmitType(Base, ["id"]), DRAFT)))).toEqual([
+      "OmitBase",
+    ]);
     const extended = ExtendType(Base, class Extra {}, { name: "Extended" });
-    expect(Object.keys(defsOf(toJsonSchema(extended, DRAFT)))).toEqual(["Extended"]);
+    expect(Object.keys(defsOf(Schema.toJsonSchema(extended, DRAFT)))).toEqual(["Extended"]);
   });
 
   it("produces structurally valid documents for every target", () => {
@@ -683,7 +689,7 @@ describe("SCH-127 Derived classes and structural validity", () => {
     FieldDeclaration.declare(Tree, "bag", Object, IsRecord(Leaf));
     FieldDeclaration.declare(Tree, "either", Object, IsOneOf([String, Leaf]), Nullable());
     for (const target of ["draft-2020-12", "openapi-3.1"] as const) {
-      const document = toJsonSchema(Tree, { target });
+      const document = Schema.toJsonSchema(Tree, { target });
       expect(JsonSchemaStructure.problems(document)).toEqual([]);
       expect(JSON.parse(JSON.stringify(document))).toEqual(document);
     }

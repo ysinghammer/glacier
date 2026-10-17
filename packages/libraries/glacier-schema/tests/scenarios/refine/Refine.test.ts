@@ -15,8 +15,7 @@ import {
   Rename,
   SchemaDefinitionError,
   Transform,
-  parse,
-  safeParse,
+  Schema,
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
@@ -33,8 +32,8 @@ describe("SCH-100 Property-level Refine", () => {
   );
 
   it("accepts values the predicate approves and reports a custom issue otherwise", () => {
-    expect(parse(Account, { even: "ab" }).even).toBe("ab");
-    expect(safeParse(Account, { even: "abc" })).toEqual({
+    expect(Schema.parse(Account, { even: "ab" }).even).toBe("ab");
+    expect(Schema.safeParse(Account, { even: "abc" })).toEqual({
       ok: false,
       issues: [{ path: ["even"], code: "custom", message: "must be even", params: {} }],
     });
@@ -62,7 +61,7 @@ describe("SCH-100 Property-level Refine", () => {
       Refine(() => false),
     );
 
-    const result = safeParse(Probe, { b: null, c: 5 });
+    const result = Schema.safeParse(Probe, { b: null, c: 5 });
 
     expect(result).toMatchObject({ ok: false, issues: [{ path: ["c"], code: "invalid_type" }] });
     expect(calls).toBe(0);
@@ -82,8 +81,8 @@ describe("SCH-100 Property-level Refine", () => {
       Refine((value) => value !== ""),
     );
 
-    expect(parse(Tag, { tag: "  x " }).label).toBe("x");
-    expect(safeParse(Tag, { tag: "   " })).toMatchObject({
+    expect(Schema.parse(Tag, { tag: "  x " }).label).toBe("x");
+    expect(Schema.safeParse(Tag, { tag: "   " })).toMatchObject({
       ok: false,
       issues: [{ path: ["tag"], code: "custom", message: "Refinement failed" }],
     });
@@ -103,7 +102,7 @@ describe("SCH-100 Property-level Refine", () => {
       }),
     );
 
-    expect(safeParse(Boom, { v: "x" })).toMatchObject({
+    expect(Schema.safeParse(Boom, { v: "x" })).toMatchObject({
       ok: false,
       issues: [{ path: ["v"], code: "custom", params: { reason: "nope" } }],
     });
@@ -131,7 +130,7 @@ describe("SCH-100 Property-level Refine", () => {
       Refine(() => false),
     );
 
-    expect(safeParse(Odd, { v: "x" })).toMatchObject({
+    expect(Schema.safeParse(Odd, { v: "x" })).toMatchObject({
       ok: false,
       issues: [{ path: ["v"], params: { reason: "plain" } }],
     });
@@ -153,7 +152,7 @@ describe("SCH-100 Property-level Refine", () => {
     }
     FieldDeclaration.declare(Order, "items", Array, IsArray(Item));
 
-    expect(safeParse(Order, { items: [{ qty: "1" }] })).toMatchObject({
+    expect(Schema.safeParse(Order, { items: [{ qty: "1" }] })).toMatchObject({
       ok: false,
       issues: [{ path: ["items", 0, "qty"], code: "custom", message: "bad" }],
     });
@@ -178,7 +177,7 @@ describe("SCH-100 Property-level Refine", () => {
       public v!: string;
     }
     FieldDeclaration.declare(Late, "v", String, IsString());
-    parse(Late, { v: "x" });
+    Schema.parse(Late, { v: "x" });
     expect(() =>
       FieldDeclaration.declare(
         Late,
@@ -204,8 +203,8 @@ describe("SCH-101 Class-level Refine", () => {
   })(Signup);
 
   it("validates cross-field rules with a custom path, code and message", () => {
-    expect(parse(Signup, { password: "a", confirm: "a" }).confirm).toBe("a");
-    expect(safeParse(Signup, { password: "a", confirm: "b" })).toEqual({
+    expect(Schema.parse(Signup, { password: "a", confirm: "a" }).confirm).toBe("a");
+    expect(Schema.safeParse(Signup, { password: "a", confirm: "b" })).toEqual({
       ok: false,
       issues: [
         {
@@ -227,11 +226,11 @@ describe("SCH-101 Class-level Refine", () => {
     FieldDeclaration.declare(Range, "to", Date, IsDate());
     Refine<Range>((value) => value.from <= value.to, {})(Range);
 
-    expect(safeParse(Range, { from: new Date(2), to: new Date(1) })).toEqual({
+    expect(Schema.safeParse(Range, { from: new Date(2), to: new Date(1) })).toEqual({
       ok: false,
       issues: [{ path: [], code: "custom", message: "Refinement failed", params: {} }],
     });
-    expect(safeParse(Range, { from: new Date(1), to: new Date(2) }).ok).toBe(true);
+    expect(Schema.safeParse(Range, { from: new Date(1), to: new Date(2) }).ok).toBe(true);
   });
 
   it("is skipped when any field failed and reports every failing refinement otherwise", () => {
@@ -249,12 +248,12 @@ describe("SCH-101 Class-level Refine", () => {
     )(Pair);
     Refine<Pair>(() => false, { code: "second", path: ["a"] })(Pair);
 
-    expect(safeParse(Pair, { a: 1 })).toMatchObject({
+    expect(Schema.safeParse(Pair, { a: 1 })).toMatchObject({
       ok: false,
       issues: [{ code: "invalid_type" }],
     });
     expect(calls).toBe(0);
-    const result = safeParse(Pair, { a: "x" });
+    const result = Schema.safeParse(Pair, { a: "x" });
     expect(result).toMatchObject({ ok: false });
     expect(result.ok ? [] : result.issues.map((issue) => issue.code)).toEqual(["first", "second"]);
   });
@@ -274,7 +273,7 @@ describe("SCH-101 Class-level Refine", () => {
       throw "plain";
     }, {})(Fragile);
 
-    expect(safeParse(Fragile, { a: "x" })).toMatchObject({
+    expect(Schema.safeParse(Fragile, { a: "x" })).toMatchObject({
       ok: false,
       issues: [
         { code: "e", params: { reason: "broken" } },
@@ -292,7 +291,9 @@ describe("SCH-101 Class-level Refine", () => {
     FieldDeclaration.declare(Outer, "tag", String, IsString());
     Refine<Outer>((value) => value.tag !== "x", { path: ["tag"] })(Outer);
 
-    expect(safeParse(Outer, { inner: { password: "a", confirm: "b" }, tag: "x" })).toMatchObject({
+    expect(
+      Schema.safeParse(Outer, { inner: { password: "a", confirm: "b" }, tag: "x" }),
+    ).toMatchObject({
       ok: false,
       issues: [{ path: ["inner", "confirm"], code: "password_mismatch" }],
     });
@@ -304,7 +305,7 @@ describe("SCH-101 Class-level Refine", () => {
     }
     FieldDeclaration.declare(Admin, "level", String, IsString());
 
-    expect(safeParse(Admin, { password: "a", confirm: "b", level: "1" })).toMatchObject({
+    expect(Schema.safeParse(Admin, { password: "a", confirm: "b", level: "1" })).toMatchObject({
       ok: false,
       issues: [{ code: "password_mismatch" }],
     });
@@ -323,7 +324,7 @@ describe("SCH-102 Refine with Rename and options", () => {
     Refine<Window>((value) => value.from < value.until, { path: ["end"] })(Window);
 
     expect(
-      safeParse(Window, { from: "2024-02-01", end: "2024-01-01" }, { coerce: true }),
+      Schema.safeParse(Window, { from: "2024-02-01", end: "2024-01-01" }, { coerce: true }),
     ).toMatchObject({ ok: false, issues: [{ path: ["end"], code: "custom" }] });
   });
 });
@@ -342,8 +343,8 @@ describe("SCH-103 Refine on subclass fields", () => {
       Refine((value) => value !== "admin", "reserved"),
     );
 
-    expect(parse(Base, { name: "admin" }).name).toBe("admin");
-    expect(safeParse(Strict, { name: "admin" })).toMatchObject({
+    expect(Schema.parse(Base, { name: "admin" }).name).toBe("admin");
+    expect(Schema.safeParse(Strict, { name: "admin" })).toMatchObject({
       ok: false,
       issues: [{ path: ["name"], message: "reserved" }],
     });

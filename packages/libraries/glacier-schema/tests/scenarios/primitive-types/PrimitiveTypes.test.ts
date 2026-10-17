@@ -19,7 +19,7 @@ import {
   IsNumber,
   IsString,
   SchemaDefinitionError,
-  safeParse,
+  Schema,
 } from "../../../index.js";
 import type { ISchemaIssue } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
@@ -34,7 +34,7 @@ function parseValue(
     public value!: unknown;
   }
   FieldDeclaration.declare(Holder, "value", designType, decorator);
-  const result = safeParse(Holder, { value: input });
+  const result = Schema.safeParse(Holder, { value: input });
   return result.ok ? { ok: true, value: Reflect.get(result.value, "value") } : result;
 }
 
@@ -205,7 +205,7 @@ describe("SCH-018 IsAny", () => {
     }
     FieldDeclaration.declare(Holder, "value", undefined, IsAny());
 
-    const result = safeParse(Holder, {});
+    const result = Schema.safeParse(Holder, {});
 
     expect(result.ok && Object.hasOwn(result.value, "value")).toBe(false);
   });

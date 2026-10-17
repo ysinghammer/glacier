@@ -1,7 +1,7 @@
 # Parsing pipeline
 
-Lets consumers turn untrusted input into a real instance of a decorated class with `safeParse` (typed
-outcome) or `parse` (throws). Public contract: `parse`, `safeParse`, `IResult` and the schema freeze enforced
+Lets consumers turn untrusted input into a real instance of a decorated class with `Schema.safeParse` (typed
+outcome) or `Schema.parse` (throws). Public contract: `Schema.parse`, `Schema.safeParse`, `IResult` and the schema freeze enforced
 through `SchemaDefinitionError` of the package-root API of `@glacier/schema`.
 Story-local criteria are phase 2 of the schema plan.
 
@@ -14,4 +14,4 @@ Story-local criteria are phase 2 of the schema plan.
 | SCH-005 | Compiled schema reuse                 | Repeated parses give equal, distinct instances                                 | phase 2 pipeline | [ParsingPipeline.test.ts](ParsingPipeline.test.ts) |
 
 Each scenario is identified in its spec by a top-level `// @scenario SCH-nnn` line. Coercion is not part of
-this phase; `safeParse` and `parse` take no options yet.
+this phase; `Schema.safeParse` and `Schema.parse` take no options yet.

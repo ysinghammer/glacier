@@ -1,7 +1,7 @@
 // @scenario SCH-045
 // @scenario SCH-046
 import { describe, expect, it } from "vitest";
-import { IsInt, IsNumber, SchemaDefinitionError, safeParse } from "../../../index.js";
+import { IsInt, IsNumber, SchemaDefinitionError, Schema } from "../../../index.js";
 import type { INumberOptions } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
@@ -13,7 +13,7 @@ function parseNumber(decorator: IDecorator, options: INumberOptions, input: unkn
     public value!: number;
   }
   FieldDeclaration.declare(Holder, "value", Number, decorator(options));
-  const result = safeParse(Holder, { value: input });
+  const result = Schema.safeParse(Holder, { value: input });
   return result.ok ? { value: Reflect.get(result.value, "value") } : { issue: result.issues[0] };
 }
 

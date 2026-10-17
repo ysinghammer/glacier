@@ -17,8 +17,7 @@ import {
   Optional,
   Rename,
   SchemaDefinitionError,
-  parse,
-  safeParse,
+  Schema,
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
@@ -41,7 +40,7 @@ FieldDeclaration.declare(Person, "address", Address, IsObject(Address));
 
 describe("SCH-080 Nested objects", () => {
   it("returns nested class instances and strips unknown keys at every level", () => {
-    const person = parse(Person, {
+    const person = Schema.parse(Person, {
       name: "Ada",
       address: { city: "London", zip: 12, extra: true },
       other: 1,
@@ -53,7 +52,7 @@ describe("SCH-080 Nested objects", () => {
   });
 
   it("reports issues with the full path from the root", () => {
-    const result = safeParse(Person, { name: "Ada", address: { city: "L", zip: 1.5 } });
+    const result = Schema.safeParse(Person, { name: "Ada", address: { city: "L", zip: 1.5 } });
 
     expect(!result.ok && result.issues).toEqual([
       {
@@ -78,7 +77,7 @@ describe("SCH-080 Nested objects", () => {
       [[], "array"],
       [undefined, "undefined"],
     ] as const) {
-      const result = safeParse(Person, { name: "Ada", address: input });
+      const result = Schema.safeParse(Person, { name: "Ada", address: input });
 
       expect(!result.ok && result.issues).toEqual([
         {
@@ -103,8 +102,8 @@ describe("SCH-080 Nested objects", () => {
       IsObject(Address, { message: "Bad address" }),
     );
 
-    const wrongType = safeParse(Order, { ship_to: 1 });
-    const wrongField = safeParse(Order, { ship_to: { city: "L", zip: 1 } });
+    const wrongType = Schema.safeParse(Order, { ship_to: 1 });
+    const wrongField = Schema.safeParse(Order, { ship_to: { city: "L", zip: 1 } });
 
     expect(!wrongType.ok && wrongType.issues[0]?.message).toBe("Bad address");
     expect(!wrongType.ok && wrongType.issues[0]?.path).toEqual(["ship_to"]);
@@ -128,21 +127,23 @@ describe("SCH-080 Nested objects", () => {
       IsObject(Address),
     );
 
-    const customer = parse(Customer, {});
+    const customer = Schema.parse(Customer, {});
 
     expect("billing" in customer).toBe(false);
     expect(customer.shipping).toBeInstanceOf(Address);
   });
 
   it("applies per-call coercion inside nested objects", () => {
-    const result = safeParse(
+    const result = Schema.safeParse(
       Person,
       { name: "Ada", address: { city: "Rome", zip: "7" } },
       { coerce: true },
     );
 
     expect(result.ok && result.value.address.zip).toBe(7);
-    expect(safeParse(Person, { name: "Ada", address: { city: "Rome", zip: "7" } }).ok).toBe(false);
+    expect(Schema.safeParse(Person, { name: "Ada", address: { city: "Rome", zip: "7" } }).ok).toBe(
+      false,
+    );
   });
 });
 
@@ -157,7 +158,7 @@ describe("SCH-081 Nested objects inside collections", () => {
   FieldDeclaration.declare(Team, "offices", Map, IsMap(String, Address));
 
   it("builds instances for every element", () => {
-    const team = parse(Team, {
+    const team = Schema.parse(Team, {
       members: [{ name: "Ada", address: { city: "London", zip: 1 } }],
       byRole: { lead: { city: "Paris", zip: 2 } },
       offices: new Map([["hq", { city: "Berlin", zip: 3 }]]),
@@ -170,7 +171,7 @@ describe("SCH-081 Nested objects inside collections", () => {
   });
 
   it("reports issue paths through arrays, records and maps", () => {
-    const result = safeParse(Team, {
+    const result = Schema.safeParse(Team, {
       members: [
         { name: "Ada", address: { city: "London", zip: 1 } },
         { name: 1, address: {} },
@@ -194,7 +195,7 @@ describe("SCH-081 Nested objects inside collections", () => {
     }
     FieldDeclaration.declare(Wrapper, "people", Array, IsArray(Person, { message: "Bad people" }));
 
-    const result = safeParse(Wrapper, {
+    const result = Schema.safeParse(Wrapper, {
       people: ["x", { name: "Ada", address: { city: "L", zip: 1 } }],
     });
 
@@ -227,7 +228,7 @@ describe("SCH-082 Lazy references", () => {
   );
 
   it("parses recursive trees into instances of the same class", () => {
-    const tree = parse(TreeNode, {
+    const tree = Schema.parse(TreeNode, {
       value: 1,
       children: [
         { value: 2, children: [{ value: 3, children: [] }] },
@@ -241,7 +242,7 @@ describe("SCH-082 Lazy references", () => {
   });
 
   it("reports deep paths in recursive structures", () => {
-    const result = safeParse(TreeNode, {
+    const result = Schema.safeParse(TreeNode, {
       value: 1,
       children: [{ value: 2, children: [{ value: "x", children: [] }] }],
     });
@@ -266,7 +267,7 @@ describe("SCH-082 Lazy references", () => {
     }
     FieldDeclaration.declare(Later, "id", Number, IsNumber());
 
-    expect(parse(Parent, { child: { id: 1 } }).child).toBeInstanceOf(Later);
+    expect(Schema.parse(Parent, { child: { id: 1 } }).child).toBeInstanceOf(Later);
   });
 
   it("fails parsing when a lazy reference does not resolve to a class", () => {
@@ -275,8 +276,8 @@ describe("SCH-082 Lazy references", () => {
     }
     FieldDeclaration.declare(Broken, "child", Object, IsObject((() => 1) as never));
 
-    expect(() => safeParse(Broken, { child: {} })).toThrow(SchemaDefinitionError);
-    expect(() => safeParse(Broken, { child: {} })).toThrow(/did not resolve to a class/);
+    expect(() => Schema.safeParse(Broken, { child: {} })).toThrow(SchemaDefinitionError);
+    expect(() => Schema.safeParse(Broken, { child: {} })).toThrow(/did not resolve to a class/);
   });
 });
 
@@ -300,11 +301,11 @@ describe("SCH-083 Recursion depth cap", () => {
   }
 
   it("accepts nesting up to the default depth of 64 levels", () => {
-    expect(safeParse(Chain, chain(64)).ok).toBe(true);
+    expect(Schema.safeParse(Chain, chain(64)).ok).toBe(true);
   });
 
   it("rejects deeper nesting with max_depth_exceeded and does not overflow the stack", () => {
-    const result = safeParse(Chain, chain(65));
+    const result = Schema.safeParse(Chain, chain(65));
 
     expect(!result.ok && result.issues).toEqual([
       {
@@ -314,12 +315,12 @@ describe("SCH-083 Recursion depth cap", () => {
         params: { maxDepth: 64 },
       },
     ]);
-    expect(safeParse(Chain, chain(100_000)).ok).toBe(false);
+    expect(Schema.safeParse(Chain, chain(100_000)).ok).toBe(false);
   });
 
   it("honours a custom maxDepth per call", () => {
-    expect(safeParse(Chain, chain(3), { maxDepth: 3 }).ok).toBe(true);
-    const result = safeParse(Chain, chain(4), { maxDepth: 3 });
+    expect(Schema.safeParse(Chain, chain(3), { maxDepth: 3 }).ok).toBe(true);
+    const result = Schema.safeParse(Chain, chain(4), { maxDepth: 3 });
 
     expect(!result.ok && result.issues[0]).toMatchObject({
       path: ["next", "next", "next"],
@@ -334,7 +335,7 @@ describe("SCH-083 Recursion depth cap", () => {
     }
     FieldDeclaration.declare(Holder, "items", Array, IsArray(Chain, { message: "Bad items" }));
 
-    const result = safeParse(Holder, { items: [chain(2)] }, { maxDepth: 2 });
+    const result = Schema.safeParse(Holder, { items: [chain(2)] }, { maxDepth: 2 });
 
     expect(!result.ok && result.issues[0]?.message).toBe("Maximum nesting depth of 2 exceeded");
   });
@@ -347,7 +348,9 @@ describe("SCH-084 IsObject declaration", () => {
     }
     FieldDeclaration.declare(Holder, "address", Address, IsObject());
 
-    expect(parse(Holder, { address: { city: "Rome", zip: 1 } }).address).toBeInstanceOf(Address);
+    expect(Schema.parse(Holder, { address: { city: "Rome", zip: 1 } }).address).toBeInstanceOf(
+      Address,
+    );
   });
 
   it("requires an explicit class when the design type is not informative", () => {
@@ -390,7 +393,7 @@ describe("SCH-085 Nested schema freezing", () => {
     }
     FieldDeclaration.declare(Outer, "inner", Inner, IsObject(Inner));
 
-    safeParse(Outer, { inner: { id: 1 } });
+    Schema.safeParse(Outer, { inner: { id: 1 } });
 
     expect(() => IsString()(Inner.prototype, "other")).toThrow(SchemaDefinitionError);
   });

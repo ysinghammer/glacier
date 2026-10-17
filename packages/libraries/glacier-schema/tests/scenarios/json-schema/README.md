@@ -1,13 +1,13 @@
 # JSON Schema
 
 Lets consumers publish the shape of a decorated class to API documentation and client tooling.
-`toJsonSchema(Class, { target })` turns one class and every class it references into JSON Schema 2020-12
+`Schema.toJsonSchema(Class, { target })` turns one class and every class it references into JSON Schema 2020-12
 (`draft-2020-12`, a `$ref` to the root plus `$defs`) or the OpenAPI 3.1 component layout (`openapi-3.1`, a `$ref` to
 the root plus `components.schemas`). Definitions are keyed by class name or `Describe({ name })`; colliding names
 throw. `Describe` adds `title`, `description`, `example` (emitted as `examples`) and `deprecated`; `JsonSchema`
 merges a manual fragment over the generated keywords. `Refine` and `Transform` cannot be expressed and are skipped;
 string pattern flags other than none and `u` cannot be expressed and are ignored; maps are emitted like records and
-bigint values as integers. Public contract: `toJsonSchema`, `Describe`, `JsonSchema`, `IJsonSchema`,
+bigint values as integers. Public contract: `Schema.toJsonSchema`, `Describe`, `JsonSchema`, `IJsonSchema`,
 `IJsonSchemaFragment`, `IJsonSchemaOptions`, `IJsonSchemaTarget` and `IDescribeOptions` of the package-root API of
 `@glacier/schema`. Story-local criteria are phase 8.
 

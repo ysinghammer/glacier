@@ -16,8 +16,7 @@ import {
   Nullable,
   Optional,
   Transform,
-  parse,
-  safeParse,
+  Schema,
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
@@ -32,7 +31,11 @@ function parseValue(
     public value!: unknown;
   }
   FieldDeclaration.declare(Holder, "value", designType, decorator);
-  const result = safeParse(Holder, { value: input }, coerce === undefined ? undefined : { coerce });
+  const result = Schema.safeParse(
+    Holder,
+    { value: input },
+    coerce === undefined ? undefined : { coerce },
+  );
   return result.ok ? { value: Reflect.get(result.value, "value") } : { failed: true };
 }
 
@@ -60,8 +63,8 @@ describe("SCH-060 Coercion is off by default and enabled per call", () => {
     }
     FieldDeclaration.declare(Query, "page", Number, IsInt());
 
-    expect(parse(Query, { page: "2" }, { coerce: true }).page).toBe(2);
-    expect(() => parse(Query, { page: "2" })).toThrow();
+    expect(Schema.parse(Query, { page: "2" }, { coerce: true }).page).toBe(2);
+    expect(() => Schema.parse(Query, { page: "2" })).toThrow();
   });
 
   it("does not leak between calls", () => {
@@ -70,8 +73,8 @@ describe("SCH-060 Coercion is off by default and enabled per call", () => {
     }
     FieldDeclaration.declare(Query, "page", Number, IsInt());
 
-    expect(safeParse(Query, { page: "2" }, { coerce: true }).ok).toBe(true);
-    expect(safeParse(Query, { page: "2" }).ok).toBe(false);
+    expect(Schema.safeParse(Query, { page: "2" }, { coerce: true }).ok).toBe(true);
+    expect(Schema.safeParse(Query, { page: "2" }).ok).toBe(false);
   });
 });
 
@@ -112,7 +115,7 @@ describe("SCH-061 Coercion rules per type", () => {
       public value!: unknown;
     }
     FieldDeclaration.declare(Holder, "value", type, decorator);
-    const result = safeParse(Holder, { value: input }, { coerce: true });
+    const result = Schema.safeParse(Holder, { value: input }, { coerce: true });
 
     const value = result.ok ? Reflect.get(result.value, "value") : "rejected";
     if (result.ok) expect(value).toEqual(expected);
@@ -137,7 +140,7 @@ describe("SCH-061 Coercion rules per type", () => {
     }
     FieldDeclaration.declare(Holder, "value", Date, IsDate());
 
-    expect(safeParse(Holder, { value: "2024-13-45" }, { coerce: true })).toMatchObject({
+    expect(Schema.safeParse(Holder, { value: "2024-13-45" }, { coerce: true })).toMatchObject({
       ok: false,
       issues: [{ code: "invalid_date" }],
     });
@@ -160,12 +163,12 @@ describe("SCH-062 Coercion with modifiers", () => {
     FieldDeclaration.declare(Query, "b", Object, IsNumber(), Nullable());
     FieldDeclaration.declare(Query, "c", Number, IsNumber(), Default(9));
 
-    const parsed = parse(Query, { b: null }, { coerce: true });
+    const parsed = Schema.parse(Query, { b: null }, { coerce: true });
 
     expect(Object.keys(parsed)).toEqual(["b", "c"]);
     expect(parsed.b).toBeNull();
     expect(parsed.c).toBe(9);
-    expect(safeParse(Query, { c: null }, { coerce: true }).ok).toBe(false);
+    expect(Schema.safeParse(Query, { c: null }, { coerce: true }).ok).toBe(false);
   });
 
   it("runs Transform on the coerced value", () => {
@@ -180,6 +183,6 @@ describe("SCH-062 Coercion with modifiers", () => {
       Transform((value) => (typeof value === "number" ? value + 1 : value)),
     );
 
-    expect(parse(Query, { page: "1" }, { coerce: true }).page).toBe(2);
+    expect(Schema.parse(Query, { page: "1" }, { coerce: true }).page).toBe(2);
   });
 });

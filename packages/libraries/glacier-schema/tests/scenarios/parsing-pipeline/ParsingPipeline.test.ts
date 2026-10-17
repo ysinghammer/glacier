@@ -4,7 +4,7 @@
 // @scenario SCH-004
 // @scenario SCH-005
 import { describe, expect, it } from "vitest";
-import { IsString, SchemaDefinitionError, parse, safeParse } from "../../../index.js";
+import { IsString, SchemaDefinitionError, Schema } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
 describe("SCH-001 Instances are created without running the constructor", () => {
@@ -21,7 +21,7 @@ describe("SCH-001 Instances are created without running the constructor", () => 
     }
     FieldDeclaration.declare(User, "name", String, IsString());
 
-    const user = parse(User, { name: "Ada" });
+    const user = Schema.parse(User, { name: "Ada" });
 
     expect(user).toBeInstanceOf(User);
     expect(user.greet()).toBe("hi Ada");
@@ -36,7 +36,7 @@ describe("SCH-002 Unknown keys are stripped", () => {
     }
     FieldDeclaration.declare(Account, "name", String, IsString());
 
-    const result = safeParse(Account, { name: "Ada", extra: 1, nested: { deep: true } });
+    const result = Schema.safeParse(Account, { name: "Ada", extra: 1, nested: { deep: true } });
 
     expect(result.ok && Object.keys(result.value)).toEqual(["name"]);
   });
@@ -48,7 +48,7 @@ describe("SCH-002 Unknown keys are stripped", () => {
     FieldDeclaration.declare(Account, "name", String, IsString());
     const input = Object.create({ name: "inherited" });
 
-    const result = safeParse(Account, input);
+    const result = Schema.safeParse(Account, input);
 
     expect(result.ok).toBe(false);
   });
@@ -64,7 +64,7 @@ describe("SCH-003 Only objects are accepted as input", () => {
   ])("rejects %j with an invalid_type issue at the root", (input, received) => {
     class Empty {}
 
-    const result = safeParse(Empty, input);
+    const result = Schema.safeParse(Empty, input);
 
     expect(result).toEqual({
       ok: false,
@@ -82,7 +82,7 @@ describe("SCH-003 Only objects are accepted as input", () => {
   it("accepts a class without declared fields and returns an empty instance", () => {
     class Empty {}
 
-    const result = parse(Empty, { ignored: true });
+    const result = Schema.parse(Empty, { ignored: true });
 
     expect(result).toBeInstanceOf(Empty);
     expect(Object.keys(result)).toEqual([]);
@@ -98,7 +98,7 @@ describe("SCH-004 Schema metadata is frozen after the first parse", () => {
       public late!: string;
     }
     FieldDeclaration.declare(Base, "id", String, IsString());
-    parse(Derived, { id: "1" });
+    Schema.parse(Derived, { id: "1" });
 
     expect(() => FieldDeclaration.declare(Derived, "late", String, IsString())).toThrow(
       SchemaDefinitionError,
@@ -113,7 +113,7 @@ describe("SCH-004 Schema metadata is frozen after the first parse", () => {
     class Sibling extends Base {
       public name!: string;
     }
-    parse(Base, {});
+    Schema.parse(Base, {});
 
     expect(() => FieldDeclaration.declare(Sibling, "name", String, IsString())).not.toThrow();
   });
@@ -126,8 +126,8 @@ describe("SCH-005 Compiled schemas are reused", () => {
     }
     FieldDeclaration.declare(Item, "sku", String, IsString());
 
-    const first = parse(Item, { sku: "a" });
-    const second = parse(Item, { sku: "a" });
+    const first = Schema.parse(Item, { sku: "a" });
+    const second = Schema.parse(Item, { sku: "a" });
 
     expect(second).toEqual(first);
     expect(second).not.toBe(first);

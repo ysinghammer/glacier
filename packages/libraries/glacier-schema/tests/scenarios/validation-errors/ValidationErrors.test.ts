@@ -4,16 +4,7 @@
 // @scenario SCH-033
 // @scenario SCH-034
 import { describe, expect, it, vi } from "vitest";
-import {
-  IsBigInt,
-  IsInt,
-  IsLiteral,
-  IsString,
-  SchemaError,
-  isSchemaError,
-  parse,
-  safeParse,
-} from "../../../index.js";
+import { IsBigInt, IsInt, IsLiteral, IsString, SchemaError, Schema } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
 class Signup {
@@ -27,7 +18,7 @@ FieldDeclaration.declare(Signup, "kind", undefined, IsLiteral(7n));
 
 describe("SCH-030 Every issue carries a path, a stable code and parameters", () => {
   it("collects all field issues in declaration order instead of stopping at the first", () => {
-    const result = safeParse(Signup, { name: 1, age: 1.5, kind: 8n });
+    const result = Schema.safeParse(Signup, { name: 1, age: 1.5, kind: 8n });
 
     expect(result.ok).toBe(false);
     expect(!result.ok && result.issues.map(({ path, code }) => ({ path, code }))).toEqual([
@@ -38,7 +29,7 @@ describe("SCH-030 Every issue carries a path, a stable code and parameters", () 
   });
 
   it("returns ok with the instance when no issue was found", () => {
-    const result = safeParse(Signup, { name: "Ada", age: 36, kind: 7n });
+    const result = Schema.safeParse(Signup, { name: "Ada", age: 36, kind: 7n });
 
     expect(result.ok && { ...result.value }).toEqual({ name: "Ada", age: 36, kind: 7n });
   });
@@ -51,7 +42,7 @@ describe("SCH-031 Messages can be overridden per decorator", () => {
     }
     FieldDeclaration.declare(Custom, "name", String, IsString({ message: "Name please" }));
 
-    const result = safeParse(Custom, { name: 3 });
+    const result = Schema.safeParse(Custom, { name: 3 });
 
     expect(result).toEqual({
       ok: false,
@@ -69,11 +60,11 @@ describe("SCH-031 Messages can be overridden per decorator", () => {
 
 describe("SCH-032 parse throws SchemaError carrying the issues", () => {
   it("returns the instance for valid input", () => {
-    expect(parse(Signup, { name: "Ada", age: 36, kind: 7n }).name).toBe("Ada");
+    expect(Schema.parse(Signup, { name: "Ada", age: 36, kind: 7n }).name).toBe("Ada");
   });
 
   it("throws a SchemaError with code, summary message and all issues for invalid input", () => {
-    const attempt = (): unknown => parse(Signup, { name: 1, age: 36, kind: 7n });
+    const attempt = (): unknown => Schema.parse(Signup, { name: 1, age: 36, kind: 7n });
 
     expect(attempt).toThrow(SchemaError);
     try {
@@ -90,7 +81,7 @@ describe("SCH-032 parse throws SchemaError carrying the issues", () => {
   });
 
   it("pluralises the summary for several issues", () => {
-    expect(() => parse(Signup, {})).toThrow("Schema validation failed with 3 issues");
+    expect(() => Schema.parse(Signup, {})).toThrow("Schema validation failed with 3 issues");
   });
 });
 
@@ -103,7 +94,7 @@ describe("SCH-033 SchemaError serialises to JSON", () => {
 
     let caught: unknown;
     try {
-      parse(Big, { id: 2n });
+      Schema.parse(Big, { id: 2n });
     } catch (error) {
       caught = error;
     }
@@ -132,7 +123,7 @@ describe("SCH-033 SchemaError serialises to JSON", () => {
 
     const error = new SchemaError(
       (() => {
-        const result = safeParse(Plain, { id: 1 });
+        const result = Schema.safeParse(Plain, { id: 1 });
         return result.ok ? [] : result.issues;
       })(),
     );
@@ -145,11 +136,11 @@ describe("SCH-034 isSchemaError recognises errors across package copies", () => 
   it("recognises SchemaError instances and rejects everything else", () => {
     const error = new SchemaError([]);
 
-    expect(isSchemaError(error)).toBe(true);
-    expect(isSchemaError(new Error("plain"))).toBe(false);
-    expect(isSchemaError(null)).toBe(false);
-    expect(isSchemaError("SCHEMA_VALIDATION_FAILED")).toBe(false);
-    expect(isSchemaError({ code: "SCHEMA_VALIDATION_FAILED" })).toBe(false);
+    expect(Schema.isError(error)).toBe(true);
+    expect(Schema.isError(new Error("plain"))).toBe(false);
+    expect(Schema.isError(null)).toBe(false);
+    expect(Schema.isError("SCHEMA_VALIDATION_FAILED")).toBe(false);
+    expect(Schema.isError({ code: "SCHEMA_VALIDATION_FAILED" })).toBe(false);
   });
 
   it("recognises an error created by a duplicate copy of the package", async () => {
@@ -160,7 +151,7 @@ describe("SCH-034 isSchemaError recognises errors across package copies", () => 
 
     expect(duplicate.SchemaError).not.toBe(SchemaError);
     expect(foreign instanceof SchemaError).toBe(false);
-    expect(isSchemaError(foreign)).toBe(true);
-    expect(duplicate.isSchemaError(new SchemaError([]))).toBe(true);
+    expect(Schema.isError(foreign)).toBe(true);
+    expect(duplicate.Schema.isError(new SchemaError([]))).toBe(true);
   });
 });

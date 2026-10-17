@@ -3,12 +3,12 @@ import { SCHEMA_ERROR_BRAND } from "./SchemaErrorBrand.js";
 
 /**
  * Thrown by `parse` when input does not satisfy a class schema. Carries every issue found and has no
- * HTTP concepts; adapters map it with `isSchemaError`.
+ * HTTP concepts; adapters map it with `Schema.isError`.
  */
 export class SchemaError extends Error {
   /** Stable code adapters can match on without relying on the class identity. */
   public readonly code = "SCHEMA_VALIDATION_FAILED";
-  /** Brand read by `isSchemaError`. */
+  /** Brand read by `Schema.isError`. */
   public readonly [SCHEMA_ERROR_BRAND] = true;
   /** Every issue found, in field declaration order. */
   public readonly issues: readonly ISchemaIssue[];

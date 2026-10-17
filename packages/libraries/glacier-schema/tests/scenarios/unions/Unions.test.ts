@@ -16,8 +16,7 @@ import {
   Optional,
   Rename,
   SchemaDefinitionError,
-  parse,
-  safeParse,
+  Schema,
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
@@ -58,8 +57,8 @@ FieldDeclaration.declare(
 
 describe("SCH-090 Discriminated union fields", () => {
   it("selects the variant by the discriminator and returns its instance", () => {
-    const cat = parse(Owner, { pet: { type: "cat", lives: 9, extra: 1 } });
-    const dog = parse(Owner, { pet: { type: "dog", dogName: "Rex" } });
+    const cat = Schema.parse(Owner, { pet: { type: "cat", lives: 9, extra: 1 } });
+    const dog = Schema.parse(Owner, { pet: { type: "dog", dogName: "Rex" } });
 
     expect(cat.pet).toBeInstanceOf(Cat);
     expect(Object.keys(cat.pet)).toEqual(["type", "lives"]);
@@ -68,7 +67,7 @@ describe("SCH-090 Discriminated union fields", () => {
   });
 
   it("reports variant issues at the variant's fields with its aliases and messages", () => {
-    const result = safeParse(Owner, { pet: { type: "dog", dogName: "R" } });
+    const result = Schema.safeParse(Owner, { pet: { type: "dog", dogName: "R" } });
 
     expect(!result.ok && result.issues).toEqual([
       {
@@ -81,9 +80,9 @@ describe("SCH-090 Discriminated union fields", () => {
   });
 
   it("accepts a missing optional union and rejects non-objects", () => {
-    expect(parse(Owner, { pet: { type: "cat", lives: 1 } }).alias).toBeUndefined();
+    expect(Schema.parse(Owner, { pet: { type: "cat", lives: 1 } }).alias).toBeUndefined();
     for (const pet of [null, 1, "cat", ["cat"]]) {
-      const result = safeParse(Owner, { pet });
+      const result = Schema.safeParse(Owner, { pet });
       expect(!result.ok && result.issues.map((issue) => [issue.path, issue.code])).toEqual([
         [["pet"], "invalid_type"],
       ]);
@@ -91,7 +90,7 @@ describe("SCH-090 Discriminated union fields", () => {
   });
 
   it("does not select inherited property names as variants", () => {
-    const result = safeParse(Owner, { pet: { type: "constructor" } });
+    const result = Schema.safeParse(Owner, { pet: { type: "constructor" } });
 
     expect(!result.ok && result.issues[0]?.code).toBe("invalid_discriminator");
   });
@@ -99,9 +98,9 @@ describe("SCH-090 Discriminated union fields", () => {
 
 describe("SCH-091 Unknown or missing discriminator", () => {
   it("reports invalid_discriminator at the discriminator property", () => {
-    const unknown = safeParse(Owner, { pet: { type: "bird" } });
-    const missing = safeParse(Owner, { pet: { lives: 1 } });
-    const wrongType = safeParse(Owner, { pet: { type: 3 } });
+    const unknown = Schema.safeParse(Owner, { pet: { type: "bird" } });
+    const missing = Schema.safeParse(Owner, { pet: { lives: 1 } });
+    const wrongType = Schema.safeParse(Owner, { pet: { type: 3 } });
 
     expect(!unknown.ok && unknown.issues).toEqual([
       {
@@ -120,8 +119,11 @@ describe("SCH-091 Unknown or missing discriminator", () => {
   });
 
   it("applies the field message to discriminator issues but not to variant issues", () => {
-    const discriminator = safeParse(Owner, { pet: { type: "cat", lives: 1 }, alias: {} });
-    const variant = safeParse(Owner, { pet: { type: "cat", lives: 1 }, alias: { type: "cat" } });
+    const discriminator = Schema.safeParse(Owner, { pet: { type: "cat", lives: 1 }, alias: {} });
+    const variant = Schema.safeParse(Owner, {
+      pet: { type: "cat", lives: 1 },
+      alias: { type: "cat" },
+    });
 
     expect(!discriminator.ok && discriminator.issues[0]?.message).toBe("bad pet");
     expect(!variant.ok && variant.issues[0]?.message).not.toBe("bad pet");
@@ -130,20 +132,22 @@ describe("SCH-091 Unknown or missing discriminator", () => {
 
 describe("SCH-092 Union options and nesting", () => {
   it("coerces inside the selected variant", () => {
-    const owner = parse(Owner, { pet: { type: "cat", lives: "9" } }, { coerce: true });
+    const owner = Schema.parse(Owner, { pet: { type: "cat", lives: "9" } }, { coerce: true });
 
     expect(owner.pet).toMatchObject({ lives: 9 });
-    expect(safeParse(Owner, { pet: { type: "cat", lives: "9" } }).ok).toBe(false);
+    expect(Schema.safeParse(Owner, { pet: { type: "cat", lives: "9" } }).ok).toBe(false);
   });
 
   it("counts the selected variant as a nesting level", () => {
-    const shallow = safeParse(Owner, { pet: { type: "cat", lives: 1 } }, { maxDepth: 1 });
+    const shallow = Schema.safeParse(Owner, { pet: { type: "cat", lives: 1 } }, { maxDepth: 1 });
 
     expect(!shallow.ok && shallow.issues[0]).toMatchObject({
       path: ["pet"],
       code: "max_depth_exceeded",
     });
-    expect(safeParse(Owner, { pet: { type: "cat", lives: 1 } }, { maxDepth: 2 }).ok).toBe(true);
+    expect(Schema.safeParse(Owner, { pet: { type: "cat", lives: 1 } }, { maxDepth: 2 }).ok).toBe(
+      true,
+    );
   });
 });
 
@@ -162,7 +166,7 @@ IsUnion({ discriminator: "kind", variants: { bird: Bird, fish: () => Fish } })(A
 
 describe("SCH-093 Discriminated union on a base class", () => {
   it("parses the base class into the selected subclass instance", () => {
-    const bird = parse(Animal as unknown as new () => Animal, { kind: "bird", wings: 2 });
+    const bird = Schema.parse(Animal as unknown as new () => Animal, { kind: "bird", wings: 2 });
 
     expect(bird).toBeInstanceOf(Bird);
     expect(bird).toMatchObject({ wings: 2 });
@@ -170,9 +174,9 @@ describe("SCH-093 Discriminated union on a base class", () => {
 
   it("locates top-level issues from the root", () => {
     const base = Animal as unknown as new () => Animal;
-    const unknown = safeParse(base, { kind: "cow" });
-    const variant = safeParse(base, { kind: "bird", wings: 1.5 });
-    const notObject = safeParse(base, []);
+    const unknown = Schema.safeParse(base, { kind: "cow" });
+    const variant = Schema.safeParse(base, { kind: "bird", wings: 1.5 });
+    const notObject = Schema.safeParse(base, []);
 
     expect(!unknown.ok && unknown.issues[0]).toMatchObject({
       path: ["kind"],
@@ -186,7 +190,7 @@ describe("SCH-093 Discriminated union on a base class", () => {
   });
 
   it("parses lazily referenced variants and reports their optional fields", () => {
-    const fish = parse(Animal as unknown as new () => Animal, { kind: "fish", fins: 2 });
+    const fish = Schema.parse(Animal as unknown as new () => Animal, { kind: "fish", fins: 2 });
 
     expect(fish).toBeInstanceOf(Fish);
   });
@@ -195,21 +199,21 @@ describe("SCH-093 Discriminated union on a base class", () => {
     class Pet {}
     IsUnion({ discriminator: "type", variants: { cat: Cat } }, { message: "pick a pet" })(Pet);
     const base = Pet as unknown as new () => Pet;
-    const unknown = safeParse(base, { type: "x" });
-    const variant = safeParse(base, { type: "cat", lives: 0 });
+    const unknown = Schema.safeParse(base, { type: "x" });
+    const variant = Schema.safeParse(base, { type: "cat", lives: 0 });
 
     expect(!unknown.ok && unknown.issues[0]?.message).toBe("pick a pet");
     expect(!variant.ok && variant.issues[0]?.message).not.toBe("pick a pet");
   });
 
   it("does not make the variants themselves unions", () => {
-    expect(safeParse(Bird, { wings: 2 }).ok).toBe(true);
+    expect(Schema.safeParse(Bird, { wings: 2 }).ok).toBe(true);
   });
 
   it("keeps the root depth: the variant is the root", () => {
     const base = Animal as unknown as new () => Animal;
 
-    expect(safeParse(base, { kind: "bird", wings: 2 }, { maxDepth: 1 }).ok).toBe(true);
+    expect(Schema.safeParse(base, { kind: "bird", wings: 2 }, { maxDepth: 1 }).ok).toBe(true);
   });
 });
 
@@ -230,15 +234,15 @@ FieldDeclaration.declare(Box, "flag", Object, IsOneOf([Boolean, Number]), Option
 
 describe("SCH-094 Non-discriminated unions", () => {
   it("accepts the first matching option", () => {
-    const text = parse(Box, { value: "a", maybe: null });
-    const cat = parse(Box, { value: { type: "cat", lives: 2 }, maybe: 1 });
+    const text = Schema.parse(Box, { value: "a", maybe: null });
+    const cat = Schema.parse(Box, { value: { type: "cat", lives: 2 }, maybe: 1 });
 
     expect(text.value).toBe("a");
     expect(cat.value).toBeInstanceOf(Cat);
   });
 
   it("reports one invalid_union issue with the attempts of every option", () => {
-    const result = safeParse(Box, { value: true, maybe: "x" });
+    const result = Schema.safeParse(Box, { value: true, maybe: "x" });
 
     expect(!result.ok && result.issues).toEqual([
       {
@@ -257,7 +261,7 @@ describe("SCH-094 Non-discriminated unions", () => {
   });
 
   it("keeps variant issue paths inside the attempts and honours message overrides", () => {
-    const result = safeParse(Box, { value: { type: "cat", lives: 0 }, maybe: {} });
+    const result = Schema.safeParse(Box, { value: { type: "cat", lives: 0 }, maybe: {} });
 
     expect(!result.ok && result.issues[0]?.params).toEqual({
       attempts: [
@@ -270,9 +274,9 @@ describe("SCH-094 Non-discriminated unions", () => {
   });
 
   it("tries exact matches before coercion and coerces only when nothing matches", () => {
-    const exact = parse(Box, { value: 5, maybe: "5" }, { coerce: true });
-    const coerced = parse(Box, { value: "x", maybe: null, flag: "true" }, { coerce: true });
-    const strict = safeParse(Box, { value: "x", maybe: null, flag: "true" });
+    const exact = Schema.parse(Box, { value: 5, maybe: "5" }, { coerce: true });
+    const coerced = Schema.parse(Box, { value: "x", maybe: null, flag: "true" }, { coerce: true });
+    const strict = Schema.safeParse(Box, { value: "x", maybe: null, flag: "true" });
 
     expect(exact.value).toBe(5);
     expect(exact.maybe).toBe("5");
@@ -281,7 +285,7 @@ describe("SCH-094 Non-discriminated unions", () => {
   });
 
   it("reports invalid_union when coercion does not help either", () => {
-    const result = safeParse(Box, { value: {}, maybe: [] }, { coerce: true });
+    const result = Schema.safeParse(Box, { value: {}, maybe: [] }, { coerce: true });
 
     expect(!result.ok && result.issues.map((issue) => issue.code)).toEqual([
       "invalid_union",
@@ -290,7 +294,7 @@ describe("SCH-094 Non-discriminated unions", () => {
   });
 
   it("does not coerce null or undefined into a match", () => {
-    const result = safeParse(Box, { value: null, maybe: null }, { coerce: true });
+    const result = Schema.safeParse(Box, { value: null, maybe: null }, { coerce: true });
 
     expect(!result.ok && result.issues.map((issue) => issue.code)).toEqual(["invalid_union"]);
   });
@@ -336,7 +340,7 @@ describe("SCH-095 Union declaration", () => {
   it("freezes unions and rejects class decoration after the first parse", () => {
     class Late {}
     IsUnion({ discriminator: "type", variants: { cat: Cat } })(Late);
-    safeParse(Late as unknown as new () => Late, { type: "cat", lives: 1 });
+    Schema.safeParse(Late as unknown as new () => Late, { type: "cat", lives: 1 });
     reject(() => IsUnion({ discriminator: "type", variants: { cat: Cat } })(Late));
   });
 
@@ -351,6 +355,6 @@ describe("SCH-095 Union declaration", () => {
       IsUnion({ discriminator: "t", variants: { a: (() => 1) as never } }),
     );
 
-    expect(() => safeParse(Holder, { x: { t: "a" } })).toThrow(SchemaDefinitionError);
+    expect(() => Schema.safeParse(Holder, { x: { t: "a" } })).toThrow(SchemaDefinitionError);
   });
 });

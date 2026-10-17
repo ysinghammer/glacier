@@ -11,14 +11,14 @@ Enable `experimentalDecorators` and `emitDecoratorMetadata`, and import `@glacie
 
 ```ts
 import "@glacier/reflection/register";
-import { IsInt, IsString, parse } from "@glacier/schema";
+import { IsInt, IsString, Schema } from "@glacier/schema";
 
 class Signup {
   @IsString() public name!: string;
   @IsInt() public age!: number;
 }
 
-const signup = parse(Signup, { name: "Ada", age: 36, ignored: true }); // Signup { name, age }
+const signup = Schema.parse(Signup, { name: "Ada", age: 36, ignored: true }); // Signup { name, age }
 ```
 
 Instances are created with `Object.create(prototype)`: the constructor and field initializers never run and
@@ -33,7 +33,7 @@ See [tests/scenarios/README.md](tests/scenarios/README.md).
 
 ## JSON Schema
 
-`toJsonSchema(Class, { target: "draft-2020-12" | "openapi-3.1" })` takes a single class. The result is a `$ref` to
+`Schema.toJsonSchema(Class, { target: "draft-2020-12" | "openapi-3.1" })` takes a single class. The result is a `$ref` to
 the root definition plus `$defs` (`draft-2020-12`, with `$schema`) or `components.schemas` (`openapi-3.1`); nested
 classes, unions and cycles are `$ref`s. Definition names are the class name or `@Describe({ name })`, and two
 different classes with the same name throw `SchemaDefinitionError`. `Rename` aliases are the property names,
@@ -49,7 +49,7 @@ expressible and are ignored; maps are emitted like records and bigint as integer
 
 Only the package root is exported (`"."`); there are no subpaths or deep imports.
 
-- `parse(Class, input, options?)` returns an instance or throws `SchemaError`; `safeParse(Class, input, options?)`
+- `Schema.parse(Class, input, options?)` returns an instance or throws `SchemaError`; `Schema.safeParse(Class, input, options?)`
   returns `IResult<T>` (`{ ok: true, value } | { ok: false, issues }`).
 - Decorators: `IsString`, `IsNumber`, `IsInt`, `IsBoolean`, `IsBigInt`, `IsDate`, `IsLiteral`, `IsEnum`, `IsAny`.
   Each takes `{ message }` to override the English message of that field's issues.
@@ -65,19 +65,19 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
   capped at 64 classes (`maxDepth` option) and reported as `max_depth_exceeded`.
 - Unions: `IsUnion({ discriminator, variants: { value: Class | () => Class } })` selects the variant class by the
   discriminator before validating, so issues point into the variant; an unknown or missing discriminator is
-  `invalid_discriminator`. It works on a property (nested instance) or on a base class, where `parse(Base, input)`
+  `invalid_discriminator`. It works on a property (nested instance) or on a base class, where `Schema.parse(Base, input)`
   returns the selected variant instance (subclasses do not inherit the union, and a class cannot list itself).
   `IsOneOf([String, Number, Class])` tries the options in order without a discriminator; coercion is applied only
   when no option matches as given, and a mismatch is one `invalid_union` issue with each option's issues in
   `params.attempts`. Unions are not accepted as collection element types; wrap them in a class.
-- `SchemaError` (`code = "SCHEMA_VALIDATION_FAILED"`, `issues`, `toJSON()`), `isSchemaError(error)` (a brand
+- `SchemaError` (`code = "SCHEMA_VALIDATION_FAILED"`, `issues`, `toJSON()`), `Schema.isError(error)` (a brand
   check that works across duplicate package copies) and `SchemaDefinitionError` for incorrectly declared classes.
 - Modifiers (unprefixed, combinable with the type decorator in either order, inherited): `Optional` (missing or
   `undefined` allowed, key stays absent), `Nullable` (`null` allowed and kept), `Default(value | factory)`
   (replaces `undefined` only, never `null`; makes the input optional; the default is still transformed and
   validated), `Rename('inputKey')` (reads another input key; issue paths use it) and `Transform(fn)` (custom
   transform before validation; throwing yields a `transform_failed` issue).
-- Coercion is off by default and enabled per call only: `parse(Class, input, { coerce: true })` converts
+- Coercion is off by default and enabled per call only: `Schema.parse(Class, input, { coerce: true })` converts
   numeric strings, `"true"`/`"false"`, integer strings to bigint, ISO 8601 strings and timestamps to dates and
   primitives to strings, before validation. Values that cannot be converted are left for validation to reject.
   There is no field-level or class-level switch.
@@ -99,21 +99,21 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
 
 ## Migrating from class-validator / class-transformer
 
-| class-validator / class-transformer                   | `@glacier/schema`                                                     |
-| ----------------------------------------------------- | --------------------------------------------------------------------- |
-| `validate(plainToInstance(C, input))`                 | `parse(C, input)` or `safeParse(C, input)`; one step, one result      |
-| `@IsEmail()`, `@IsUUID()`, `@IsUrl()`                 | `@IsString({ format: "email" \| "uuid" \| "url" })`                   |
-| `@Min`, `@Max`, `@Length`, `@Matches`                 | Decorator options `min`, `max`, `length`, `pattern`                   |
-| `@IsOptional()`                                       | `@Optional()`; never inferred from the TypeScript type                |
-| `@ValidateNested()` + `@Type(() => C)`                | `@IsObject(C)` / `@IsArray(C)`; no `@Type` needed                     |
-| `@Transform(fn)`                                      | `@Transform(fn)` (runs before validation)                             |
-| `@Expose({ name })`                                   | `@Rename("inputKey")`                                                 |
-| `@IsIn([...])`, `@Equals(x)`                          | `@IsEnum(...)`, `@IsLiteral(x)`                                       |
-| `@ValidateIf`, custom validators                      | `@Refine` on a property or the class (sync only)                      |
-| `enableImplicitConversion`                            | `parse(C, input, { coerce: true })`, per call only                    |
-| `whitelist: true`                                     | Always on: unknown keys are stripped                                  |
-| `PartialType` and friends from `@nestjs/mapped-types` | `PartialType`, `PickType`, `OmitType`, `ExtendType`                   |
-| `ValidationError[]` tree                              | Flat `ISchemaIssue[]` with `path`, stable `code`, `message`, `params` |
+| class-validator / class-transformer                   | `@glacier/schema`                                                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `validate(plainToInstance(C, input))`                 | `Schema.parse(C, input)` or `Schema.safeParse(C, input)`; one step, one result |
+| `@IsEmail()`, `@IsUUID()`, `@IsUrl()`                 | `@IsString({ format: "email" \| "uuid" \| "url" })`                            |
+| `@Min`, `@Max`, `@Length`, `@Matches`                 | Decorator options `min`, `max`, `length`, `pattern`                            |
+| `@IsOptional()`                                       | `@Optional()`; never inferred from the TypeScript type                         |
+| `@ValidateNested()` + `@Type(() => C)`                | `@IsObject(C)` / `@IsArray(C)`; no `@Type` needed                              |
+| `@Transform(fn)`                                      | `@Transform(fn)` (runs before validation)                                      |
+| `@Expose({ name })`                                   | `@Rename("inputKey")`                                                          |
+| `@IsIn([...])`, `@Equals(x)`                          | `@IsEnum(...)`, `@IsLiteral(x)`                                                |
+| `@ValidateIf`, custom validators                      | `@Refine` on a property or the class (sync only)                               |
+| `enableImplicitConversion`                            | `Schema.parse(C, input, { coerce: true })`, per call only                      |
+| `whitelist: true`                                     | Always on: unknown keys are stripped                                           |
+| `PartialType` and friends from `@nestjs/mapped-types` | `PartialType`, `PickType`, `OmitType`, `ExtendType`                            |
+| `ValidationError[]` tree                              | Flat `ISchemaIssue[]` with `path`, stable `code`, `message`, `params`          |
 
 Behaviour differences: the constructor and field initializers never run (use `@Default`); there is no
 `instanceToPlain`, expose/exclude groups, async validation, i18n or standard TC39 decorator support; the top-level
@@ -121,21 +121,21 @@ target is always a class (map arrays and primitives yourself).
 
 ## Adapter guidance
 
-This package has no HTTP concepts. An adapter (HTTP, queue, CLI) catches failures with `isSchemaError` and maps
-them itself; `isSchemaError` is a brand check, so it also works when two copies of the package are installed.
+This package has no HTTP concepts. An adapter (HTTP, queue, CLI) catches failures with `Schema.isError` and maps
+them itself; `Schema.isError` is a brand check, so it also works when two copies of the package are installed.
 
 ```ts
 try {
-  const dto = parse(Signup, body);
+  const dto = Schema.parse(Signup, body);
 } catch (error) {
-  if (isSchemaError(error)) {
+  if (Schema.isError(error)) {
     return { status: 400, body: error.toJSON() }; // issues: [{ path, code, message, params }]
   }
   throw error;
 }
 ```
 
-Alternatively use `safeParse` and branch on `result.ok`. Branch on the stable `code`, never on `message`.
+Alternatively use `Schema.safeParse` and branch on `result.ok`. Branch on the stable `code`, never on `message`.
 `SchemaDefinitionError` signals a programming error in a class declaration and should not be mapped to a client
 error.
 
@@ -145,7 +145,7 @@ See [tests/scenarios/README.md](tests/scenarios/README.md).
 
 ## JSON Schema
 
-`toJsonSchema(Class, { target: "draft-2020-12" | "openapi-3.1" })` takes a single class. The result is a `$ref` to
+`Schema.toJsonSchema(Class, { target: "draft-2020-12" | "openapi-3.1" })` takes a single class. The result is a `$ref` to
 the root definition plus `$defs` (`draft-2020-12`, with `$schema`) or `components.schemas` (`openapi-3.1`); nested
 classes, unions and cycles are `$ref`s. Definition names are the class name or `@Describe({ name })`, and two
 different classes with the same name throw `SchemaDefinitionError`. `Rename` aliases are the property names,

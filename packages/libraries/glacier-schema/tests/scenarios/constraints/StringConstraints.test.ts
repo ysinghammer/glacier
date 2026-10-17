@@ -3,7 +3,7 @@
 // @scenario SCH-042
 // @scenario SCH-043
 import { describe, expect, it } from "vitest";
-import { IsString, SchemaDefinitionError, safeParse } from "../../../index.js";
+import { IsString, SchemaDefinitionError, Schema } from "../../../index.js";
 import type { IStringOptions } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
@@ -13,7 +13,7 @@ function parseString(options: IStringOptions, input: unknown) {
     public value!: string;
   }
   FieldDeclaration.declare(Holder, "value", String, IsString(options));
-  const result = safeParse(Holder, { value: input });
+  const result = Schema.safeParse(Holder, { value: input });
   return result.ok ? { value: Reflect.get(result.value, "value") } : { issue: result.issues[0] };
 }
 
@@ -81,7 +81,7 @@ describe("SCH-041 String pattern", () => {
     }
     FieldDeclaration.declare(Holder, "value", String, IsString({ pattern: /a/gy }));
 
-    const outcomes = [1, 2, 3].map(() => safeParse(Holder, { value: "a" }).ok);
+    const outcomes = [1, 2, 3].map(() => Schema.safeParse(Holder, { value: "a" }).ok);
 
     expect(outcomes).toEqual([true, true, true]);
   });

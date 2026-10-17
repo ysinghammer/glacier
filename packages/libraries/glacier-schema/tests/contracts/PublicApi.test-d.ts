@@ -30,9 +30,6 @@ import {
   PickType,
   type IDerivedClass,
   type IDerivedClassOptions,
-  isSchemaError,
-  parse,
-  safeParse,
   type ICollectionOptions,
   type IElementType,
   type ISizeOptions,
@@ -53,20 +50,20 @@ import {
   type IUnionVariants,
   Describe,
   JsonSchema,
-  toJsonSchema,
   type IDescribeOptions,
   type IJsonSchema,
   type IJsonSchemaFragment,
   type IJsonSchemaOptions,
   type IJsonSchemaTarget,
+  Schema,
 } from "../../index.js";
 
 class User {
   public name!: string;
 }
 
-const instance: User = parse(User, {});
-const result: IResult<User> = safeParse(User, {});
+const instance: User = Schema.parse(User, {});
+const result: IResult<User> = Schema.safeParse(User, {});
 if (result.ok) {
   const value: User = result.value;
   void value;
@@ -78,7 +75,7 @@ if (result.ok) {
 }
 
 const thrown: unknown = new SchemaError([]);
-if (isSchemaError(thrown)) {
+if (Schema.isError(thrown)) {
   const issues: readonly ISchemaIssue[] = thrown.issues;
   const code: string = thrown.code;
   void [issues, code];
@@ -128,8 +125,8 @@ const stringOptions: IStringOptions = { length: 3, format: "uuid" };
 const numberOptions: INumberOptions = { min: 0 };
 const format: IStringFormat = "date-time";
 const parseOptions: ISchemaParseOptions = { coerce: true };
-const coerced: User = parse(User, {}, parseOptions);
-const coercedResult: IResult<User> = safeParse(User, {}, { coerce: false });
+const coerced: User = Schema.parse(User, {}, parseOptions);
+const coercedResult: IResult<User> = Schema.safeParse(User, {}, { coerce: false });
 const transformFn: ITransformFunction = (value) => String(value);
 const modifiers: PropertyDecorator[] = [
   Optional(),
@@ -144,7 +141,7 @@ const enumSource: IEnumSource = { Up: "up" };
 const definitionError: Error = new SchemaDefinitionError("late");
 
 // @ts-expect-error The target must be a class, not an instance.
-parse(new User(), {});
+Schema.parse(new User(), {});
 const refineOptions: IRefineOptions = { path: ["a", 0], code: "mine", message: "m" };
 const refinements: [PropertyDecorator, ClassDecorator] = [
   Refine((value: unknown) => value !== undefined, "m"),
@@ -162,7 +159,7 @@ const unknownCode: ISchemaIssueCode = "unknown";
 // @ts-expect-error Decorator options only know `message` and the constraints.
 IsString({ other: true });
 // @ts-expect-error Coercion options are per call and only know `coerce`.
-parse(User, {}, { coerce: true, other: 1 });
+Schema.parse(User, {}, { coerce: true, other: 1 });
 // @ts-expect-error Rename needs a string key.
 Rename(1);
 // @ts-expect-error Transform needs a function.
@@ -225,14 +222,14 @@ const extended: IDerivedClass<Omit<Account, "name"> & { name: number }> = Extend
   },
   derivedOptions,
 );
-const patch: Partial<Account> = parse(update, {});
+const patch: Partial<Account> = Schema.parse(update, {});
 void [patch, picked, omitted, extended];
 
 const jsonSchemaTarget: IJsonSchemaTarget = "openapi-3.1";
 const jsonSchemaOptions: IJsonSchemaOptions = { target: jsonSchemaTarget };
 const describeOptions: IDescribeOptions = { title: "t", example: 1, deprecated: true, name: "n" };
 const fragment: IJsonSchemaFragment = { minLength: 1 };
-const schemaDocument: IJsonSchema = toJsonSchema(User, jsonSchemaOptions);
+const schemaDocument: IJsonSchema = Schema.toJsonSchema(User, jsonSchemaOptions);
 const annotationDecorators: (ClassDecorator & PropertyDecorator)[] = [
   Describe(describeOptions),
   JsonSchema(fragment),

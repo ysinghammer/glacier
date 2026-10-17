@@ -10,7 +10,7 @@ import {
   IsNumber,
   IsString,
   SchemaDefinitionError,
-  safeParse,
+  Schema,
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
@@ -21,8 +21,8 @@ describe("SCH-019 Declared fields are required", () => {
     }
     FieldDeclaration.declare(Person, "name", String, IsString());
 
-    const missing = safeParse(Person, {});
-    const undefinedValue = safeParse(Person, { name: undefined });
+    const missing = Schema.safeParse(Person, {});
+    const undefinedValue = Schema.safeParse(Person, { name: undefined });
 
     const expected = {
       ok: false,
@@ -102,8 +102,8 @@ describe("SCH-021 Field declarations are validated", () => {
     FieldDeclaration.declare(Base, "value", undefined, IsString());
     FieldDeclaration.declare(Derived, "value", undefined, IsLiteral("fixed"));
 
-    expect(safeParse(Derived, { value: "fixed" }).ok).toBe(true);
-    expect(safeParse(Derived, { value: "other" }).ok).toBe(false);
+    expect(Schema.safeParse(Derived, { value: "fixed" }).ok).toBe(true);
+    expect(Schema.safeParse(Derived, { value: "other" }).ok).toBe(false);
   });
 
   it("rejects static members", () => {

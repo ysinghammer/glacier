@@ -1,7 +1,4 @@
-export { parse } from "./src/application/parse.js";
-export { safeParse } from "./src/application/safeParse.js";
-export { toJsonSchema } from "./src/application/toJsonSchema.js";
-export { isSchemaError } from "./src/domain/failures/isSchemaError.js";
+export { Schema } from "./src/application/Schema.js";
 export { SchemaError } from "./src/domain/failures/SchemaError.error.js";
 export { SchemaDefinitionError } from "./src/domain/failures/SchemaDefinition.error.js";
 export { IsString } from "./src/domain/decorators/IsString.js";

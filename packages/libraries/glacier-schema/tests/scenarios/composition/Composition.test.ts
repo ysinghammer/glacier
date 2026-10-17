@@ -19,8 +19,7 @@ import {
   Refine,
   Rename,
   SchemaDefinitionError,
-  parse,
-  safeParse,
+  Schema,
 } from "../../../index.js";
 import { DerivedClasses } from "../../../src/domain/schema/DerivedClasses.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
@@ -62,10 +61,10 @@ describe("SCH-110 Inheritance of decorators", () => {
   FieldDeclaration.declare(Grandchild, "count", Number, IsInt({ min: 10 }));
 
   it("inherits fields, lets a subclass declaration replace them and keeps nested levels", () => {
-    expect(safeParse(Child, { id: "abc", count: 1 }).ok).toBe(true);
-    expect(safeParse(Child, { id: "abcd", label: "xyz", count: 1 }).ok).toBe(false);
-    expect(parse(Grandchild, { id: "abc", count: 11 })).toBeInstanceOf(Grandchild);
-    expect(safeParse(Grandchild, { id: "ab", count: 5 })).toMatchObject({
+    expect(Schema.safeParse(Child, { id: "abc", count: 1 }).ok).toBe(true);
+    expect(Schema.safeParse(Child, { id: "abcd", label: "xyz", count: 1 }).ok).toBe(false);
+    expect(Schema.parse(Grandchild, { id: "abc", count: 11 })).toBeInstanceOf(Grandchild);
+    expect(Schema.safeParse(Grandchild, { id: "ab", count: 5 })).toMatchObject({
       ok: false,
       issues: [{ path: ["id"] }, { path: ["count"] }],
     });
@@ -76,12 +75,12 @@ describe("SCH-111 PartialType", () => {
   it("makes every field optional, drops defaults and keeps validation of present values", () => {
     const UpdateUser = PartialType(createUserClass());
 
-    expect(parse(UpdateUser, {})).toEqual({});
-    expect(parse(UpdateUser, { name: "Ada", mail: "ada@example.com" })).toEqual({
+    expect(Schema.parse(UpdateUser, {})).toEqual({});
+    expect(Schema.parse(UpdateUser, { name: "Ada", mail: "ada@example.com" })).toEqual({
       name: "Ada",
       email: "ada@example.com",
     });
-    expect(safeParse(UpdateUser, { name: "A", age: -1 })).toMatchObject({
+    expect(Schema.safeParse(UpdateUser, { name: "A", age: -1 })).toMatchObject({
       ok: false,
       issues: [{ path: ["name"] }, { path: ["age"] }],
     });
@@ -103,9 +102,9 @@ describe("SCH-111 PartialType", () => {
     Refine<Source>(() => false, { message: "never" })(Source);
     const Update = PartialType(Source);
 
-    expect(parse(Update, { note: null })).toEqual({ note: null });
-    expect(safeParse(Update, { code: "no" }).ok).toBe(false);
-    expect(safeParse(Update, { code: "ok" }).ok).toBe(true);
+    expect(Schema.parse(Update, { note: null })).toEqual({ note: null });
+    expect(Schema.safeParse(Update, { code: "no" }).ok).toBe(false);
+    expect(Schema.safeParse(Update, { code: "ok" }).ok).toBe(true);
   });
 
   it("can be extended with further decorated fields", () => {
@@ -114,8 +113,8 @@ describe("SCH-111 PartialType", () => {
     }
     FieldDeclaration.declare(Update, "extra", String, IsString());
 
-    expect(parse(Update, { extra: "x" })).toEqual({ extra: "x" });
-    expect(safeParse(Update, {}).ok).toBe(false);
+    expect(Schema.parse(Update, { extra: "x" })).toEqual({ extra: "x" });
+    expect(Schema.safeParse(Update, {}).ok).toBe(false);
   });
 });
 
@@ -123,17 +122,17 @@ describe("SCH-112 PickType and OmitType", () => {
   it("pick keeps only the listed fields with their modifiers", () => {
     const Login = PickType(createUserClass(), ["email", "role"]);
 
-    expect(parse(Login, { mail: "a@b.co", name: "ignored" })).toEqual({
+    expect(Schema.parse(Login, { mail: "a@b.co", name: "ignored" })).toEqual({
       email: "a@b.co",
       role: "member",
     });
-    expect(safeParse(Login, { mail: "nope" }).ok).toBe(false);
+    expect(Schema.safeParse(Login, { mail: "nope" }).ok).toBe(false);
   });
 
   it("omit removes the listed fields", () => {
     const Profile = OmitType(createUserClass(), ["email", "role"]);
 
-    expect(parse(Profile, { name: "Ada", mail: "x" })).toEqual({ name: "Ada" });
+    expect(Schema.parse(Profile, { name: "Ada", mail: "x" })).toEqual({ name: "Ada" });
   });
 
   it("rejects keys that are not schema fields and drops class refinements", () => {
@@ -147,8 +146,8 @@ describe("SCH-112 PickType and OmitType", () => {
 
     expect(() => PickType(Source, ["zzz" as "a"])).toThrow(SchemaDefinitionError);
     expect(() => OmitType(Source, ["zzz" as "a"])).toThrow("Cannot omit zzz: Source has no such");
-    expect(safeParse(OmitType(Source, ["b"]), { a: "1" }).ok).toBe(true);
-    expect(safeParse(Source, { a: "1", b: "2" }).ok).toBe(false);
+    expect(Schema.safeParse(OmitType(Source, ["b"]), { a: "1" }).ok).toBe(true);
+    expect(Schema.safeParse(Source, { a: "1", b: "2" }).ok).toBe(false);
   });
 });
 
@@ -170,14 +169,14 @@ describe("SCH-113 ExtendType", () => {
     Refine<Extension>((value) => value.extra !== 13, { message: "extension" })(Extension);
     const Combined = ExtendType(Base, Extension);
 
-    expect(parse(Combined, { name: "a", secret: "s", extra: 1 })).toEqual({
+    expect(Schema.parse(Combined, { name: "a", secret: "s", extra: 1 })).toEqual({
       name: "a",
       secret: "s",
       extra: 1,
     });
-    expect(safeParse(Combined, { name: "a", secret: "bad", extra: 1 }).ok).toBe(false);
-    expect(safeParse(Combined, { name: "a", secret: "s", extra: 13 }).ok).toBe(false);
-    expect(safeParse(Combined, { secret: "s", extra: 1 }).ok).toBe(false);
+    expect(Schema.safeParse(Combined, { name: "a", secret: "bad", extra: 1 }).ok).toBe(false);
+    expect(Schema.safeParse(Combined, { name: "a", secret: "s", extra: 13 }).ok).toBe(false);
+    expect(Schema.safeParse(Combined, { secret: "s", extra: 1 }).ok).toBe(false);
   });
 
   it("supports nested derivation chains", () => {
@@ -189,11 +188,11 @@ describe("SCH-113 ExtendType", () => {
     FieldDeclaration.declare(Patch, "reason", String, IsString());
     const AuditedUpdate = ExtendType(Update, Patch);
 
-    expect(parse(AuditedUpdate, { reason: "fix", name: "Ada" })).toEqual({
+    expect(Schema.parse(AuditedUpdate, { reason: "fix", name: "Ada" })).toEqual({
       reason: "fix",
       name: "Ada",
     });
-    expect(safeParse(AuditedUpdate, { name: "Ada" }).ok).toBe(false);
+    expect(Schema.safeParse(AuditedUpdate, { name: "Ada" }).ok).toBe(false);
   });
 });
 
@@ -212,7 +211,7 @@ describe("SCH-114 Derived classes and frozen sources", () => {
 
   it("freezes a derived class when it is parsed", () => {
     const Derived = PickType(createUserClass(), ["name"]);
-    parse(Derived, { name: "Ada" });
+    Schema.parse(Derived, { name: "Ada" });
 
     expect(() => FieldDeclaration.declare(Derived, "late", undefined, IsString())).toThrow(
       "frozen",
@@ -222,7 +221,7 @@ describe("SCH-114 Derived classes and frozen sources", () => {
   it("produces plain instances of the derived class", () => {
     const Derived = PickType(createUserClass(), ["name"]);
 
-    expect(parse(Derived, { name: "Ada" })).toBeInstanceOf(Derived);
+    expect(Schema.parse(Derived, { name: "Ada" })).toBeInstanceOf(Derived);
   });
 });
 

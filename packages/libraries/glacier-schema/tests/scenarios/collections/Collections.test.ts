@@ -19,7 +19,7 @@ import {
   Nullable,
   Optional,
   SchemaDefinitionError,
-  safeParse,
+  Schema,
 } from "../../../index.js";
 import type { IElementType, ISchemaParseOptions } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
@@ -35,7 +35,7 @@ function parseValue(
     public value: unknown;
   }
   FieldDeclaration.declare(Holder, "value", designType, decorator);
-  const result = safeParse(Holder, { value: input }, options);
+  const result = Schema.safeParse(Holder, { value: input }, options);
   return result.ok ? { value: Reflect.get(result.value, "value") } : { issues: result.issues };
 }
 
@@ -481,8 +481,8 @@ describe("SCH-077 Collections with modifiers and coercion", () => {
       IsRecord(Boolean, { message: "Flags are invalid" }),
     );
 
-    const ok = safeParse(Holder, { tags: null, flags: {} });
-    const bad = safeParse(Holder, { flags: { a: 1 } });
+    const ok = Schema.safeParse(Holder, { tags: null, flags: {} });
+    const bad = Schema.safeParse(Holder, { flags: { a: 1 } });
 
     expect(ok.ok && ok.value).toEqual({ tags: null, roles: ["user"], flags: {} });
     expect(bad.ok).toBe(false);

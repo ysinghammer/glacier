@@ -1,8 +1,8 @@
 # Coercion
 
 Lets a caller opt in, per call, to converting loosely typed input such as query strings or form data before
-validation: `parse(Class, input, { coerce: true })` and `safeParse(Class, input, { coerce: true })`. Coercion is
-off by default and there is no field-level or class-level switch. Public contract: `parse`, `safeParse` and
+validation: `Schema.parse(Class, input, { coerce: true })` and `Schema.safeParse(Class, input, { coerce: true })`. Coercion is
+off by default and there is no field-level or class-level switch. Public contract: `Schema.parse`, `Schema.safeParse` and
 `ISchemaParseOptions` of the package-root API of `@glacier/schema`. Story-local criteria are phase 3.
 
 | ID      | Title                      | Verifies                                                                                               | Source  | Test                                 |
