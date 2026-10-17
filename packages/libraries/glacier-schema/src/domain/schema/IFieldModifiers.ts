@@ -1,3 +1,5 @@
+import type { IDescribeOptions } from "../json-schema/IDescribeOptions.js";
+import type { IJsonSchemaFragment } from "../json-schema/IJsonSchemaFragment.js";
 import type { IRefinement } from "./IRefinement.js";
 import type { ITransformFunction } from "./ITransformFunction.js";
 
@@ -15,4 +17,8 @@ export interface IFieldModifiers {
   readonly transform?: ITransformFunction;
   /** `Refine`: check run last on the validated value. */
   readonly refine?: IRefinement;
+  /** `Describe`: documentation emitted into the JSON Schema output only. */
+  readonly describe?: IDescribeOptions;
+  /** `JsonSchema`: hand-written fragment merged over the generated JSON Schema of the field. */
+  readonly jsonSchema?: IJsonSchemaFragment;
 }

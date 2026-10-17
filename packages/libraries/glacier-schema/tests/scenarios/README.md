@@ -6,6 +6,7 @@
 | [collections](collections/README.md)             | Arrays, tuples, sets, maps and records with element validation, sizes and uniqueness.                   |
 | [composition](composition/README.md)             | Inheritance and the `PartialType`, `PickType`, `OmitType`, `ExtendType` helpers for create/update DTOs. |
 | [constraints](constraints/README.md)             | String and number constraints, string formats and normalisation via decorator options.                  |
+| [json-schema](json-schema/README.md)             | JSON Schema 2020-12 and OpenAPI 3.1 output with `Describe` annotations and `JsonSchema` fragments.      |
 | [modifiers](modifiers/README.md)                 | `Optional`, `Nullable`, `Default`, `Rename` and `Transform` field modifiers.                            |
 | [nested-objects](nested-objects/README.md)       | Nested classes, lazy references for cycles and a recursion depth cap with full issue paths.             |
 | [parsing-pipeline](parsing-pipeline/README.md)   | `parse`/`safeParse` turning untrusted input into real class instances, with a frozen, cached schema.    |

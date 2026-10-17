@@ -51,6 +51,14 @@ import {
   type IStringOptions,
   type IUnionOptions,
   type IUnionVariants,
+  Describe,
+  JsonSchema,
+  toJsonSchema,
+  type IDescribeOptions,
+  type IJsonSchema,
+  type IJsonSchemaFragment,
+  type IJsonSchemaOptions,
+  type IJsonSchemaTarget,
 } from "../../index.js";
 
 class User {
@@ -219,3 +227,14 @@ const extended: IDerivedClass<Omit<Account, "name"> & { name: number }> = Extend
 );
 const patch: Partial<Account> = parse(update, {});
 void [patch, picked, omitted, extended];
+
+const jsonSchemaTarget: IJsonSchemaTarget = "openapi-3.1";
+const jsonSchemaOptions: IJsonSchemaOptions = { target: jsonSchemaTarget };
+const describeOptions: IDescribeOptions = { title: "t", example: 1, deprecated: true, name: "n" };
+const fragment: IJsonSchemaFragment = { minLength: 1 };
+const schemaDocument: IJsonSchema = toJsonSchema(User, jsonSchemaOptions);
+const annotationDecorators: (ClassDecorator & PropertyDecorator)[] = [
+  Describe(describeOptions),
+  JsonSchema(fragment),
+];
+void [schemaDocument, annotationDecorators];
