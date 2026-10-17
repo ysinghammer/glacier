@@ -10,8 +10,7 @@ export default defineConfig({
     pool: "forks",
     isolate: true,
     include: ["tests/scenarios/**/*.test.ts"],
-    // The scaffold exports no runtime values yet, so there is nothing to assert.
-    passWithNoTests: true,
+    passWithNoTests: false,
     testTimeout: LIFECYCLE_TIMEOUT_MS,
     hookTimeout: LIFECYCLE_TIMEOUT_MS,
     teardownTimeout: LIFECYCLE_TIMEOUT_MS,
