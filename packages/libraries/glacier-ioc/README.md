@@ -83,9 +83,26 @@ container.get(OrderService); // OrderService, built once
 ```
 
 `Providers.factory` infers the `inject` tuple so mismatched factory parameters fail to compile; a plain object
-literal in the `providers` array is only loosely typed. A missing dependency throws `UnknownDependencyError`
-with the path (`OrderService -> OrderRepository -> Connection`) unless the parameter is `@Optional`;
-cycles throw `CircularDependencyError`.
+literal in the `providers` array is only loosely typed. A missing dependency is an `UnknownDependencyError`
+with the path (`OrderRepository -> Connection`) unless the parameter is `@Optional`;
+cycles are a `CircularDependencyError` (`A -> B -> A`). Both are found by `create`, see Graph validation.
+
+## Graph validation
+
+`GlacierContainer.create` validates the whole graph before constructing any provider: invalid providers,
+modules, imports and exports, required dependencies without a visible provider, and cycles between providers
+or between imported modules (there is no `forwardRef`). Every problem is collected and thrown together as one
+`AggregateContainerError` whose `causes` list each `ContainerError` with its dependency or module path.
+Missing `@Optional` dependencies are not errors. Scope consistency is validated by this pass in a later story.
+
+```ts
+try {
+  GlacierContainer.create(AppModule);
+} catch (error) {
+  if (error instanceof AggregateContainerError)
+    console.error(error.causes.map((cause) => cause.message));
+}
+```
 
 ## Modules
 

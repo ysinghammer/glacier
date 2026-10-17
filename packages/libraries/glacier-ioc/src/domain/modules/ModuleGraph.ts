@@ -1,4 +1,6 @@
 import { AggregateContainerError } from "../failures/AggregateContainer.error.js";
+import { CircularDependencyError } from "../failures/CircularDependency.error.js";
+import { DependencyValidation } from "./DependencyValidation.js";
 import { InvalidModuleError } from "../failures/InvalidModule.error.js";
 import { InvalidScopeError } from "../failures/InvalidScope.error.js";
 import { InjectionMetadata } from "../metadata/InjectionMetadata.js";
@@ -19,7 +21,7 @@ import { ModuleNode } from "./ModuleNode.js";
 export class ModuleGraph {
   /** The module the container was created from. */
   readonly root: ModuleNode;
-  /** Every reachable module, each after the modules it imports (import cycles are broken at the revisit). */
+  /** Every reachable module, each after the modules it imports (import cycles are reported as errors). */
   readonly dependencyOrder: readonly ModuleNode[];
   readonly #globalModules: readonly ModuleNode[];
 
@@ -30,14 +32,14 @@ export class ModuleGraph {
   }
 
   /**
-   * Builds the graph, validating module metadata, provider shapes, class metadata, scopes and exports
-   * up front. Throws one `AggregateContainerError` listing every problem found; nothing is constructed.
+   * Builds the graph, validating module metadata, provider shapes, class metadata, scopes, exports,
+   * unsatisfied provider dependencies and circular module or provider dependencies up front. Throws one `AggregateContainerError` listing every problem found; nothing is constructed.
    */
   public static build(root: IModuleReference): ModuleGraph {
     const problems: Error[] = [];
     const nodes = new Map<IModuleReference, ModuleNode>();
     const dependencyOrder: ModuleNode[] = [];
-    const rootNode = ModuleGraph.#visit(root, nodes, dependencyOrder, problems);
+    const rootNode = ModuleGraph.#visit(root, nodes, dependencyOrder, [], problems);
     for (const node of dependencyOrder) {
       for (const token of node.findUnavailableExports()) {
         problems.push(
@@ -48,6 +50,12 @@ export class ModuleGraph {
         );
       }
     }
+    problems.push(
+      ...DependencyValidation.validate(
+        dependencyOrder,
+        dependencyOrder.filter((node) => node.isGlobal),
+      ),
+    );
     if (problems.length > 0 || rootNode === undefined) throw new AggregateContainerError(problems);
     return new ModuleGraph(rootNode, dependencyOrder);
   }
@@ -83,22 +91,38 @@ export class ModuleGraph {
     return found;
   }
 
-  /** Visits a module once, then its imports, appending the node after them; returns undefined on failure. */
+  /**
+   * Visits a module once, then its imports, appending the node after them; returns undefined on failure.
+   * `importing` holds the modules currently being visited, so reaching one of them again is an import cycle.
+   */
   static #visit(
     reference: IModuleReference,
     nodes: Map<IModuleReference, ModuleNode>,
     dependencyOrder: ModuleNode[],
+    importing: readonly ModuleNode[],
     problems: Error[],
   ): ModuleNode | undefined {
     const known = nodes.get(reference);
-    if (known !== undefined) return known;
+    if (known !== undefined) {
+      if (importing.includes(known)) {
+        const cycle = [...importing.slice(importing.indexOf(known)), known];
+        problems.push(new CircularDependencyError(cycle.map((node) => node.moduleClass)));
+      }
+      return known;
+    }
     try {
       const resolved = ModuleMetadata.resolve(reference);
       const node = new ModuleNode(reference, resolved.moduleClass, resolved.isGlobal);
       nodes.set(reference, node);
       ModuleGraph.#registerProviders(node, resolved.providers, problems);
       for (const imported of resolved.imports) {
-        const importedNode = ModuleGraph.#visit(imported, nodes, dependencyOrder, problems);
+        const importedNode = ModuleGraph.#visit(
+          imported,
+          nodes,
+          dependencyOrder,
+          [...importing, node],
+          problems,
+        );
         if (importedNode !== undefined) node.addImport(importedNode);
       }
       ModuleGraph.#declareExports(node, resolved.exports, problems);

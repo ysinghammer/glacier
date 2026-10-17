@@ -10,7 +10,7 @@ import { ModuleLookup } from "./ModuleLookup.js";
 /**
  * Dependency-injection container over a module graph resolving DEFAULT-scope providers: each provider is
  * constructed at most once and shared by every dependent and every `get`. The graph is validated eagerly in
- * `create`; dependency resolution happens lazily on first use.
+ * `create`, including missing dependencies and cycles; instances are constructed lazily on first use.
  */
 export class GlacierContainer {
   readonly #graph: ModuleGraph;
@@ -23,7 +23,8 @@ export class GlacierContainer {
 
   /**
    * Builds a container from a root module class or dynamic module, traversing its imports once per module
-   * and validating module metadata, provider shapes, class metadata, scopes and exports up front.
+   * and validating module metadata, provider shapes, class metadata, scopes, exports, missing dependencies and
+   * cycles up front.
    * Throws one `AggregateContainerError` listing every problem found; nothing is constructed.
    */
   public static create(root: IModuleReference): GlacierContainer {
@@ -34,8 +35,7 @@ export class GlacierContainer {
    * Returns the shared instance for the token, constructing it and its dependencies on first use.
    * By default the whole container is searched, preferring what the root module sees;
    * `{ strict: true }` restricts the lookup to the root module's visibility.
-   * Throws `UnknownDependencyError` (with the path from the requested token) when a dependency has no
-   * visible provider and is not `@Optional`, and `CircularDependencyError` when providers depend on each other.
+   * Throws `UnknownDependencyError` when the requested token has no visible provider.
    */
   public get<T>(token: InjectionToken<T>, options?: IGetOptions): T;
   public get<T extends object>(token: IConstructableClass<T>, options?: IGetOptions): T;

@@ -19,7 +19,7 @@ export class ModuleLookup {
   /**
    * Returns the shared instance of the token as visible to the selected module (own providers, imports'
    * exports, global exports). `{ strict: false }` also searches every other module of the container.
-   * Throws `UnknownDependencyError` when nothing matches and `CircularDependencyError` for cycles.
+   * Throws `UnknownDependencyError` when nothing matches.
    */
   public get<T>(token: InjectionToken<T>, options?: IGetOptions): T;
   public get<T extends object>(token: IConstructableClass<T>, options?: IGetOptions): T;

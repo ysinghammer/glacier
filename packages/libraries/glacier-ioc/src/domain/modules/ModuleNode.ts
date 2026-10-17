@@ -68,6 +68,11 @@ export class ModuleNode {
     return this.#registrations.get(TokenIdentity.of(token));
   }
 
+  /** Lists every provider registered by this module. */
+  public listRegistrations(): readonly IProviderRegistration[] {
+    return [...this.#registrations.values()];
+  }
+
   /** Lists exported tokens that are neither owned nor exported by an imported module. */
   public findUnavailableExports(): readonly ITokenReference[] {
     return [...this.#exportedTokens.entries()]

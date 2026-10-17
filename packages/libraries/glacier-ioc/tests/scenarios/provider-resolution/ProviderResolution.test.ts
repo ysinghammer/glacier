@@ -8,7 +8,7 @@ class TestRoot {}
 Module()(TestRoot);
 import { describe, expect, it } from "vitest";
 import {
-  CircularDependencyError,
+  AggregateContainerError,
   GlacierContainer,
   Inject,
   Injectable,
@@ -129,12 +129,12 @@ describe("IOC-007 useValue and useExisting", () => {
   });
 
   it("reports an alias to a missing target with the full path", () => {
-    const container = GlacierContainer.create({
-      module: TestRoot,
-      providers: [{ provide: Service, useExisting: Repository }],
-    });
-
-    expect(() => container.get(Service)).toThrow("Unknown dependency: Service -> Repository");
+    expect(() =>
+      GlacierContainer.create({
+        module: TestRoot,
+        providers: [{ provide: Service, useExisting: Repository }],
+      }),
+    ).toThrow("- Unknown dependency: Service -> Repository");
   });
 });
 
@@ -197,23 +197,21 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
     }
     Injectable()(Controller);
     emitParameterTypes(Controller, [Service]);
-    const container = GlacierContainer.create({
-      module: TestRoot,
-      providers: [Controller, Service],
-    });
 
-    const failure = (): unknown => container.get(Controller);
+    const failure = (): unknown =>
+      GlacierContainer.create({ module: TestRoot, providers: [Controller, Service] });
 
-    expect(failure).toThrow(UnknownDependencyError);
-    expect(failure).toThrow("Unknown dependency: Controller -> Service -> Repository");
+    expect(failure).toThrow(AggregateContainerError);
+    expect(failure).toThrow("Unknown dependency: Service -> Repository");
   });
 
   it("throws when the requested token itself is not provided", () => {
     const missing = new InjectionToken<string>("missing");
 
-    expect(() => GlacierContainer.create({ module: TestRoot, providers: [] }).get(missing)).toThrow(
-      "Unknown dependency: InjectionToken(missing)",
-    );
+    const container = GlacierContainer.create({ module: TestRoot, providers: [] });
+
+    expect(() => container.get(missing)).toThrow(UnknownDependencyError);
+    expect(() => container.get(missing)).toThrow("Unknown dependency: InjectionToken(missing)");
   });
 
   it("yields undefined for a missing @Optional dependency", () => {
@@ -257,14 +255,10 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
     Injectable()(Holder);
     Optional()(Holder, undefined, 0);
     emitParameterTypes(Holder, [Service]);
-    const container = GlacierContainer.create({
-      module: TestRoot,
-      providers: [Holder, Service],
-    });
 
-    expect(() => container.get(Holder)).toThrow(
-      "Unknown dependency: Holder -> Service -> Repository",
-    );
+    expect(() =>
+      GlacierContainer.create({ module: TestRoot, providers: [Holder, Service] }),
+    ).toThrow("Unknown dependency: Service -> Repository");
   });
 
   it("detects a cycle instead of recursing forever", () => {
@@ -280,12 +274,9 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
     Inject(Left)(Right, undefined, 0);
     emitParameterTypes(Left, [Object]);
     emitParameterTypes(Right, [Object]);
-    const container = GlacierContainer.create({
-      module: TestRoot,
-      providers: [Left, Right],
-    });
 
-    expect(() => container.get(Left)).toThrow(CircularDependencyError);
-    expect(() => container.get(Left)).toThrow("Circular dependency: Left -> Right -> Left");
+    expect(() => GlacierContainer.create({ module: TestRoot, providers: [Left, Right] })).toThrow(
+      "Circular dependency: Left -> Right -> Left",
+    );
   });
 });

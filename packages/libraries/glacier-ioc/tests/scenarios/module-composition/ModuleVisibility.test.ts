@@ -2,6 +2,7 @@
 // @scenario IOC-012
 import { describe, expect, it } from "vitest";
 import {
+  AggregateContainerError,
   GlacierContainer,
   InjectionToken,
   Module,
@@ -52,9 +53,8 @@ describe("IOC-011 private and exported providers", () => {
     class ImportingConsumer {}
     Module({ imports: [Provider], providers: [NeedsSecret] })(ImportingConsumer);
     ParameterTypes.emit(NeedsSecret, [Secret]);
-    const container = GlacierContainer.create(ImportingConsumer);
 
-    expect(() => container.get(NeedsSecret)).toThrow(UnknownDependencyError);
+    expect(() => GlacierContainer.create(ImportingConsumer)).toThrow(AggregateContainerError);
   });
 
   it("resolves an exported provider's own private dependencies inside its module", () => {
@@ -120,17 +120,5 @@ describe("IOC-012 re-exports", () => {
     expect(() => GlacierContainer.create(Application).get(Shared, { strict: true })).toThrow(
       UnknownDependencyError,
     );
-  });
-
-  it("terminates when modules import each other", () => {
-    class Left {}
-    class Right {}
-    Module({ imports: [Right], providers: [Secret], exports: [Secret, Right] })(Left);
-    Module({ imports: [Left], exports: [Left] })(Right);
-
-    const container = GlacierContainer.create(Left);
-
-    expect(container.select(Right).get(Secret)).toBeInstanceOf(Secret);
-    expect(() => container.select(Right).get(Shared)).toThrow(UnknownDependencyError);
   });
 });
