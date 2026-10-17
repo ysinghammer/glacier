@@ -8,6 +8,6 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["index.ts", "vitest.config.ts", "tests/**/*.ts", "tests/**/*.tsx"],
+  "include": ["index.ts", "register.ts", "vitest.config.ts", "tests/**/*.ts", "tests/**/*.tsx"],
   "exclude": ["tests/artifacts", "tests/contracts", "dist", "node_modules"]
 }

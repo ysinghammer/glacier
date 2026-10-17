@@ -1,3 +1,4 @@
+import "@glacier/reflection/register";
 import {
   DESIGN_PARAMETER_TYPES_METADATA,
   DESIGN_RETURN_TYPE_METADATA,
@@ -5,7 +6,7 @@ import {
 } from "@glacier/reflection";
 import { CompilerFixtureDecoration } from "./CompilerFixtureDecoration.js";
 
-/** Genuine TypeScript emission, with runtime root import preceding declaration execution. */
+/** Genuine TypeScript emission, with explicit registration preceding declaration execution. */
 @CompilerFixtureDecoration.annotate
 class RecordedConsumer {
   /** Emits constructor parameter representations without constructing a consumer. */

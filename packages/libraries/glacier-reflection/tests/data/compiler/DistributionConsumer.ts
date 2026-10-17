@@ -1,3 +1,4 @@
+import "@glacier/reflection/register";
 import {
   DESIGN_PARAMETER_TYPES_METADATA,
   DESIGN_RETURN_TYPE_METADATA,
@@ -7,7 +8,7 @@ import {
 
 const LABEL = new ValueMetadataDefinition<string>("independent");
 
-/** Genuine compiler-emitted consumer; its root runtime import must execute first. */
+/** Genuine compiler-emitted consumer; explicit registration executes before declarations. */
 @LABEL.decorator("consumer")
 export class DistributionConsumer {
   @LABEL.decorator("field")

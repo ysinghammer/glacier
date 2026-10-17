@@ -1,3 +1,4 @@
+import "../../register.js";
 import { describe, expect, it } from "vitest";
 import {
   DESIGN_TYPE_METADATA,
@@ -8,7 +9,6 @@ import {
   MetadataDiscovery,
   type IRuntimeType,
 } from "../../index.js";
-import { FreshCompilerRealm } from "../data/FreshCompilerRealm.js";
 
 describe("checked compiler metadata public contract", () => {
   it.each(["invalid-decorator-target", "invalid-decorator-location", "foreign-handler"] as const)(
@@ -209,33 +209,50 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("rejects an owner that stops being canonical between callback normalization and storage", () => {
-    class Consumer {}
-    Reflect.metadata("design:type", Boolean)(Consumer);
-    let inspections = 0;
-    const prototype = {};
-    const owner = new Proxy(function () {}, {
-      getOwnPropertyDescriptor(target, key) {
-        if (key === "prototype") {
-          inspections++;
-          return {
-            value: inspections > 1 ? null : prototype,
-            writable: true,
-            configurable: false,
-            enumerable: false,
-          };
-        }
-        return Object.getOwnPropertyDescriptor(target, key);
+    for (const { key, definition, oldValue, newValue } of [
+      { key: "design:type", definition: DESIGN_TYPE_METADATA, oldValue: Boolean, newValue: String },
+      {
+        key: "design:paramtypes",
+        definition: DESIGN_PARAMETER_TYPES_METADATA,
+        oldValue: [Boolean],
+        newValue: [String],
       },
-    });
-    Object.defineProperty(prototype, "constructor", { value: owner });
-    expect(() => Reflect.metadata("design:type", String)(owner)).toThrowError(
-      new MetadataBoundaryError("invalid-decorator-location"),
-    );
-    expect(DESIGN_TYPE_METADATA.read(Consumer)).toEqual({
-      isValid: true,
-      isPresent: true,
-      value: Boolean,
-    });
+      {
+        key: "design:returntype",
+        definition: DESIGN_RETURN_TYPE_METADATA,
+        oldValue: Boolean,
+        newValue: String,
+      },
+    ] as const) {
+      let inspections = 0;
+      let canChangeCanonical = false;
+      const prototype = {};
+      const owner = new Proxy(function () {}, {
+        getOwnPropertyDescriptor(target, property) {
+          if (property === "prototype") {
+            if (canChangeCanonical) inspections++;
+            return {
+              value: inspections > 1 ? null : prototype,
+              writable: true,
+              configurable: false,
+              enumerable: false,
+            };
+          }
+          return Object.getOwnPropertyDescriptor(target, property);
+        },
+      });
+      Object.defineProperty(prototype, "constructor", { value: owner });
+      Reflect.metadata(key, oldValue)(owner);
+      const old = definition.readDynamic(owner);
+      expect(old).toEqual({ isValid: true, isPresent: true, value: oldValue });
+      canChangeCanonical = true;
+      expect(() => Reflect.metadata(key, newValue)(owner)).toThrowError(
+        new MetadataBoundaryError("invalid-decorator-location"),
+      );
+      inspections = 0;
+      canChangeCanonical = false;
+      expect(definition.readDynamic(owner)).toEqual(old);
+    }
   });
 
   it("records all supported runtime keys through the mapped public root and preserves definition isolation", () => {
@@ -367,32 +384,51 @@ describe("checked compiler metadata public contract", () => {
     });
   });
 
-  it("automatically records genuine TypeScript emission before decorated declarations run", async () => {
-    expect(await FreshCompilerRealm.run("emission")).toEqual([
-      { isValid: true, isPresent: true, value: ["String"] },
-      { isValid: true, isPresent: true, value: "Number" },
-      { isValid: true, isPresent: true, value: "Function" },
-      { isValid: true, isPresent: true, value: ["Boolean"] },
-      { isValid: true, isPresent: true, value: "String" },
-    ]);
+  it("replaces scalar and whole parameter declarations, including empty and unavailable values", () => {
+    class Base {
+      public member!: unknown;
+    }
+    class Derived extends Base {}
+    Reflect.metadata("design:type", String)(Base.prototype, "member");
+    Reflect.metadata("design:type", Number)(Derived.prototype, "member");
+    Reflect.metadata("design:paramtypes", [String, Number])(Base);
+    Reflect.metadata("design:paramtypes", [])(Derived);
+    Reflect.metadata("design:returntype", String)(Base.prototype, "member");
+    Reflect.metadata("design:returntype", undefined)(Derived.prototype, "member");
+    expect(DESIGN_TYPE_METADATA.read(Derived, { kind: "member", member: "member" })).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: Number,
+    });
+    expect(DESIGN_PARAMETER_TYPES_METADATA.read(Derived)).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: [],
+    });
+    expect(DESIGN_RETURN_TYPE_METADATA.read(Derived, { kind: "member", member: "member" })).toEqual(
+      { isValid: true, isPresent: true, value: undefined },
+    );
+    expect(
+      DESIGN_PARAMETER_TYPES_METADATA.read(Derived, { kind: "class", inheritance: "own" }),
+    ).toEqual({ isValid: true, isPresent: true, value: [] });
   });
 
-  it("replaces scalar and whole parameter declarations, including empty and unavailable values", async () => {
-    expect(await FreshCompilerRealm.run("replacement")).toEqual([
-      { isValid: true, isPresent: true, value: "Number" },
-      { isValid: true, isPresent: true, value: [] },
-      { isValid: true, isPresent: true, value: "<unavailable>" },
-      { isValid: true, isPresent: true, value: [] },
-    ]);
-  });
-
-  it("snapshots and freezes only compiler-ingested parameter arrays", async () => {
-    expect(await FreshCompilerRealm.run("snapshot")).toEqual({
-      value: ["String", "<unavailable>"],
-      frozen: true,
-      independent: true,
-      mutationRejected: true,
-      after: { isValid: true, isPresent: true, value: ["String", "<unavailable>"] },
+  it("snapshots and freezes only compiler-ingested parameter arrays", () => {
+    class Consumer {}
+    const values: IRuntimeType[] = [String, undefined];
+    Reflect.metadata("design:paramtypes", values)(Consumer);
+    values[0] = Number;
+    values.push(Boolean);
+    const read = DESIGN_PARAMETER_TYPES_METADATA.read(Consumer);
+    if (!read.isValid || !read.isPresent) throw new Error("Missing compiler snapshot");
+    expect(read.value).toEqual([String, undefined]);
+    expect(Object.isFrozen(read.value)).toBe(true);
+    expect(read.value).not.toBe(values);
+    expect(Reflect.set(read.value, "0", Number)).toBe(false);
+    expect(DESIGN_PARAMETER_TYPES_METADATA.read(Consumer)).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: [String, undefined],
     });
   });
 
@@ -442,54 +478,110 @@ describe("checked compiler metadata public contract", () => {
     });
   });
 
-  for (const index of [0, 1, 2]) {
-    const shapes =
-      index === 1
-        ? ["scalar", "object", "null", "dense", "sparse", "hole"]
-        : ["null", "object", "number", "string", "array"];
+  for (const { key, definition, isParameterTypes } of [
+    { key: "design:type", definition: DESIGN_TYPE_METADATA, isParameterTypes: false },
+    {
+      key: "design:paramtypes",
+      definition: DESIGN_PARAMETER_TYPES_METADATA,
+      isParameterTypes: true,
+    },
+    { key: "design:returntype", definition: DESIGN_RETURN_TYPE_METADATA, isParameterTypes: false },
+  ] as const) {
+    const shapes = isParameterTypes
+      ? ["scalar", "object", "null", "dense", "sparse", "hole", "inherited-hole"]
+      : ["null", "object", "number", "string", "array"];
     for (const shape of shapes) {
-      it(`rejects key ${index} malformed ${shape} without replacing the valid declaration`, async () => {
-        const result = await FreshCompilerRealm.run(`value:${index}:${shape}`);
-        expect(result).toMatchObject({
-          installed: true,
-          rejection: { code: "invalid-compiler-value", isBoundaryError: true },
-          oldDeclarationPreserved: true,
-        });
+      it(`rejects ${key} malformed ${shape} without replacing the valid declaration`, () => {
+        class Consumer {
+          public member!: unknown;
+        }
+        Reflect.metadata(key, isParameterTypes ? [String] : String)(Consumer.prototype, "member");
+        const old = definition.readDynamic(Consumer, { kind: "member", member: "member" });
+        const sparse: unknown[] = [];
+        sparse.length = 2;
+        const hole = [String, Number, Number];
+        Reflect.deleteProperty(hole, "1");
+        const inherited = [String, Number];
+        Reflect.deleteProperty(inherited, "1");
+        Object.setPrototypeOf(inherited, { 1: Number });
+        const values: Readonly<Record<string, unknown>> = isParameterTypes
+          ? {
+              scalar: String,
+              object: { 0: String, length: 1 },
+              null: null,
+              dense: [String, {}],
+              sparse,
+              hole,
+              "inherited-hole": inherited,
+            }
+          : { null: null, object: {}, number: 17, string: "secret", array: [String] };
+        expect(() => Reflect.metadata(key, values[shape])).toThrowError(
+          new MetadataBoundaryError("invalid-compiler-value"),
+        );
+        expect(definition.readDynamic(Consumer, { kind: "member", member: "member" })).toEqual(old);
       });
     }
     for (const shape of ["instance", "plain", "arrow"]) {
-      it(`rejects key ${index} ${shape} targets atomically`, async () => {
-        expect(await FreshCompilerRealm.run(`target:${index}:${shape}`)).toMatchObject({
-          installed: true,
-          rejection: { code: "invalid-decorator-target", isBoundaryError: true },
-          oldDeclarationPreserved: true,
-        });
+      it(`rejects ${key} ${shape} targets atomically`, () => {
+        class Consumer {
+          public member!: unknown;
+        }
+        const value = isParameterTypes ? [String] : String;
+        Reflect.metadata(key, value)(Consumer.prototype, "member");
+        const old = definition.readDynamic(Consumer, { kind: "member", member: "member" });
+        const callback = Reflect.metadata(key, value);
+        let arguments_: readonly unknown[];
+        if (shape === "instance") arguments_ = [new Consumer(), "member"];
+        else if (shape === "plain") arguments_ = [{}, "member"];
+        else arguments_ = [() => undefined];
+        expect(() => Reflect.apply(callback, undefined, arguments_)).toThrowError(
+          new MetadataBoundaryError("invalid-decorator-target"),
+        );
+        expect(definition.readDynamic(Consumer, { kind: "member", member: "member" })).toEqual(old);
       });
     }
     for (const shape of ["parameter", "prototype", "object"]) {
-      it(`rejects key ${index} unsupported ${shape} locations atomically`, async () => {
-        expect(await FreshCompilerRealm.run(`location:${index}:${shape}`)).toMatchObject({
-          installed: true,
-          rejection: { code: "invalid-decorator-location", isBoundaryError: true },
-          oldDeclarationPreserved: true,
-        });
+      it(`rejects ${key} unsupported ${shape} locations atomically`, () => {
+        class Consumer {
+          public member!: unknown;
+        }
+        const value = isParameterTypes ? [String] : String;
+        Reflect.metadata(key, value)(Consumer.prototype, "member");
+        const old = definition.readDynamic(Consumer, { kind: "member", member: "member" });
+        const callback = Reflect.metadata(key, value);
+        let arguments_: readonly unknown[] = [Consumer.prototype, {}, undefined];
+        if (shape === "parameter") arguments_ = [Consumer, undefined, 0];
+        else if (shape === "prototype") arguments_ = [Consumer, "prototype"];
+        expect(() => Reflect.apply(callback, undefined, arguments_)).toThrowError(
+          new MetadataBoundaryError("invalid-decorator-location"),
+        );
+        expect(definition.readDynamic(Consumer, { kind: "member", member: "member" })).toEqual(old);
       });
     }
-    it(`accepts key ${index} supported unavailable runtime representations`, async () => {
-      const result = await FreshCompilerRealm.run(`valid:${index}:supported`);
-      expect(result).toEqual({
+    it(`accepts ${key} supported unavailable runtime representations`, () => {
+      class Consumer {
+        public member!: unknown;
+      }
+      const value = isParameterTypes ? [Object, Function, undefined, () => undefined] : undefined;
+      Reflect.metadata(key, value)(Consumer.prototype, "member");
+      expect(definition.readDynamic(Consumer, { kind: "member", member: "member" })).toEqual({
         isValid: true,
         isPresent: true,
-        value: index === 1 ? ["Object", "Function", "<unavailable>", ""] : "<unavailable>",
+        value,
       });
     });
     for (const shape of ["string", "symbol"]) {
-      it(`rejects unknown ${shape} keys without changing key ${index} declarations`, async () => {
-        expect(await FreshCompilerRealm.run(`key:${index}:${shape}`)).toMatchObject({
-          installed: true,
-          rejection: { code: "unsupported-compiler-key", isBoundaryError: true },
-          oldDeclarationPreserved: true,
-        });
+      it(`rejects unknown ${shape} keys without changing ${key} declarations`, () => {
+        class Consumer {
+          public member!: unknown;
+        }
+        const value = isParameterTypes ? [String] : String;
+        Reflect.metadata(key, value)(Consumer.prototype, "member");
+        const old = definition.readDynamic(Consumer, { kind: "member", member: "member" });
+        expect(() =>
+          Reflect.metadata(shape === "symbol" ? Symbol("unknown") : "custom:key", value),
+        ).toThrowError(new MetadataBoundaryError("unsupported-compiler-key"));
+        expect(definition.readDynamic(Consumer, { kind: "member", member: "member" })).toEqual(old);
       });
     }
   }

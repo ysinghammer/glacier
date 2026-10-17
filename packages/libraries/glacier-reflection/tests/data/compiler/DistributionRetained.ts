@@ -1,4 +1,4 @@
-import "@glacier/reflection";
+import "@glacier/reflection/register";
 
 /** A local compiler-required callback retains no runtime export from the package. */
 const DECORATE = (target: object): void => {

@@ -1,11 +1,11 @@
-import { DESIGN_TYPE_METADATA } from "../../../domain/DesignTypeMetadata.js";
-import { DESIGN_PARAMETER_TYPES_METADATA } from "../../../domain/DesignParameterTypesMetadata.js";
-import { DESIGN_RETURN_TYPE_METADATA } from "../../../domain/DesignReturnTypeMetadata.js";
-import type { IRuntimeType } from "../../../domain/IRuntimeType.js";
-import type { ICompilerMetadataRejectionCode } from "../../../domain/ICompilerMetadataRejectionCode.js";
-import type { IClass } from "../../../domain/IClass.js";
-import type { IDynamicClassMetadataAddress } from "../../../domain/IDynamicClassMetadataAddress.js";
-import { MetadataTarget } from "../../../domain/MetadataTarget.js";
+import { DESIGN_TYPE_METADATA } from "../../../domain/compiler-metadata/DesignTypeMetadata.js";
+import { DESIGN_PARAMETER_TYPES_METADATA } from "../../../domain/compiler-metadata/DesignParameterTypesMetadata.js";
+import { DESIGN_RETURN_TYPE_METADATA } from "../../../domain/compiler-metadata/DesignReturnTypeMetadata.js";
+import type { IRuntimeType } from "../../../domain/compiler-metadata/IRuntimeType.js";
+import type { ICompilerMetadataRejectionCode } from "../../../domain/compiler-metadata/ICompilerMetadataRejectionCode.js";
+import type { IClass } from "../../../domain/targets/IClass.js";
+import type { IDynamicClassMetadataAddress } from "../../../domain/addressing/IDynamicClassMetadataAddress.js";
+import { MetadataTarget } from "../../../domain/targets/MetadataTarget.js";
 
 /** Validated compiler data, prepared completely before any class declaration changes. */
 type ICompilerDeclaration =

@@ -1,3 +1,4 @@
+import "@glacier/reflection/register";
 import {
   DESIGN_PARAMETER_TYPES_METADATA,
   DESIGN_RETURN_TYPE_METADATA,
@@ -13,7 +14,7 @@ interface IRepository {
   load(): string;
 }
 
-/** Executable documentation using only the generated package-root public contract. */
+/** Executable documentation registers before emission and uses the generated root for ordinary operations. */
 export class AdoptionExample {
   /** Checks adoption outcomes without resolving dependencies or constructing a consumer. */
   public static run(): number {

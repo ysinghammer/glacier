@@ -9,6 +9,6 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["index.ts", "src/**/*.ts"],
+  "include": ["index.ts", "register.ts", "src/**/*.ts"],
   "exclude": ["dist", "node_modules", "tests"]
 }

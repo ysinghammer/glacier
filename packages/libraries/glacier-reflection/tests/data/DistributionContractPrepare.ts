@@ -3,7 +3,7 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 /** Builds an isolated consumer containing only the copied distribution and its authored fixtures. */
-class DistributionContractPrepare {
+export class DistributionContractPrepare {
   /** Runs existing installed tools with bounded completion and preserved diagnostics. */
   private static command(arguments_: readonly string[]): void {
     const result = spawnSync("pnpm", [...arguments_], {
@@ -16,9 +16,9 @@ class DistributionContractPrepare {
       throw new Error(`Distribution preparation failed: ${arguments_.join(" ")}`);
   }
 
-  /** Copies generated ESM/declarations and verifies independent root declaration consumption. */
+  /** Copies generated public entries, verifies independent declarations and builds four real bundles. */
   public static async run(): Promise<void> {
-    const consumer = new URL("../artifacts/t017/attempt2/consumer/", import.meta.url);
+    const consumer = new URL("../artifacts/distribution/consumer/", import.meta.url);
     const packageDirectory = new URL("node_modules/@glacier/reflection/", consumer);
     await rm(consumer, { recursive: true, force: true });
     await mkdir(packageDirectory, { recursive: true });
@@ -38,12 +38,29 @@ class DistributionContractPrepare {
       "DistributionConsumer",
       "DistributionTypeOnly",
       "DistributionRetained",
+      "DistributionRootOnly",
+      "DistributionOrdinaryMetadata",
+      "DistributionSharedMetadata",
+      "UnregisteredCompilerFixture",
+      "RecordedCompilerFixture",
+      "CompilerFixtureDecoration",
     ]) {
       await cp(
         new URL(`../artifacts/compiler/${name}.js`, import.meta.url),
         new URL(`${name}.js`, consumer),
       );
     }
+    const duplicate = new URL("duplicate/", consumer);
+    await mkdir(duplicate, { recursive: true });
+    await cp(packageDirectory, new URL("node_modules/@glacier/reflection/", duplicate), {
+      recursive: true,
+    });
+    await writeFile(
+      new URL("package.json", duplicate),
+      JSON.stringify({ private: true, type: "module" }),
+    );
+    await writeFile(new URL("root.js", duplicate), 'import "@glacier/reflection";\n');
+    await writeFile(new URL("register.js", duplicate), 'import "@glacier/reflection/register";\n');
     await cp(
       new URL("../contracts/DistributionTypes.test-d.ts", import.meta.url),
       new URL("DistributionTypes.test-d.ts", consumer),
@@ -88,70 +105,105 @@ class DistributionContractPrepare {
     if (
       exports === null ||
       typeof exports !== "object" ||
-      Object.keys(exports).length !== 1 ||
-      !("." in exports)
+      Object.keys(exports).length !== 2 ||
+      !("." in exports) ||
+      !("./register" in exports)
     )
-      throw new Error("The distribution must expose only its package root");
+      throw new Error("The distribution must expose exactly its root and registration entry");
     const root = exports["."];
+    const registration = exports["./register"];
     if (
       root === null ||
       typeof root !== "object" ||
       !("import" in root) ||
       typeof root.import !== "string" ||
       !("types" in root) ||
-      typeof root.types !== "string" ||
-      manifest.sideEffects !== true
+      root.import !== "./dist/index.js" ||
+      root.types !== "./dist/index.d.ts" ||
+      Object.keys(root).length !== 2 ||
+      registration === null ||
+      typeof registration !== "object" ||
+      !("import" in registration) ||
+      registration.import !== "./dist/register.js" ||
+      !("types" in registration) ||
+      registration.types !== "./dist/register.d.ts" ||
+      Object.keys(registration).length !== 2 ||
+      !Array.isArray(manifest.sideEffects) ||
+      manifest.sideEffects.length !== 1 ||
+      manifest.sideEffects[0] !== "./dist/register.js"
     )
-      throw new Error("Root ESM/declarations and intentional import effects must be declared");
+      throw new Error("Exact generated entries and registration-only effects must be declared");
     const resolution = spawnSync(
       process.execPath,
       [
         "--input-type=module",
         "--eval",
-        'process.stdout.write(import.meta.resolve("@glacier/reflection"))',
+        'process.stdout.write(JSON.stringify([import.meta.resolve("@glacier/reflection"), import.meta.resolve("@glacier/reflection/register")]))',
       ],
       { cwd: consumer, encoding: "utf8", timeout: 8_000 },
     );
     if (resolution.error !== undefined) throw resolution.error;
     const expectedRoot = new URL(root.import, packageDirectory).href;
-    if (resolution.status !== 0 || resolution.stdout !== expectedRoot)
+    const expectedRegistration = new URL(registration.import, packageDirectory).href;
+    if (
+      resolution.status !== 0 ||
+      resolution.stdout !== JSON.stringify([expectedRoot, expectedRegistration])
+    )
       throw new Error(`Independent Node export-map resolution failed: ${resolution.stderr}`);
-    await writeFile(
-      new URL("vite.config.mjs", consumer),
-      `export default ${JSON.stringify({
-        root: fileURLToPath(consumer),
-        build: {
-          target: "es2023",
-          minify: false,
-          lib: {
-            entry: fileURLToPath(new URL("DistributionRetained.js", consumer)),
-            formats: ["es"],
-            fileName: "retained",
+    for (const [name, entry] of [
+      ["retained", "DistributionRetained"],
+      ["root-only", "DistributionRootOnly"],
+      ["ordinary-metadata", "DistributionOrdinaryMetadata"],
+      ["shared-metadata", "DistributionSharedMetadata"],
+    ]) {
+      // The retained entry imports only registration; a separate root-only observer reads its real records in the same graph.
+      await writeFile(
+        new URL("vite.config.mjs", consumer),
+        `export default ${JSON.stringify({
+          root: fileURLToPath(consumer),
+          build: {
+            target: "es2023",
+            minify: false,
+            emptyOutDir: false,
+            lib: {
+              entry:
+                name === "retained"
+                  ? {
+                      retained: fileURLToPath(new URL("DistributionRetained.js", consumer)),
+                      "retained-observer": fileURLToPath(
+                        new URL("DistributionOrdinaryMetadata.js", consumer),
+                      ),
+                    }
+                  : fileURLToPath(new URL(`${entry}.js`, consumer)),
+              formats: ["es"],
+              ...(name === "retained" ? {} : { fileName: name }),
+            },
+            outDir: fileURLToPath(new URL("bundle/", consumer)),
           },
-          outDir: fileURLToPath(new URL("bundle/", consumer)),
-        },
-      })};\n`,
-    );
-    this.command([
-      "exec",
-      "vite",
-      "build",
-      "--config",
-      fileURLToPath(new URL("vite.config.mjs", consumer)),
-    ]);
+        })};\n`,
+      );
+      this.command([
+        "exec",
+        "vite",
+        "build",
+        "--config",
+        fileURLToPath(new URL("vite.config.mjs", consumer)),
+      ]);
+    }
     await writeFile(
       new URL("../preparation.json", consumer),
       JSON.stringify({
         independentTypes: "passed",
-        bundle: "built",
+        bundles: ["retained", "root-only", "ordinary-metadata", "shared-metadata"],
         runtimeDependencies: [],
         node: process.version,
         rootEntry: root.import,
         declarationEntry: root.types,
-        resolvedNodeRoot: resolution.stdout,
+        registrationEntry: registration.import,
+        registrationDeclarationEntry: registration.types,
+        resolvedNodeRoot: expectedRoot,
+        resolvedNodeRegistration: expectedRegistration,
       }),
     );
   }
 }
-
-await DistributionContractPrepare.run();

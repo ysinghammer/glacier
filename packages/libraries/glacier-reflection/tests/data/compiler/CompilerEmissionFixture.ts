@@ -1,4 +1,4 @@
-import "@glacier/reflection";
+import "@glacier/reflection/register";
 import { CompilerFixtureDecoration } from "./CompilerFixtureDecoration.js";
 
 /** Provides genuine legacy-emission input; it makes no metadata-library behavior assertion. */

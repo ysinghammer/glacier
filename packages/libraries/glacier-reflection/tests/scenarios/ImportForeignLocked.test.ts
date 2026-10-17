@@ -1,0 +1,19 @@
+import { expect, it } from "vitest";
+
+it("rejects a locked foreign handler without replacing its descriptor", async () => {
+  const foreign = (): void => {};
+  Object.defineProperty(Reflect, "metadata", {
+    value: foreign,
+    writable: false,
+    configurable: false,
+    enumerable: true,
+  });
+  const before = Object.getOwnPropertyDescriptor(Reflect, "metadata");
+  await expect(import("../../index.js")).resolves.toHaveProperty("MetadataBoundaryError");
+  expect(Object.getOwnPropertyDescriptor(Reflect, "metadata")).toEqual(before);
+  await expect(import("../../register.js")).rejects.toMatchObject({
+    name: "MetadataBoundaryError",
+    code: "foreign-handler",
+  });
+  expect(Object.getOwnPropertyDescriptor(Reflect, "metadata")).toEqual(before);
+});
