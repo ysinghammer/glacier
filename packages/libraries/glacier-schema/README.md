@@ -2,8 +2,8 @@
 
 Private, native ESM class-based schema validation and transformation built on
 [`@glacier/reflection`](../glacier-reflection/README.md). Decorated classes act as validator and
-transformer in one pipeline. Phases 2-3 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
-`parse` / `safeParse` and typed errors. Collections, unions, refinements, composition and JSON Schema follow
+transformer in one pipeline. Phases 2-4 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
+collections, nested objects, `parse` / `safeParse` and typed errors. Unions, refinements, composition and JSON Schema follow
 in later phases.
 
 ## Public API
@@ -19,6 +19,11 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
   the checks). `IsNumber` / `IsInt`: `min`, `max`, `exclusiveMin`, `exclusiveMax`, `multipleOf`. The type is
   checked first, then the first violated constraint is reported per field (`too_small`, `too_big`,
   `invalid_format`, `not_multiple_of`). Impossible options throw `SchemaDefinitionError` when decorating.
+- Collections and nesting: `IsArray(element, opts?)`, `IsSet`, `IsTuple([elements])`, `IsMap(key, value)`,
+  `IsRecord(value)` and `IsObject(Class?)`. An element type is `String`, `Number`, `Boolean`, `BigInt`, `Date`, a
+  decorated class, or `() => Class` for forward references and cycles. `IsArray`/`IsSet` take `min`, `max`, `unique`;
+  `IsMap`/`IsRecord` take `min`, `max`. Issue paths run through the nesting (`["items", 2, "name"]`). Nesting is
+  capped at 64 classes (`maxDepth` option) and reported as `max_depth_exceeded`.
 - `SchemaError` (`code = "SCHEMA_VALIDATION_FAILED"`, `issues`, `toJSON()`), `isSchemaError(error)` (a brand
   check that works across duplicate package copies) and `SchemaDefinitionError` for incorrectly declared classes.
 - Modifiers (unprefixed, combinable with the type decorator in either order, inherited): `Optional` (missing or
