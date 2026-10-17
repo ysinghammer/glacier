@@ -3,8 +3,7 @@
 Private, native ESM class-based schema validation and transformation built on
 [`@glacier/reflection`](../glacier-reflection/README.md). Decorated classes act as validator and
 transformer in one pipeline. Phases 2-7 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
-collections, nested objects, unions, `parse` / `safeParse` and typed errors and refinements. Composition (inheritance and mapped types) is included; JSON Schema follows
-in a later phase.
+collections, nested objects, unions, `parse` / `safeParse` and typed errors and refinements. Composition (inheritance and mapped types) and JSON Schema output are included.
 
 ## Public API
 
@@ -84,3 +83,15 @@ Requires legacy decorators and compiler metadata, so consumers enable `experimen
 ## Scenarios
 
 See [tests/scenarios/README.md](tests/scenarios/README.md).
+
+## JSON Schema
+
+`toJsonSchema(Class, { target: "draft-2020-12" | "openapi-3.1" })` takes a single class. The result is a `$ref` to
+the root definition plus `$defs` (`draft-2020-12`, with `$schema`) or `components.schemas` (`openapi-3.1`); nested
+classes, unions and cycles are `$ref`s. Definition names are the class name or `@Describe({ name })`, and two
+different classes with the same name throw `SchemaDefinitionError`. `Rename` aliases are the property names,
+`Optional` and `Default` fields are not `required`, and `Nullable` adds `null` to the type. Discriminated unions are
+`oneOf` plus `discriminator.mapping`; `IsOneOf` is `oneOf`. `@Describe({ title, description, example, deprecated })`
+works on classes and properties (`example` becomes `examples`), and `@JsonSchema({...})` merges a fragment over the
+generated keywords. `Refine` and `Transform` are skipped; regular expression flags other than none and `u` are not
+expressible and are ignored; maps are emitted like records and bigint as integer. OpenAPI 3.0 is not supported.
