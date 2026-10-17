@@ -1,5 +1,6 @@
 import { DESIGN_TYPE_METADATA } from "@glacier/reflection";
 import type { IClass, IRuntimeType } from "@glacier/reflection";
+import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import type { IDesignType } from "./IDesignType.js";
 
 const UNSUPPORTED_BUILT_INS: readonly IRuntimeType[] = [
@@ -31,6 +32,20 @@ export class DesignTypeInference {
     });
     if (!result.isValid || !result.isPresent) return undefined;
     return DesignTypeInference.#describe(result.value);
+  }
+
+  /**
+   * Returns the class emitted for `member`. Throws `SchemaDefinitionError` naming `label` when the emitted
+   * type is missing or is not a class, so the class must be passed explicitly.
+   */
+  public static inferClass(target: IClass, member: string, label: string): IClass {
+    const inferred = DesignTypeInference.infer(target, member);
+    if (inferred?.kind !== "class") {
+      throw new SchemaDefinitionError(
+        `${label}: IsObject needs a class argument because no class type was emitted for the property`,
+      );
+    }
+    return inferred.target;
   }
 
   /** Maps a runtime constructor to the type it denotes. */

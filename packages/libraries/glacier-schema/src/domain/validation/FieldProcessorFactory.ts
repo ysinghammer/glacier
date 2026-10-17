@@ -1,11 +1,11 @@
 import type { IFieldDefinition } from "../schema/IFieldDefinition.js";
-import type { ISchemaParseOptions } from "../schema/ISchemaParseOptions.js";
+import type { IParseContext } from "./IParseContext.js";
 import type { IValueOutcome } from "./IValueOutcome.js";
 import { ValueCoercer } from "./ValueCoercer.js";
 import { ValueValidatorFactory } from "./ValueValidatorFactory.js";
 
 /** Runs the whole per-field pipeline on a raw input value; created once per field at compile time. */
-export type IFieldProcessor = (raw: unknown, options: ISchemaParseOptions) => IValueOutcome;
+export type IFieldProcessor = (raw: unknown, context: IParseContext) => IValueOutcome;
 
 /** Builds the pipeline coerce, default, transform, optional/nullable shortcuts, validate for a field. */
 export class FieldProcessorFactory {
@@ -18,9 +18,10 @@ export class FieldProcessorFactory {
     const { optional, nullable, defaultValue, transform } = definition.modifiers;
     const coerce = ValueCoercer.create(definition.type);
     const validate = ValueValidatorFactory.create(definition.type);
-    return (raw, options) => {
+    return (raw, context) => {
       let value = raw;
-      if (options.coerce === true && value !== undefined && value !== null) value = coerce(value);
+      if (context.options.coerce === true && value !== undefined && value !== null)
+        value = coerce(value);
       if (value === undefined && defaultValue !== undefined) value = defaultValue();
       if (value !== undefined && transform !== undefined) {
         try {
@@ -31,7 +32,7 @@ export class FieldProcessorFactory {
       }
       if (value === undefined && optional === true) return { isValid: true, value };
       if (value === null && nullable === true) return { isValid: true, value };
-      return validate(value);
+      return validate(value, context);
     };
   }
 
@@ -40,7 +41,7 @@ export class FieldProcessorFactory {
     const reason = error instanceof Error ? error.message : String(error);
     return {
       isValid: false,
-      failure: { code: "transform_failed", message: "Transform failed", params: { reason } },
+      failures: [{ code: "transform_failed", message: "Transform failed", params: { reason } }],
     };
   }
 }

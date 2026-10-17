@@ -8,4 +8,6 @@ export type ISchemaIssueCode =
   | "too_big"
   | "invalid_format"
   | "not_multiple_of"
+  | "not_unique"
+  | "max_depth_exceeded"
   | "transform_failed";

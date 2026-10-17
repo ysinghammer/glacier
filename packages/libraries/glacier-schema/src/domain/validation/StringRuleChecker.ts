@@ -19,7 +19,9 @@ export class StringRuleChecker {
       if (rules.trim === true) value = value.trim();
       if (rules.lowercase === true) value = value.toLowerCase();
       const failure = StringRuleChecker.#firstFailure(rules, pattern, value);
-      return failure === undefined ? { isValid: true, value } : { isValid: false, failure };
+      return failure === undefined
+        ? { isValid: true, value }
+        : { isValid: false, failures: [failure] };
     };
   }
 

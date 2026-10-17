@@ -11,7 +11,9 @@ export class NumberRuleChecker {
   public static create(rules: INumberRules): INumberRuleChecker {
     return (value) => {
       const failure = NumberRuleChecker.#firstFailure(rules, value);
-      return failure === undefined ? { isValid: true, value } : { isValid: false, failure };
+      return failure === undefined
+        ? { isValid: true, value }
+        : { isValid: false, failures: [failure] };
     };
   }
 

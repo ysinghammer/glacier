@@ -1,5 +1,6 @@
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import type { INumberRules } from "./INumberRules.js";
+import type { ISizeRules } from "./ISizeRules.js";
 import type { IStringRules } from "./IStringRules.js";
 import { StringFormats } from "../validation/StringFormats.js";
 
@@ -53,6 +54,22 @@ export class RuleDefinitionCheck {
       rules.exclusiveMin >= rules.exclusiveMax
     ) {
       throw new SchemaDefinitionError(`${label}: exclusiveMin must be below exclusiveMax`);
+    }
+  }
+
+  /**
+   * Throws `SchemaDefinitionError` naming `label` when `min` or `max` is not a non-negative integer or
+   * `min` exceeds `max`.
+   */
+  public static size(label: string, rules: ISizeRules): void {
+    for (const name of ["min", "max"] as const) {
+      const value = rules[name];
+      if (value !== undefined && !(Number.isSafeInteger(value) && value >= 0)) {
+        throw new SchemaDefinitionError(`${label}: ${name} must be a non-negative integer`);
+      }
+    }
+    if (rules.min !== undefined && rules.max !== undefined && rules.min > rules.max) {
+      throw new SchemaDefinitionError(`${label}: min must not exceed max`);
     }
   }
 }

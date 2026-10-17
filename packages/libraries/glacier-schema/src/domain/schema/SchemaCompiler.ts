@@ -8,6 +8,9 @@ import { FieldProcessorFactory } from "../validation/FieldProcessorFactory.js";
 import type { IFieldProcessor } from "../validation/FieldProcessorFactory.js";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 
+/** Nesting limit used when the call does not set `maxDepth`. */
+const DEFAULT_MAX_DEPTH = 64;
+
 interface ICompiledField {
   /** Property name on the instance. */
   readonly key: string;
@@ -58,7 +61,21 @@ export class SchemaCompiler {
     target: IClass,
     fields: readonly ICompiledField[],
   ): ICompiledSchema<T> {
-    return (input, options) => {
+    return (input, context) => {
+      const maxDepth = context.options.maxDepth ?? DEFAULT_MAX_DEPTH;
+      if (context.depth >= maxDepth) {
+        return {
+          ok: false,
+          issues: [
+            {
+              path: [],
+              code: "max_depth_exceeded",
+              message: `Maximum nesting depth of ${maxDepth} exceeded`,
+              params: { maxDepth },
+            },
+          ],
+        };
+      }
       if (typeof input !== "object" || input === null || Array.isArray(input)) {
         const received = ReceivedType.describe(input);
         return {
@@ -79,14 +96,19 @@ export class SchemaCompiler {
         const raw = Object.hasOwn(input, field.inputKey)
           ? Reflect.get(input, field.inputKey)
           : undefined;
-        const outcome = field.process(raw, options);
+        const outcome = field.process(raw, context);
         if (!outcome.isValid) {
-          issues.push({
-            path: [field.inputKey],
-            code: outcome.failure.code,
-            message: field.message ?? outcome.failure.message,
-            params: outcome.failure.params,
-          });
+          for (const failure of outcome.failures) {
+            issues.push({
+              path: [field.inputKey, ...(failure.path ?? [])],
+              code: failure.code,
+              message:
+                failure.hasOwnMessage === true
+                  ? failure.message
+                  : (field.message ?? failure.message),
+              params: failure.params,
+            });
+          }
         } else if (outcome.value !== undefined) {
           Object.defineProperty(instance, field.key, {
             value: outcome.value,

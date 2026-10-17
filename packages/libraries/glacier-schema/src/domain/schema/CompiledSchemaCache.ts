@@ -1,9 +1,9 @@
 import type { IClass } from "@glacier/reflection";
-import type { ISchemaParseOptions } from "./ISchemaParseOptions.js";
+import type { IParseContext } from "../validation/IParseContext.js";
 import type { IResult } from "../failures/IResult.js";
 
 /** Closure produced once per class that validates and transforms an input into an instance. */
-export type ICompiledSchema<T> = (input: unknown, options: ISchemaParseOptions) => IResult<T>;
+export type ICompiledSchema<T> = (input: unknown, context: IParseContext) => IResult<T>;
 
 const compiledSchemas = new WeakMap<IClass, ICompiledSchema<object>>();
 const frozenClasses = new WeakSet<IClass>();

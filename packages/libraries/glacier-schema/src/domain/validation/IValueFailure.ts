@@ -8,4 +8,8 @@ export interface IValueFailure {
   readonly message: string;
   /** Code-specific details. */
   readonly params: Readonly<Record<string, unknown>>;
+  /** Location inside the field's value, such as an array index; absent when the value itself failed. */
+  readonly path?: readonly (string | number)[];
+  /** Set when the message already comes from a nested class and must not be replaced by the field's message. */
+  readonly hasOwnMessage?: true;
 }

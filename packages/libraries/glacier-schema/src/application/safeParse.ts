@@ -15,5 +15,5 @@ export function safeParse<T extends object>(
   input: unknown,
   options: ISchemaParseOptions = {},
 ): IResult<T> {
-  return SchemaCompiler.compile<T>(target)(input, options);
+  return SchemaCompiler.compile<T>(target)(input, { options, depth: 0 });
 }

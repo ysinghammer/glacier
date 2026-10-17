@@ -1,5 +1,11 @@
 import {
   IsAny,
+  IsArray,
+  IsMap,
+  IsObject,
+  IsRecord,
+  IsSet,
+  IsTuple,
   IsBigInt,
   IsBoolean,
   IsDate,
@@ -18,6 +24,9 @@ import {
   isSchemaError,
   parse,
   safeParse,
+  type ICollectionOptions,
+  type IElementType,
+  type ISizeOptions,
   type IEnumSource,
   type ILiteralValue,
   type IResult,
@@ -67,6 +76,24 @@ const decorators: PropertyDecorator[] = [
   IsLiteral(null),
   IsEnum(["a", 1]),
 ];
+const collectionOptions: ICollectionOptions = { min: 1, max: 2, unique: true, message: "m" };
+const sizeOptions: ISizeOptions = { min: 1, max: 2 };
+const elementType: IElementType = String;
+class Node {
+  public children!: Node[];
+}
+const collections: PropertyDecorator[] = [
+  IsArray(String, collectionOptions),
+  IsArray(() => Node),
+  IsSet(Node, collectionOptions),
+  IsTuple([String, Number]),
+  IsMap(String, Node, sizeOptions),
+  IsRecord(Date, sizeOptions),
+  IsObject(Node),
+  IsObject(() => Node, { message: "m" }),
+  IsObject(),
+];
+const depthOptions: ISchemaParseOptions = { maxDepth: 8 };
 const stringOptions: IStringOptions = { length: 3, format: "uuid" };
 const numberOptions: INumberOptions = { min: 0 };
 const format: IStringFormat = "date-time";
@@ -106,10 +133,19 @@ Transform("x");
 IsString({ format: "phone" });
 // @ts-expect-error Strings have no numeric bounds.
 IsString({ exclusiveMin: 1 });
+// @ts-expect-error Maps and records have no uniqueness constraint.
+IsRecord(String, { unique: true });
+// @ts-expect-error Element types must be constructors or class references.
+IsArray("string");
+// @ts-expect-error The nested class argument cannot be an instance.
+IsObject(new User());
 // @ts-expect-error Numbers have no pattern.
 IsNumber({ pattern: /a/ });
 
 void [
+  collections,
+  depthOptions,
+  elementType,
   parseOptions,
   coerced,
   coercedResult,

@@ -7,4 +7,9 @@ export interface ISchemaParseOptions {
    * validation to reject. Off by default.
    */
   readonly coerce?: boolean;
+  /**
+   * Largest number of nested class levels, the root class included, before parsing reports
+   * `max_depth_exceeded` instead of descending further. Defaults to 64; use a positive integer.
+   */
+  readonly maxDepth?: number;
 }

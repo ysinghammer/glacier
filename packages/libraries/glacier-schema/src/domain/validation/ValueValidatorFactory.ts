@@ -1,11 +1,15 @@
 import type { ITypeSpec } from "../schema/ITypeSpec.js";
+import { CollectionValidatorFactory } from "./CollectionValidatorFactory.js";
+import type { IParseContext } from "./IParseContext.js";
+import type { IValueFailure } from "./IValueFailure.js";
 import type { IValueOutcome } from "./IValueOutcome.js";
+import { NestedSchemaValidator } from "./NestedSchemaValidator.js";
 import { NumberRuleChecker } from "./NumberRuleChecker.js";
-import { ReceivedType } from "./ReceivedType.js";
 import { StringRuleChecker } from "./StringRuleChecker.js";
+import { TypeFailure } from "./TypeFailure.js";
 
 /** Validates one value against a declared type; created once per field at compile time. */
-export type IValueValidator = (value: unknown) => IValueOutcome;
+export type IValueValidator = (value: unknown, context: IParseContext) => IValueOutcome;
 
 /** Builds the validator closure for each supported field type. */
 export class ValueValidatorFactory {
@@ -39,6 +43,33 @@ export class ValueValidatorFactory {
         return ValueValidatorFactory.#enumeration(type.values);
       case "any":
         return (value) => ({ isValid: true, value });
+      case "array":
+        return CollectionValidatorFactory.array(
+          ValueValidatorFactory.create(type.element),
+          type.rules,
+        );
+      case "tuple":
+        return CollectionValidatorFactory.tuple(type.elements.map(ValueValidatorFactory.create));
+      case "set":
+        return CollectionValidatorFactory.set(
+          ValueValidatorFactory.create(type.element),
+          type.rules,
+        );
+      case "map":
+        return CollectionValidatorFactory.map(
+          ValueValidatorFactory.create(type.key),
+          ValueValidatorFactory.create(type.value),
+          type.rules,
+        );
+      case "record":
+        return CollectionValidatorFactory.record(
+          ValueValidatorFactory.create(type.value),
+          type.rules,
+        );
+      case "object":
+        return NestedSchemaValidator.create(() => type.target);
+      case "lazy":
+        return NestedSchemaValidator.create(type.resolve);
     }
   }
 
@@ -47,24 +78,21 @@ export class ValueValidatorFactory {
     typeValidator: IValueValidator,
     checker: (value: TValue) => IValueOutcome,
   ): IValueValidator {
-    return (value) => {
-      const outcome = typeValidator(value);
+    return (value, context) => {
+      const outcome = typeValidator(value, context);
       // The type validator only accepts values of the checker's type.
       return outcome.isValid ? checker(outcome.value as TValue) : outcome;
     };
   }
 
+  /** Wraps one failure as a rejected outcome. */
+  static #reject(failure: IValueFailure): IValueOutcome {
+    return { isValid: false, failures: [failure] };
+  }
+
   /** Builds the standard `invalid_type` rejection. */
   static #invalidType(expected: string, value: unknown): IValueOutcome {
-    const received = ReceivedType.describe(value);
-    return {
-      isValid: false,
-      failure: {
-        code: "invalid_type",
-        message: `Expected ${expected}, received ${received}`,
-        params: { expected, received },
-      },
-    };
+    return ValueValidatorFactory.#reject(TypeFailure.invalidType(expected, value));
   }
 
   /** Accepts values whose `typeof` equals `expected`. */
@@ -88,14 +116,11 @@ export class ValueValidatorFactory {
     return (value) => {
       if (!(value instanceof Date)) return ValueValidatorFactory.#invalidType("date", value);
       if (Number.isNaN(value.getTime())) {
-        return {
-          isValid: false,
-          failure: {
-            code: "invalid_date",
-            message: "Invalid date",
-            params: {},
-          },
-        };
+        return ValueValidatorFactory.#reject({
+          code: "invalid_date",
+          message: "Invalid date",
+          params: {},
+        });
       }
       return { isValid: true, value };
     };
@@ -106,14 +131,11 @@ export class ValueValidatorFactory {
     return (value) =>
       value === expected
         ? { isValid: true, value }
-        : {
-            isValid: false,
-            failure: {
-              code: "invalid_literal",
-              message: `Invalid literal value, expected ${ValueValidatorFactory.#show(expected)}`,
-              params: { expected, received: value },
-            },
-          };
+        : ValueValidatorFactory.#reject({
+            code: "invalid_literal",
+            message: `Invalid literal value, expected ${ValueValidatorFactory.#show(expected)}`,
+            params: { expected, received: value },
+          });
   }
 
   /** Accepts only the enum's values. */
@@ -122,14 +144,11 @@ export class ValueValidatorFactory {
     return (value) =>
       allowed.has(value)
         ? { isValid: true, value }
-        : {
-            isValid: false,
-            failure: {
-              code: "invalid_enum_value",
-              message: `Invalid enum value, expected one of: ${values.map((entry) => ValueValidatorFactory.#show(entry)).join(", ")}`,
-              params: { expected: values, received: value },
-            },
-          };
+        : ValueValidatorFactory.#reject({
+            code: "invalid_enum_value",
+            message: `Invalid enum value, expected one of: ${values.map((entry) => ValueValidatorFactory.#show(entry)).join(", ")}`,
+            params: { expected: values, received: value },
+          });
   }
 
   /** Renders a literal the way a developer would write it. */
