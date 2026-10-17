@@ -12,4 +12,5 @@ export type ISchemaIssueCode =
   | "invalid_union"
   | "invalid_discriminator"
   | "max_depth_exceeded"
-  | "transform_failed";
+  | "transform_failed"
+  | "custom";

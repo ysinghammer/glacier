@@ -22,6 +22,7 @@ import {
   SchemaDefinitionError,
   SchemaError,
   Transform,
+  Refine,
   Default,
   isSchemaError,
   parse,
@@ -35,6 +36,8 @@ import {
   type ISchemaDecoratorOptions,
   type ISchemaIssue,
   type INumberOptions,
+  type IIssueCode,
+  type IRefineOptions,
   type ISchemaIssueCode,
   type ISchemaParseOptions,
   type ITransformFunction,
@@ -55,7 +58,7 @@ if (result.ok) {
   void value;
 } else {
   const issues: readonly ISchemaIssue[] = result.issues;
-  const code: ISchemaIssueCode = issues[0]?.code ?? "invalid_type";
+  const code: IIssueCode = issues[0]?.code ?? "invalid_type";
   const path: readonly (string | number)[] = issues[0]?.path ?? [];
   void [code, path];
 }
@@ -128,6 +131,14 @@ const definitionError: Error = new SchemaDefinitionError("late");
 
 // @ts-expect-error The target must be a class, not an instance.
 parse(new User(), {});
+const refineOptions: IRefineOptions = { path: ["a", 0], code: "mine", message: "m" };
+const refinements: [PropertyDecorator, ClassDecorator] = [
+  Refine((value: unknown) => value !== undefined, "m"),
+  Refine<User>((value) => value.name !== "", refineOptions),
+];
+const builtIn: ISchemaIssueCode = "custom";
+// @ts-expect-error Refine is synchronous.
+Refine(async () => true, "m");
 // @ts-expect-error A literal cannot be an object.
 IsLiteral({});
 // @ts-expect-error A failed result has no value.
@@ -181,4 +192,6 @@ void [
   definitionError,
   missing,
   unknownCode,
+  refinements,
+  builtIn,
 ];

@@ -1,3 +1,4 @@
+import type { IRefinement } from "./IRefinement.js";
 import type { ITransformFunction } from "./ITransformFunction.js";
 
 /** What the modifier decorators declared for one field; every member is set by at most one decorator. */
@@ -12,4 +13,6 @@ export interface IFieldModifiers {
   readonly inputKey?: string;
   /** `Transform`: custom transform of the input value before validation. */
   readonly transform?: ITransformFunction;
+  /** `Refine`: check run last on the validated value. */
+  readonly refine?: IRefinement;
 }

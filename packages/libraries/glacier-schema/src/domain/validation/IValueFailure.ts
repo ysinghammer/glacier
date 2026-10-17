@@ -1,9 +1,9 @@
-import type { ISchemaIssueCode } from "../failures/ISchemaIssueCode.js";
+import type { IIssueCode } from "../failures/IIssueCode.js";
 
 /** Why a value was rejected, before the field path and any decorator message override are applied. */
 export interface IValueFailure {
   /** Stable code of the failure. */
-  readonly code: ISchemaIssueCode;
+  readonly code: IIssueCode;
   /** Default English message. */
   readonly message: string;
   /** Code-specific details. */

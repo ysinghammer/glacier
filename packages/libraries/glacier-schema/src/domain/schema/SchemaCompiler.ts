@@ -1,6 +1,8 @@
 import type { IClass } from "@glacier/reflection";
 import { CompiledSchemaCache } from "./CompiledSchemaCache.js";
 import type { ICompiledSchema } from "./CompiledSchemaCache.js";
+import { ClassRefinements } from "./ClassRefinements.js";
+import type { IClassRefinement } from "./ClassRefinements.js";
 import { FieldRegistry } from "./FieldRegistry.js";
 import type { ISchemaIssue } from "../failures/ISchemaIssue.js";
 import { ReceivedType } from "../validation/ReceivedType.js";
@@ -45,9 +47,29 @@ export class SchemaCompiler {
       process: FieldProcessorFactory.create(definition),
     }));
     SchemaCompiler.#assertDistinctInputKeys(target, fields);
-    const schema = SchemaCompiler.#build<T>(target, fields);
+    const schema = SchemaCompiler.#build<T>(target, fields, ClassRefinements.readAll(target));
     CompiledSchemaCache.set(target, schema);
     return schema;
+  }
+
+  /** Runs the class-level refinements on a fully validated instance and reports each rejection. */
+  static #refine(instance: object, refinements: readonly IClassRefinement[]): ISchemaIssue[] {
+    const issues: ISchemaIssue[] = [];
+    for (const { test, options } of refinements) {
+      const check = test as (value: object) => boolean;
+      const base = {
+        path: options.path ?? [],
+        code: options.code ?? "custom",
+        message: options.message ?? "Refinement failed",
+      } as const;
+      try {
+        if (!check(instance)) issues.push({ ...base, params: {} });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        issues.push({ ...base, params: { reason } });
+      }
+    }
+    return issues;
   }
 
   /** Rejects classes in which two fields would read the same input key. */
@@ -68,6 +90,7 @@ export class SchemaCompiler {
   static #build<T extends object>(
     target: IClass,
     fields: readonly ICompiledField[],
+    refinements: readonly IClassRefinement[],
   ): ICompiledSchema<T> {
     return (input, context) => {
       const maxDepth = context.options.maxDepth ?? DEFAULT_MAX_DEPTH;
@@ -126,6 +149,7 @@ export class SchemaCompiler {
           });
         }
       }
+      if (issues.length === 0) issues.push(...SchemaCompiler.#refine(instance, refinements));
       return issues.length === 0 ? { ok: true, value: instance } : { ok: false, issues };
     };
   }
