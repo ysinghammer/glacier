@@ -33,8 +33,11 @@ manifests, and active accepted ADRs where present.
    consumption is deliberate, public, and acyclic. Capability repositories remain
    owned; shared connections do not imply global repository ownership. Shared
    kernels require genuinely shared semantics, not similar-looking code.
-4. Inspect library package-root `index.ts` and root-only export maps. Internal
-   exports solely for tests, deep imports, aliases, nested barrels, and convenience
+4. Inspect library package-root `index.ts` and root-only export maps, with only
+   reflection's zero-export package-root `register.ts` / `"./register"` exception.
+   Its root stays globally inactive; registration delegates only compiler protocol
+   installation and shares the canonical definitions/storage. It is not a barrel.
+   Internal exports solely for tests, deep imports, aliases, nested barrels, and convenience
    re-exports violate the policy. Application capability APIs need explicit curated
    single-export files; package export maps alone cannot protect internal boundaries.
 5. Verify application `src/Application.bootstrap.ts` delegates minimally, supporting
@@ -44,7 +47,8 @@ manifests, and active accepted ADRs where present.
 6. Check construction/startup separation, partial-failure cleanup, dependency-aware
    shutdown, awaited/supervised promises, and observable failures. Do not invent
    timeout/concurrency contracts. Respect explicitly approved import effects such
-   as reflection's compiler bridge without broadening them to resource startup.
+   as reflection's explicit registration import, never ordinary root activation,
+   without broadening them to resource startup.
 7. Review naming, class/function exceptions, types, public return types, JSDoc,
    imports/exports, and dependency approval scopes against current policies.
    Compare every affected decision with active accepted ADRs.

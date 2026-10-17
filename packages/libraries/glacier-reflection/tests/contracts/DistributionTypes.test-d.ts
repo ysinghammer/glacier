@@ -5,6 +5,9 @@ import {
   RecordMetadataDefinition,
   ValueMetadataDefinition,
 } from "@glacier/reflection";
+import "@glacier/reflection/register";
+// @ts-expect-error Registration deliberately exports no API values or types.
+import { register } from "@glacier/reflection/register";
 import type {
   IDynamicInstanceMetadataAddress,
   IConstructableClass,
@@ -57,6 +60,8 @@ DistributionTypeAssertions.equal<
   | "installation-failed"
 >();
 DistributionTypeAssertions.equal<IMetadataKind, "value" | "list" | "record">();
+DistributionTypeAssertions.equal<keyof typeof import("@glacier/reflection/register"), never>();
+void register;
 DistributionTypeAssertions.equal<IMetadataSide, "instance" | "static">();
 DistributionTypeAssertions.equal<
   IMetadataAddressRejectionCode,

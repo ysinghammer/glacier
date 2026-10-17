@@ -8,7 +8,9 @@ it("rejects an occupied nonfunction slot without replacing its descriptor", asyn
     enumerable: true,
   });
   const before = Object.getOwnPropertyDescriptor(Reflect, "metadata");
-  await expect(import("../../index.js")).rejects.toMatchObject({
+  await expect(import("../../index.js")).resolves.toHaveProperty("MetadataBoundaryError");
+  expect(Object.getOwnPropertyDescriptor(Reflect, "metadata")).toEqual(before);
+  await expect(import("../../register.js")).rejects.toMatchObject({
     name: "MetadataBoundaryError",
     code: "foreign-handler",
   });

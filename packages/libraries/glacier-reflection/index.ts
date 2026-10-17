@@ -1,7 +1,3 @@
-import { CompilerMetadataBridge } from "./src/infrastructure/adapters/inbound/CompilerMetadataBridge.adapter.js";
-
-CompilerMetadataBridge.activate();
-
 export { ValueMetadataDefinition } from "./src/domain/definitions/ValueMetadataDefinition.js";
 export { ListMetadataDefinition } from "./src/domain/definitions/ListMetadataDefinition.js";
 export { RecordMetadataDefinition } from "./src/domain/definitions/RecordMetadataDefinition.js";

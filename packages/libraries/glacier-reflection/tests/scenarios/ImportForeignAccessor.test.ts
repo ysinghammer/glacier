@@ -11,7 +11,10 @@ it("rejects an occupied accessor without invoking it or replacing its descriptor
     enumerable: true,
   });
   const before = Object.getOwnPropertyDescriptor(Reflect, "metadata");
-  await expect(import("../../index.js")).rejects.toMatchObject({
+  await expect(import("../../index.js")).resolves.toHaveProperty("MetadataBoundaryError");
+  expect(Object.getOwnPropertyDescriptor(Reflect, "metadata")).toEqual(before);
+  expect(calls).toBe(0);
+  await expect(import("../../register.js")).rejects.toMatchObject({
     name: "MetadataBoundaryError",
     code: "foreign-handler",
   });

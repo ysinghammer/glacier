@@ -1,17 +1,21 @@
 import assert from "node:assert/strict";
 
-/** Asserts import rejection through the genuine compiled public root in a fresh native Node realm. */
+/** Asserts root inactivity and registration rejection through generated public entries in a fresh realm. */
 class ReflectActivationAssertions {
   /** Preserves descriptors, exceptional cause and safe message without changing production or retrying activation. */
   public static async run(mode: string | undefined): Promise<void> {
-    assert.ok(mode === "unavailable" || mode === "null" || mode === "throwing");
+    assert.ok(
+      mode === "absent" || mode === "unavailable" || mode === "null" || mode === "throwing",
+    );
     const original = Object.getOwnPropertyDescriptor(globalThis, "Reflect");
     assert.ok(original);
     const intrinsic = globalThis.Reflect;
     const intrinsicDescriptors = Object.getOwnPropertyDescriptors(intrinsic);
     const cause = new Error("private Reflect inspection diagnostic");
     let getterCalls = 0;
-    if (mode === "throwing") {
+    if (mode === "absent") {
+      assert.equal(Reflect.deleteProperty(globalThis, "Reflect"), true);
+    } else if (mode === "throwing") {
       Object.defineProperty(globalThis, "Reflect", {
         get() {
           getterCalls++;
@@ -28,14 +32,28 @@ class ReflectActivationAssertions {
     const before = Object.getOwnPropertyDescriptor(globalThis, "Reflect");
     let failure: unknown;
     let after: PropertyDescriptor | undefined;
+    let rootDescriptor: PropertyDescriptor | undefined;
+    let rootIntrinsicDescriptors: PropertyDescriptorMap | undefined;
     try {
       await import("../../dist/index.js");
-    } catch (error) {
-      failure = error;
+      assert.equal(getterCalls, 0);
+      rootDescriptor = Object.getOwnPropertyDescriptor(globalThis, "Reflect");
+      rootIntrinsicDescriptors = Object.getOwnPropertyDescriptors(intrinsic);
+      try {
+        await import("../../dist/register.js");
+      } catch (error) {
+        failure = error;
+      }
     } finally {
       after = Object.getOwnPropertyDescriptor(globalThis, "Reflect");
       Object.defineProperty(globalThis, "Reflect", original);
     }
+    assert.deepEqual(rootDescriptor, before);
+    assert.ok(rootIntrinsicDescriptors);
+    assert.deepEqual(
+      Reflect.ownKeys(rootIntrinsicDescriptors),
+      Reflect.ownKeys(intrinsicDescriptors),
+    );
     assert.ok(failure instanceof Error);
     assert.equal(failure.name, "MetadataBoundaryError", failure.stack);
     assert.ok("code" in failure);
@@ -46,6 +64,10 @@ class ReflectActivationAssertions {
     assert.deepEqual(after, before);
     assert.deepEqual(Reflect.ownKeys(intrinsic), Reflect.ownKeys(intrinsicDescriptors));
     for (const key of Reflect.ownKeys(intrinsicDescriptors)) {
+      assert.deepEqual(
+        Object.getOwnPropertyDescriptor(rootIntrinsicDescriptors, key),
+        Object.getOwnPropertyDescriptor(intrinsicDescriptors, key),
+      );
       assert.deepEqual(
         Object.getOwnPropertyDescriptor(intrinsic, key),
         Object.getOwnPropertyDescriptor(intrinsicDescriptors, key)?.value,

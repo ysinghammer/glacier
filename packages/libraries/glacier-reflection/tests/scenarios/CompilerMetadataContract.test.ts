@@ -1,3 +1,4 @@
+import "../../register.js";
 import { describe, expect, it } from "vitest";
 import {
   DESIGN_TYPE_METADATA,

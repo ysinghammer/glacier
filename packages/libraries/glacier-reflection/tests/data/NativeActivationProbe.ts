@@ -2,10 +2,10 @@ import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-/** Runs only the three platform preconditions that would break Vitest's own Reflect.apply usage. */
+/** Runs platform preconditions that would break Vitest's own Reflect.apply usage. */
 export class NativeActivationProbe {
   /** Awaits native assertions and process exit; Vitest's V8 collector inherits and consumes real child coverage. */
-  public static run(mode: "unavailable" | "null" | "throwing"): string {
+  public static run(mode: "absent" | "unavailable" | "null" | "throwing"): string {
     const result = spawnSync(
       process.execPath,
       [fileURLToPath(new URL("./ReflectActivationAssertions.ts", import.meta.url)), mode],

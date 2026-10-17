@@ -1,7 +1,7 @@
 import type { IMetadataBoundaryErrorCode } from "./IMetadataBoundaryErrorCode.js";
 
 /**
- * Reports decorator/compiler/import rejection with a safe code-derived message, never consumer values/source.
+ * Reports decorator/compiler/registration rejection with a safe code-derived message, never consumer values/source.
  * Reflect installation failures require correcting the dependency/import arrangement and starting a fresh realm.
  * Foreign handlers remain unchanged; this class provides no reset, uninstall or coexistence mechanism.
  */

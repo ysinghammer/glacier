@@ -1,7 +1,8 @@
 # @glacier/reflection
 
 Typed, independently usable metadata for legacy TypeScript decorators and direct class annotations.
-Native ESM, ES2023, no runtime dependencies, no DI container. Import **only the package root**:
+Native ESM, ES2023, no runtime dependencies, no DI container. Ordinary metadata uses the
+**globally inactive package root**; compiler recording requires a separate explicit registration import:
 
 ```ts
 import {
@@ -14,8 +15,10 @@ import {
 ```
 
 The package currently has `private: true`; this is a workspace library, not a claim of npm publication.
-The root export map supplies generated `dist/index.js` and `dist/index.d.ts`, with no CommonJS entry,
-deep imports or public subpaths. Supported verification is Node.js 24 LTS (workspace 24.21.0).
+The export map has exactly `"."` (`dist/index.js` / `dist/index.d.ts`) and `"./register"`
+(`dist/register.js` / `dist/register.d.ts`). Registration exports no consumer-facing values or types.
+There is no CommonJS entry, wildcard, deep import or other public subpath.
+Supported verification is Node.js 24 LTS (workspace 24.21.0).
 The Node-only suite does not establish browser or historical-runtime compatibility.
 
 The root exposes exactly **eight runtime values**: four classes (`ValueMetadataDefinition`,
@@ -46,21 +49,36 @@ internal organization, not public import paths; the package root remains the cur
 
 ## Activation and compiler metadata
 
-Every **runtime root import** automatically installs `Reflect.metadata` before decorated declarations execute.
-A type-only import does not activate recording. Enable `experimentalDecorators` and `emitDecoratorMetadata`
-in the consuming TypeScript configuration; modern standard decorators are not supported.
-Import the root before modules containing decorated declarations. Metadata is emitted only where the compiler
-actually emits it; importing later cannot recover earlier missed declarations.
+Ordinary named and side-effect-only root imports do not read global Reflect, inspect its metadata
+descriptor or install a compiler handler. They succeed even with missing Reflect or a foreign handler.
+Manual writes, decorators, inheritance and discovery work without registration when the normal Reflect
+intrinsics are available; operation-time behavior under missing Reflect is not newly guaranteed.
+Type-only imports also remain inactive. The ambient `Reflect.metadata` type signature supplied by root
+declarations describes the compiler protocol, **not runtime handler availability**.
 
-`sideEffects: true` preserves activation when bundlers retain a runtime import, including a side-effect-only import:
+**Breaking migration from automatic root activation:** add registration at the composition boundary,
+before importing modules containing legacy decorated declarations. For example, in a composition module:
 
 ```ts
-import "@glacier/reflection";
+import "@glacier/reflection/register";
+import "./Consumer.js"; // Contains legacy decorated declarations; not a package subpath.
 ```
 
+Enable `experimentalDecorators` and `emitDecoratorMetadata` in the consuming TypeScript configuration;
+modern standard decorators are not supported. Static dependencies execute before the composition module's
+body, so placing `await import("@glacier/reflection/register")` later in that body cannot protect earlier
+static declaration imports. Register first in the static dependency order, or await registration before a
+subsequent dynamic declaration import. Avoid dependency cycles that execute declarations too early.
+Missed genuine emissions cannot be recovered retroactively: the original class remains unrecorded after
+registration; a distinct later declaration can record normally.
+
+Exactly `sideEffects: ["./dist/register.js"]` retains the explicit registration effect in bundles,
+without introducing it from ordinary root imports.
 Only `Reflect.metadata` is installed, not the rest of `reflect-metadata`. No resources, registry, background work
-or consumer instances are started. The definitions are shared per evaluated module; repeated imports share state.
-Two physical package copies in one realm are not coordinated implementations.
+or consumer instances are started. Root and register share one canonical definition/storage graph.
+Repeated imports of the same resolved registration module use ESM caching and preserve the namespace, handler
+and recorded declarations. A separately evaluated physical package copy is not that cached module:
+its root stays inactive, but its registration conflicts with the first handler.
 
 | Root constant                     | Emitted key         | Read value                |
 | --------------------------------- | ------------------- | ------------------------- |
@@ -218,6 +236,9 @@ Legacy callback signatures do not offer direct checked-method key/tuple guarante
 
 ## DI foundation, not DI resolution
 
+The compiler-record reads in this example require the registration-first composition above;
+the explicit symbol annotation itself does not require compiler registration.
+
 ```ts
 interface IRepository {
   load(): string;
@@ -260,8 +281,11 @@ Decorators and the compiler protocol throw `MetadataBoundaryError`, with safe `c
 `invalid-decorator-location`, `foreign-handler`, `reflect-unavailable`, `installation-failed`.
 Exceptional custom snapshot or inspection errors remain thrown; handling a rejection is not a general exception catch.
 
-A foreign `Reflect.metadata` handler (including another package copy) aborts import without replacing its
-descriptor or invoking its accessor. Unrelated Reflect operations remain unchanged.
+A foreign `Reflect.metadata` handler (including another package copy) aborts **registration**, not ordinary
+root import, without replacing its descriptor or invoking its accessor. Missing/null/throwing Reflect rejects
+registration with `reflect-unavailable`; a throwing global getter's cause is retained without leaking its
+diagnostic in the safe message. Locked-empty/nonextensible installation rejects with `installation-failed`.
+Unrelated Reflect operations remain unchanged.
 Correct the conflicting dependency/import arrangement and **restart the process/browser realm**.
 Do not delete a foreign handler to force coexistence. There is no reset, uninstall or installation-toggle API.
 Metadata is transient class-owned state, not durable storage.
@@ -280,16 +304,25 @@ pnpm exec turbo run ci --force
 
 Package `test` is exactly `vitest run --coverage`, using isolated Node fork workers.
 [Vitest-owned global setup](tests/data/ReflectionTestPreparation.ts) rebuilds production and genuine legacy
-compiler fixtures, checks copied generated declarations in an independent consumer, and builds the actual
-ESM side-effect-retention bundle. A direct invocation works with clean generated outputs; no custom
+compiler fixtures, checks both copied generated declarations in an independent consumer, and builds four actual
+ESM bundles: registration-only retention, inactive side-effect root, used ordinary root and shared
+root/registration metadata. A direct invocation works with clean generated outputs; no custom
 launcher, HTTP fixture server, browser installation or separate `test:prepare` task is required.
-Vite 8.3.2 is used only for this approved distribution-retention check, never production compilation.
+Vite 8.3.2 is used only for these approved distribution checks, never production compilation.
+The retention build keeps its registration-only entry free of ordinary API imports; a separate
+root-only observer entry in that same graph reads its genuine emitted records and exact discovery identity.
 
-Ordinary scenarios consume the source public root; native generated consumers prove package resolution,
-repeated/duplicate module identity, compiler emission, type-only inactivity and bundle retention.
-Only the three unavailable/null/throwing Reflect preconditions need minimal native Node subprocesses:
+Ordinary scenarios consume only the source public root and explicit registration equivalents.
+[Root-only manual metadata](tests/scenarios/RootImportInactivity.test.ts),
+[root-first registration](tests/scenarios/ImportCompatibility.test.ts) and
+[registration-first](tests/scenarios/RegistrationFirstImport.test.ts) show the distinct lifecycles.
+[Independent generated consumers](tests/scenarios/DistributionContract.test.ts) prove both package resolutions,
+empty registration declarations, repeated/duplicate module identity, genuine missed/later emission,
+six rejected subpaths, type-only inactivity and all four bundle outcomes.
+The absent/undefined/null/throwing Reflect preconditions need minimal native Node subprocesses:
 Vitest itself uses `Reflect.apply` and cannot safely execute those preconditions in its workers.
-[Native assertions](tests/data/ReflectActivationAssertions.ts) import the genuine compiled public root.
+[Native assertions](tests/data/ReflectActivationAssertions.ts) import the genuine compiled public root
+then registration entry, independently of copied-consumer/bundle assertions.
 The [V8 provider extension](tests/data/ReflectionCoverageProvider.ts) converts native and Vite contexts
 separately, remaps genuine compiler source maps and uniquely matches source spans before the built-in merge.
 It never changes hit counters or drops executable nodes; missing or ambiguous mappings fail.

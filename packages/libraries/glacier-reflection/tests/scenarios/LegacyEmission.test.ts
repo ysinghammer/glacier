@@ -1,3 +1,4 @@
+import "@glacier/reflection/register";
 import { describe, expect, it } from "vitest";
 import {
   MetadataDiscovery,

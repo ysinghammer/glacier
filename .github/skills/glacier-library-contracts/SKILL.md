@@ -25,6 +25,8 @@ configuration, runtime-support bounds, and applicable component stories.
    production files. Use only the root public API in ordinary tests; never expose
    internals for coverage or inspect private state. Keep representative public
    usage examples current, but do not count examples as complete assertions.
+   Reflection alone also permits its public zero-export registration entry and
+   generated/source public equivalents; private adapters/state remain forbidden.
 2. Put ordinary runtime scenarios in package-local
    `tests/scenarios/**/*.test.ts` or `.test.tsx`, grouped by public capability when
    needed. Name public scenarios, not implementation files; clearly establish
@@ -46,8 +48,16 @@ configuration, runtime-support bounds, and applicable component stories.
    not gain permission for React-only testing packages.
 7. Where distribution behavior is a criterion, verify generated root consumers
    and genuine runtime/compiler/bundle behavior rather than only source imports.
-   For reflection, read the current explicit ESM/ES2023, root-only, dependency-free,
-   legacy-decorator, activation/foreign-handler, and support-bound contracts.
+   For reflection, verify exactly the generated root and zero-export registration
+   entries/declarations, unchanged eight runtime/35 named type root exports and
+   six forbidden implementation/subpaths. Check inactive named/side-effect roots
+   under missing/foreign Reflect, both registration orders and cached repeats,
+   genuine emissions/no retroactive recovery, safe registration-only failures and
+   physical-copy protection. Execute all four actual Vite bundles: registration-only
+   retention, inactive side-effect root, used ordinary root and shared root/register
+   identity/storage. Distinguish copied/bundle assertions from genuine package-dist
+   child V8 maps/hits merged into source coverage, including `register.ts`.
+   Retain native ESM/ES2023, dependency-free legacy-decorator and Node-only bounds.
    Its approved Vite retention check is not permission for a production bundler.
 8. Run actual applicable package/workspace tasks and inspect reports; filtered
    diagnostics do not replace required complete story/epic checks. Generated

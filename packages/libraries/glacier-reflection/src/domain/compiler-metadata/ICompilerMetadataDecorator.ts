@@ -9,7 +9,8 @@ export interface ICompilerMetadataDecorator {
 declare global {
   namespace Reflect {
     /**
-     * Installed automatically by a runtime root import before decorated declarations execute.
+     * Installed only by importing "@glacier/reflection/register" before decorated declarations execute.
+     * This ambient signature does not guarantee runtime availability; missed emissions cannot be recovered.
      * Accepts only design:type/design:paramtypes/design:returntype and checked runtime shapes.
      * Unsupported/malformed inputs throw MetadataBoundaryError before mutation; callbacks translate
      * invalid class/member locations to boundary errors. Not a general custom-metadata write API.

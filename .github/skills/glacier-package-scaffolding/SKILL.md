@@ -34,7 +34,11 @@ Pay particular attention to [technology](../../../.policies/0002-technology-and-
    no path aliases, nested barrels, or deep imports. Follow one-primary-export
    files, approved role suffixes, and purpose-bearing JSDoc.
 4. Libraries expose curated public APIs through package-root `index.ts` and a
-   root-only export map. No bootstrap or import-time resource startup. Configure
+   root-only export map. The existing reflection-only exception permits exactly
+   a zero-export package-root `register.ts` / `"./register"` explicit compiler
+   protocol entry, with inactive ordinary root and registration-only sideEffects.
+   Do not prescribe registration entries for other packages or permit deep imports.
+   No bootstrap or import-time resource startup. Configure
    [library contracts](../glacier-library-contracts/SKILL.md), public examples,
    type checks, runtime scenarios, combined per-file coverage, and ignored artifacts.
 5. Apps/services start through minimal `src/Application.bootstrap.ts`; composition

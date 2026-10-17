@@ -14,8 +14,12 @@ it("rejects a locked empty slot without changing its descriptor", async () => {
   let failure: unknown;
   try {
     await import("../../index.js");
-  } catch (error) {
-    failure = error;
+    expect(Object.getOwnPropertyDescriptor(facade, "metadata")).toEqual(before);
+    try {
+      await import("../../register.js");
+    } catch (error) {
+      failure = error;
+    }
   } finally {
     Object.defineProperty(globalThis, "Reflect", original);
   }

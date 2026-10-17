@@ -1,3 +1,4 @@
+import "@glacier/reflection/register";
 import { ValueMetadataDefinition, type IClass } from "@glacier/reflection";
 
 /** Publicly observed fixture outputs, without exposing inaccessible signatures. */

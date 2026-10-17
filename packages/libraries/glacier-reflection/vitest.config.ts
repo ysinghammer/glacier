@@ -20,7 +20,7 @@ export default defineConfig({
       provider: "custom",
       customProviderModule: "tests/data/ReflectionCoverageProvider.ts",
       autoAttachSubprocess: true,
-      include: ["index.ts", "src/**/*.ts"],
+      include: ["index.ts", "register.ts", "src/**/*.ts"],
       exclude: ["src/**/*.d.ts"],
       reportsDirectory: "tests/artifacts/coverage",
       reporter: ["text", "json", "json-summary", "html", "lcov"],
