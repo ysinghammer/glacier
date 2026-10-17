@@ -7,4 +7,5 @@ export type ISchemaIssueCode =
   | "too_small"
   | "too_big"
   | "invalid_format"
-  | "not_multiple_of";
+  | "not_multiple_of"
+  | "transform_failed";

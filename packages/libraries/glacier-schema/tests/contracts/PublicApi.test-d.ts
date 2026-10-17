@@ -8,8 +8,13 @@ import {
   IsLiteral,
   IsNumber,
   IsString,
+  Nullable,
+  Optional,
+  Rename,
   SchemaDefinitionError,
   SchemaError,
+  Transform,
+  Default,
   isSchemaError,
   parse,
   safeParse,
@@ -20,6 +25,8 @@ import {
   type ISchemaIssue,
   type INumberOptions,
   type ISchemaIssueCode,
+  type ISchemaParseOptions,
+  type ITransformFunction,
   type IStringFormat,
   type IStringOptions,
 } from "../../index.js";
@@ -63,6 +70,18 @@ const decorators: PropertyDecorator[] = [
 const stringOptions: IStringOptions = { length: 3, format: "uuid" };
 const numberOptions: INumberOptions = { min: 0 };
 const format: IStringFormat = "date-time";
+const parseOptions: ISchemaParseOptions = { coerce: true };
+const coerced: User = parse(User, {}, parseOptions);
+const coercedResult: IResult<User> = safeParse(User, {}, { coerce: false });
+const transformFn: ITransformFunction = (value) => String(value);
+const modifiers: PropertyDecorator[] = [
+  Optional(),
+  Nullable(),
+  Default(1),
+  Default(() => []),
+  Rename("alias"),
+  Transform(transformFn),
+];
 const literal: ILiteralValue = 10n;
 const enumSource: IEnumSource = { Up: "up" };
 const definitionError: Error = new SchemaDefinitionError("late");
@@ -77,6 +96,12 @@ const missing = ((failed: IResult<User>) => (failed.ok ? undefined : failed.valu
 const unknownCode: ISchemaIssueCode = "unknown";
 // @ts-expect-error Decorator options only know `message` and the constraints.
 IsString({ other: true });
+// @ts-expect-error Coercion options are per call and only know `coerce`.
+parse(User, {}, { coerce: true, other: 1 });
+// @ts-expect-error Rename needs a string key.
+Rename(1);
+// @ts-expect-error Transform needs a function.
+Transform("x");
 // @ts-expect-error Unknown string formats are rejected.
 IsString({ format: "phone" });
 // @ts-expect-error Strings have no numeric bounds.
@@ -85,6 +110,10 @@ IsString({ exclusiveMin: 1 });
 IsNumber({ pattern: /a/ });
 
 void [
+  parseOptions,
+  coerced,
+  coercedResult,
+  modifiers,
   stringOptions,
   numberOptions,
   format,
