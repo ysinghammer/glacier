@@ -30,6 +30,11 @@
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.base.json"],
       "outputs": ["dist/**"]
     },
+    "@glacier/schema#build": {
+      "dependsOn": ["^build", "@glacier/reflection#test"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.base.json"],
+      "outputs": ["dist/**"]
+    },
     "ci": {
       "dependsOn": ["//#lint:check", "//#format:check", "lint:types", "build", "test"]
     }

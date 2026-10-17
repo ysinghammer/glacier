@@ -1,0 +1,237 @@
+import {
+  IsAny,
+  IsArray,
+  IsMap,
+  IsObject,
+  IsOneOf,
+  IsUnion,
+  IsRecord,
+  IsSet,
+  IsTuple,
+  IsBigInt,
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsInt,
+  IsLiteral,
+  IsNumber,
+  IsString,
+  Nullable,
+  Optional,
+  Rename,
+  SchemaDefinitionError,
+  SchemaError,
+  Transform,
+  Refine,
+  Default,
+  ExtendType,
+  OmitType,
+  PartialType,
+  PickType,
+  type IDerivedClass,
+  type IDerivedClassOptions,
+  type ICollectionOptions,
+  type IElementType,
+  type ISizeOptions,
+  type IEnumSource,
+  type ILiteralValue,
+  type IResult,
+  type ISchemaDecoratorOptions,
+  type ISchemaIssue,
+  type INumberOptions,
+  type IIssueCode,
+  type IRefineOptions,
+  type ISchemaIssueCode,
+  type ISchemaParseOptions,
+  type ITransformFunction,
+  type IStringFormat,
+  type IStringOptions,
+  type IUnionOptions,
+  type IUnionVariants,
+  Describe,
+  JsonSchema,
+  type IDescribeOptions,
+  type IJsonSchema,
+  type IJsonSchemaFragment,
+  type IJsonSchemaOptions,
+  type IJsonSchemaTarget,
+  Schema,
+} from "../../index.js";
+
+class User {
+  public name!: string;
+}
+
+const instance: User = Schema.parse(User, {});
+const result: IResult<User> = Schema.safeParse(User, {});
+if (result.ok) {
+  const value: User = result.value;
+  void value;
+} else {
+  const issues: readonly ISchemaIssue[] = result.issues;
+  const code: IIssueCode = issues[0]?.code ?? "invalid_type";
+  const path: readonly (string | number)[] = issues[0]?.path ?? [];
+  void [code, path];
+}
+
+const thrown: unknown = new SchemaError([]);
+if (Schema.isError(thrown)) {
+  const issues: readonly ISchemaIssue[] = thrown.issues;
+  const code: string = thrown.code;
+  void [issues, code];
+}
+
+const options: ISchemaDecoratorOptions = { message: "custom" };
+const decorators: PropertyDecorator[] = [
+  IsString(options),
+  IsString({ min: 1, max: 2, pattern: /a/, format: "email", trim: true, lowercase: true }),
+  IsNumber({ min: 1, exclusiveMax: 3, multipleOf: 0.5 }),
+  IsInt({ exclusiveMin: 0, max: 9, message: "custom" }),
+  IsBoolean(),
+  IsBigInt(),
+  IsDate(),
+  IsAny(),
+  IsLiteral(null),
+  IsEnum(["a", 1]),
+];
+const collectionOptions: ICollectionOptions = { min: 1, max: 2, unique: true, message: "m" };
+const sizeOptions: ISizeOptions = { min: 1, max: 2 };
+const elementType: IElementType = String;
+class Node {
+  public children!: Node[];
+}
+const collections: PropertyDecorator[] = [
+  IsArray(String, collectionOptions),
+  IsArray(() => Node),
+  IsSet(Node, collectionOptions),
+  IsTuple([String, Number]),
+  IsMap(String, Node, sizeOptions),
+  IsRecord(Date, sizeOptions),
+  IsObject(Node),
+  IsObject(() => Node, { message: "m" }),
+  IsObject(),
+];
+const unionVariants: IUnionVariants = { cat: Node, dog: () => Node };
+const unionOptions: IUnionOptions = { discriminator: "type", variants: unionVariants };
+const unions: PropertyDecorator[] = [
+  IsUnion(unionOptions),
+  IsUnion(unionOptions, { message: "m" }),
+  IsOneOf([String, Number, Node]),
+  IsOneOf([() => Node, Date], { message: "m" }),
+];
+const classUnion: ClassDecorator = IsUnion(unionOptions);
+const depthOptions: ISchemaParseOptions = { maxDepth: 8 };
+const stringOptions: IStringOptions = { length: 3, format: "uuid" };
+const numberOptions: INumberOptions = { min: 0 };
+const format: IStringFormat = "date-time";
+const parseOptions: ISchemaParseOptions = { coerce: true };
+const coerced: User = Schema.parse(User, {}, parseOptions);
+const coercedResult: IResult<User> = Schema.safeParse(User, {}, { coerce: false });
+const transformFn: ITransformFunction = (value) => String(value);
+const modifiers: PropertyDecorator[] = [
+  Optional(),
+  Nullable(),
+  Default(1),
+  Default(() => []),
+  Rename("alias"),
+  Transform(transformFn),
+];
+const literal: ILiteralValue = 10n;
+const enumSource: IEnumSource = { Up: "up" };
+const definitionError: Error = new SchemaDefinitionError("late");
+
+// @ts-expect-error The target must be a class, not an instance.
+Schema.parse(new User(), {});
+const refineOptions: IRefineOptions = { path: ["a", 0], code: "mine", message: "m" };
+const refinements: [PropertyDecorator, ClassDecorator] = [
+  Refine((value: unknown) => value !== undefined, "m"),
+  Refine<User>((value) => value.name !== "", refineOptions),
+];
+const builtIn: ISchemaIssueCode = "custom";
+// @ts-expect-error Refine is synchronous.
+Refine(async () => true, "m");
+// @ts-expect-error A literal cannot be an object.
+IsLiteral({});
+// @ts-expect-error A failed result has no value.
+const missing = ((failed: IResult<User>) => (failed.ok ? undefined : failed.value))(result);
+// @ts-expect-error Unknown issue codes are not part of the stable set.
+const unknownCode: ISchemaIssueCode = "unknown";
+// @ts-expect-error Decorator options only know `message` and the constraints.
+IsString({ other: true });
+// @ts-expect-error Coercion options are per call and only know `coerce`.
+Schema.parse(User, {}, { coerce: true, other: 1 });
+// @ts-expect-error Rename needs a string key.
+Rename(1);
+// @ts-expect-error Transform needs a function.
+Transform("x");
+// @ts-expect-error Unknown string formats are rejected.
+IsString({ format: "phone" });
+// @ts-expect-error Strings have no numeric bounds.
+IsString({ exclusiveMin: 1 });
+// @ts-expect-error Maps and records have no uniqueness constraint.
+IsRecord(String, { unique: true });
+// @ts-expect-error Element types must be constructors or class references.
+IsArray("string");
+// @ts-expect-error The nested class argument cannot be an instance.
+IsObject(new User());
+// @ts-expect-error A union needs a discriminator.
+IsUnion({ variants: {} });
+// @ts-expect-error Variants must be classes or class references.
+IsUnion({ discriminator: "t", variants: { a: "x" } });
+// @ts-expect-error A one-of takes a list of types.
+IsOneOf(String);
+// @ts-expect-error Numbers have no pattern.
+IsNumber({ pattern: /a/ });
+
+void [
+  unions,
+  classUnion,
+  collections,
+  depthOptions,
+  elementType,
+  parseOptions,
+  coerced,
+  coercedResult,
+  modifiers,
+  stringOptions,
+  numberOptions,
+  format,
+  instance,
+  decorators,
+  literal,
+  enumSource,
+  definitionError,
+  missing,
+  unknownCode,
+  refinements,
+  builtIn,
+];
+
+class Account {
+  public id!: string;
+  public name!: string;
+}
+const update: IDerivedClass<Partial<Account>> = PartialType(Account);
+const picked: IDerivedClass<Pick<Account, "id">> = PickType(Account, ["id"]);
+const omitted: IDerivedClass<Omit<Account, "id">> = OmitType(Account, ["id"]);
+const derivedOptions: IDerivedClassOptions = { name: "Named" };
+const extended: IDerivedClass<Omit<Account, "name"> & { name: number }> = ExtendType(
+  Account,
+  class {
+    public name!: number;
+  },
+  derivedOptions,
+);
+const patch: Partial<Account> = Schema.parse(update, {});
+void [patch, picked, omitted, extended];
+
+const jsonSchemaTarget: IJsonSchemaTarget = "openapi-3.1";
+const jsonSchemaOptions: IJsonSchemaOptions = { target: jsonSchemaTarget };
+const describeOptions: IDescribeOptions = { title: "t", example: 1, deprecated: true, name: "n" };
+const fragment: IJsonSchemaFragment = { minLength: 1 };
+const schemaDocument: IJsonSchema = Schema.toJsonSchema(User, jsonSchemaOptions);
+const annotationDecorators: (ClassDecorator & PropertyDecorator)[] = [
+  Describe(describeOptions),
+  JsonSchema(fragment),
+];
+void [schemaDocument, annotationDecorators];
