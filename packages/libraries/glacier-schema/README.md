@@ -2,8 +2,8 @@
 
 Private, native ESM class-based schema validation and transformation built on
 [`@glacier/reflection`](../glacier-reflection/README.md). Decorated classes act as validator and
-transformer in one pipeline. Phases 2-4 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
-collections, nested objects, `parse` / `safeParse` and typed errors. Unions, refinements, composition and JSON Schema follow
+transformer in one pipeline. Phases 2-5 provide the core pipeline: primitive decorators with constraints, modifiers, per-call coercion,
+collections, nested objects, unions, `parse` / `safeParse` and typed errors. Refinements, composition and JSON Schema follow
 in later phases.
 
 ## Public API
@@ -24,6 +24,13 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
   decorated class, or `() => Class` for forward references and cycles. `IsArray`/`IsSet` take `min`, `max`, `unique`;
   `IsMap`/`IsRecord` take `min`, `max`. Issue paths run through the nesting (`["items", 2, "name"]`). Nesting is
   capped at 64 classes (`maxDepth` option) and reported as `max_depth_exceeded`.
+- Unions: `IsUnion({ discriminator, variants: { value: Class | () => Class } })` selects the variant class by the
+  discriminator before validating, so issues point into the variant; an unknown or missing discriminator is
+  `invalid_discriminator`. It works on a property (nested instance) or on a base class, where `parse(Base, input)`
+  returns the selected variant instance (subclasses do not inherit the union, and a class cannot list itself).
+  `IsOneOf([String, Number, Class])` tries the options in order without a discriminator; coercion is applied only
+  when no option matches as given, and a mismatch is one `invalid_union` issue with each option's issues in
+  `params.attempts`. Unions are not accepted as collection element types; wrap them in a class.
 - `SchemaError` (`code = "SCHEMA_VALIDATION_FAILED"`, `issues`, `toJSON()`), `isSchemaError(error)` (a brand
   check that works across duplicate package copies) and `SchemaDefinitionError` for incorrectly declared classes.
 - Modifiers (unprefixed, combinable with the type decorator in either order, inherited): `Optional` (missing or

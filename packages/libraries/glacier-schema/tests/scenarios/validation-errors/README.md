@@ -15,6 +15,7 @@ Story-local criteria are phase 2.
 | SCH-034 | `isSchemaError` guard        | Recognises errors from a duplicate package copy; rejects other values         | phase 2 | [ValidationErrors.test.ts](ValidationErrors.test.ts) |
 
 Each scenario is identified in its spec by a top-level `// @scenario SCH-nnn` line. Issue codes in this phase:
-`invalid_type`, `invalid_literal`, `invalid_enum_value` and `invalid_date`; later phases add more without
+`invalid_type`, `invalid_literal`, `invalid_enum_value` and `invalid_date`; unions add `invalid_union` and
+`invalid_discriminator` (see `unions`); later phases add more without
 changing existing ones. `SchemaDefinitionError` (a programming error, not invalid input) is covered under
 `parsing-pipeline` and `primitive-types`.
