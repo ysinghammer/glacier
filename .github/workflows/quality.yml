@@ -39,6 +39,8 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm --filter @glacier/logger exec playwright install --with-deps chromium
       - name: Check commit messages
         if: github.event_name == 'pull_request'
         env:
