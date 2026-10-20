@@ -6,3 +6,4 @@
 | [serialization](serialization/README.md) | Turns any logged value and error into safe plain data and censors configured paths, so a log call never throws or leaks.      |
 | [formatting](formatting/README.md)       | Renders entries as one JSON line or a readable, optionally coloured pretty layout for Node and the browser, safely.           |
 | [transports](transports/README.md)       | Delivers entries to Node stdout and files with buffering, to the browser console, and reports delivery failures to `onError`. |
+| [platform](platform/README.md)           | Gives Node and browser consumers one package root with the right transports and a root-only export map.                       |
