@@ -81,6 +81,7 @@ export class Logger {
       context: this.#context,
       bindings: this.#bindings,
       call,
+      redaction: this.#runtime.redaction,
     });
     for (const registration of this.#runtime.transports) {
       if (LogLevels.isAtLeast(level, registration.level ?? this.#runtime.level)) {

@@ -66,7 +66,7 @@ describe("entry normalisation", () => {
     logger.error({ err });
 
     expect(transport.entries[0]?.message).toBe("boom");
-    expect(transport.entries[0]?.error).toBe(err);
+    expect(transport.entries[0]?.error).toMatchObject({ type: "Error", message: "boom" });
     expect(transport.entries[0]?.fields).toEqual({});
   });
 
@@ -78,7 +78,7 @@ describe("entry normalisation", () => {
 
     expect(transport.entries[0]).toMatchObject({
       message: "crashed",
-      error: err,
+      error: { type: "Error", message: "boom" },
       fields: { code: 9 },
     });
   });

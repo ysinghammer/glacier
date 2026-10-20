@@ -1,9 +1,8 @@
+import { RedactionPaths } from "../../serialization/domain/RedactionPaths.js";
 import { Bindings } from "../domain/Bindings.js";
 import { LogLevels } from "../domain/LogLevels.js";
 import type { ILoggerConfiguration } from "./ILoggerConfiguration.config.js";
 import type { IRejectionReason } from "./IRejectionReason.js";
-
-const REDACT_PATH_PATTERN = /^[^.*\s]+(\.[^.*\s]+)*$/;
 
 /** Checks a configuration and reports every problem at once. */
 export class LoggerConfigurationValidator {
@@ -33,7 +32,7 @@ export class LoggerConfigurationValidator {
     reasons.push(...Bindings.validate(configuration.bindings ?? {}));
 
     for (const path of configuration.redact?.paths ?? []) {
-      if (!REDACT_PATH_PATTERN.test(path)) {
+      if (!RedactionPaths.isValid(path)) {
         reasons.push({
           code: "invalid_redact_path",
           message: `Redact path "${path}" must be non-empty dot-separated segments without wildcards`,

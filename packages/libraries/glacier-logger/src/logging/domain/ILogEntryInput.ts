@@ -1,3 +1,4 @@
+import type { IRedaction } from "./IRedaction.js";
 import type { ILogCall } from "./ILogCall.js";
 import type { ILogLevel } from "./ILogLevel.js";
 
@@ -8,4 +9,5 @@ export interface ILogEntryInput {
   readonly context: string;
   readonly bindings: Readonly<Record<string, unknown>>;
   readonly call: ILogCall;
+  readonly redaction: IRedaction;
 }

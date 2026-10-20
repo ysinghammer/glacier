@@ -6,6 +6,7 @@ export type { ILogLevel } from "./src/logging/domain/ILogLevel.js";
 export type { ILogCall, IMessageCall, IErrorCall } from "./src/logging/domain/ILogCall.js";
 export type { ILogFields } from "./src/logging/domain/ILogFields.js";
 export type { ILogEntry } from "./src/logging/domain/ILogEntry.js";
+export type { ISerializedError } from "./src/serialization/domain/ISerializedError.js";
 export type { IReservedKey } from "./src/logging/domain/IReservedKey.js";
 export type { IBindingViolation } from "./src/logging/domain/IBindingViolation.js";
 export type {

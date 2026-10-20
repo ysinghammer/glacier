@@ -1,4 +1,5 @@
 import { Bindings } from "../domain/Bindings.js";
+import { PathRedactor } from "../../serialization/domain/PathRedactor.js";
 import type { ILoggerConfiguration } from "./ILoggerConfiguration.config.js";
 import type { ILoggerCreationOutcome } from "./ILoggerCreationOutcome.js";
 import type { ILoggerFactoryCreationOutcome } from "./ILoggerFactoryCreationOutcome.js";
@@ -28,6 +29,10 @@ export class LoggerFactory {
     }
     this.#runtime = {
       level: configuration.level,
+      redaction: {
+        paths: [...(configuration.redact?.paths ?? [])],
+        censor: configuration.redact?.censor ?? PathRedactor.DEFAULT_CENSOR,
+      },
       clock: configuration.clock ?? { now: () => new Date() },
       transports: [...configuration.transports],
     };

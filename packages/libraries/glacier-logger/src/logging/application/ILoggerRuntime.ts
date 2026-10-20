@@ -1,4 +1,5 @@
 import type { ILogLevel } from "../domain/ILogLevel.js";
+import type { IRedaction } from "../domain/IRedaction.js";
 import type { IClock } from "./ports/outbound/IClock.port.js";
 import type { ITransportRegistration } from "./ITransportRegistration.js";
 
@@ -6,5 +7,6 @@ import type { ITransportRegistration } from "./ITransportRegistration.js";
 export interface ILoggerRuntime {
   readonly level: ILogLevel;
   readonly clock: IClock;
+  readonly redaction: IRedaction;
   readonly transports: readonly ITransportRegistration[];
 }
