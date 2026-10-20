@@ -1,5 +1,5 @@
 # Scenario index
 
-| Capability                     | Purpose and value                                                   |
-| ------------------------------ | ------------------------------------------------------------------- |
-| [scaffold](scaffold/README.md) | Smoke check that the package builds, type-checks and runs under CI. |
+| Capability                   | Purpose and value                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [logging](logging/README.md) | Validates configuration, creates context-bound loggers and writes normalised, filtered and routed entries to transports. |
