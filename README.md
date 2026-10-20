@@ -1,6 +1,6 @@
 # Glacier
 
-Workspace and engineering foundation with the [reflection library](packages/libraries/glacier-reflection/README.md), the [IoC library](packages/libraries/glacier-ioc/README.md) and the [logger library](packages/libraries/glacier-logger/README.md).
+Workspace and engineering foundation with the [reflection library](packages/libraries/glacier-reflection/README.md), the [IoC library](packages/libraries/glacier-ioc/README.md) and the [logger library](packages/libraries/glacier-logger/README.md) and the [context library](packages/libraries/glacier-context/README.md).
 No deployable applications or services exist yet.
 
 Use Node.js **24.21.0** and pnpm **11.9.0**. With nvm, run:
