@@ -10,4 +10,9 @@ export interface ITransportRegistration {
   /** Minimum level for this transport, applied after the global level. Defaults to the global level. */
   readonly level?: ILogLevel;
   readonly format: ILogFormat;
+  /**
+   * Whether `pretty` output carries colour. The caller decides, for example from a TTY check,
+   * so tests stay deterministic. Defaults to no colour.
+   */
+  readonly isColorEnabled?: boolean;
 }

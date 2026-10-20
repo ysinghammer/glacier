@@ -1,5 +1,12 @@
 import { LoggerFactory } from "../../index.js";
-import type { ILogCall, ILoggerConfiguration, Logger } from "../../index.js";
+import { JsonEntryFormatter, PrettyEntryFormatter } from "../../index.js";
+import type {
+  IEntryFormatter,
+  ILogCall,
+  IStyledOutput,
+  ILoggerConfiguration,
+  Logger,
+} from "../../index.js";
 
 declare const factory: LoggerFactory;
 declare const logger: Logger;
@@ -40,3 +47,10 @@ logger.warn(call);
 // LOG-010 and LOG-011: both creation styles are part of the public API.
 export const created = LoggerFactory.create(configuration);
 export const constructed: LoggerFactory = new LoggerFactory(configuration);
+
+// Formatting: both formatters implement the entry formatter contract.
+export const jsonFormatter: IEntryFormatter = new JsonEntryFormatter();
+export const prettyFormatter: IEntryFormatter = new PrettyEntryFormatter({ isColorEnabled: true });
+export declare const styled: IStyledOutput;
+// @ts-expect-error colour must be decided explicitly
+new PrettyEntryFormatter({});

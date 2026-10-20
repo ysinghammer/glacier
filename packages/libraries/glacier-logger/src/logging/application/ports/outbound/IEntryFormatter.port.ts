@@ -1,6 +1,6 @@
 import type { ILogEntry } from "../../../domain/ILogEntry.js";
 
-/** Turns an entry into the text a transport writes. Final formatters land in a later phase. */
+/** Turns an entry into the text a transport writes. */
 export interface IEntryFormatter {
   format(entry: ILogEntry): string;
 }
