@@ -31,3 +31,13 @@ export type { IRejectionReason } from "./src/logging/application/IRejectionReaso
 export type { ILoggerCreationOutcome } from "./src/logging/application/ILoggerCreationOutcome.js";
 export type { ILoggerFactoryCreationOutcome } from "./src/logging/application/ILoggerFactoryCreationOutcome.js";
 export type { ILoggerFactoryOptions } from "./src/logging/application/ILoggerFactoryOptions.js";
+export { NodeStdoutTransport } from "./src/transports/infrastructure/adapters/outbound/NodeStdoutTransport.adapter.js";
+export { NodeFileTransport } from "./src/transports/infrastructure/adapters/outbound/NodeFileTransport.adapter.js";
+export type { INodeStdoutTransportOptions } from "./src/transports/infrastructure/adapters/outbound/INodeStdoutTransportOptions.js";
+export type { INodeFileTransportOptions } from "./src/transports/infrastructure/adapters/outbound/INodeFileTransportOptions.js";
+export type { IBufferingOptions } from "./src/transports/application/IBufferingOptions.js";
+export type { IOutputStream } from "./src/transports/application/IOutputStream.js";
+export type { IProcessEvent } from "./src/transports/application/IProcessEvent.js";
+export type { IProcessSignal } from "./src/transports/application/IProcessSignal.js";
+export type { IProcessHost } from "./src/transports/application/ports/outbound/IProcessHost.port.js";
+export type { IFileSystem } from "./src/transports/application/ports/outbound/IFileSystem.port.js";
