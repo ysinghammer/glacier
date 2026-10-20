@@ -9,4 +9,6 @@ export interface ILoggerRuntime {
   readonly clock: IClock;
   readonly redaction: IRedaction;
   readonly transports: readonly ITransportRegistration[];
+  /** Delivers failures to `onError`, or to the default diagnostics line. Never throws. */
+  readonly reportError: (error: Error) => void;
 }

@@ -1,16 +1,21 @@
 import { Bindings } from "../domain/Bindings.js";
 import type { ILogCall } from "../domain/ILogCall.js";
 import type { ILogFields } from "../domain/ILogFields.js";
+import type { ILogEntry } from "../domain/ILogEntry.js";
 import type { ILogLevel } from "../domain/ILogLevel.js";
 import { LogEntries } from "../domain/LogEntries.js";
 import { LogLevels } from "../domain/LogLevels.js";
+import { TransportDelivery } from "./TransportDelivery.js";
+import { TransportFailureError } from "./TransportFailure.error.js";
 import { InvalidBindingsError } from "./InvalidBindings.error.js";
+import type { ITransportRegistration } from "./ITransportRegistration.js";
 import type { ILoggerRuntime } from "./ILoggerRuntime.js";
 
 /**
  * Writes entries for one context. Obtain it from `LoggerFactory.createLogger`; it is immutable
  * and safe to share. Entries below the global level are dropped, the rest go to every transport
- * whose own minimum level they meet.
+ * whose own minimum level they meet. A transport that throws is reported to `onError`; the call
+ * never throws.
  */
 export class Logger {
   readonly #runtime: ILoggerRuntime;
@@ -85,8 +90,17 @@ export class Logger {
     });
     for (const registration of this.#runtime.transports) {
       if (LogLevels.isAtLeast(level, registration.level ?? this.#runtime.level)) {
-        registration.transport.write(entry);
+        this.#deliver(entry, registration);
       }
+    }
+  }
+
+  #deliver(entry: ILogEntry, registration: ITransportRegistration): void {
+    try {
+      const delivery = new TransportDelivery(entry, registration, this.#runtime.reportError);
+      registration.transport.write(entry, delivery);
+    } catch (cause) {
+      this.#runtime.reportError(TransportFailureError.from(cause));
     }
   }
 }

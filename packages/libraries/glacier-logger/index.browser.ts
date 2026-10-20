@@ -2,6 +2,7 @@ export { LoggerFactory } from "./src/logging/application/Logger.factory.js";
 export { Logger } from "./src/logging/application/Logger.js";
 export { InvalidLoggerConfigurationError } from "./src/logging/application/InvalidLoggerConfiguration.error.js";
 export { InvalidBindingsError } from "./src/logging/application/InvalidBindings.error.js";
+export { TransportFailureError } from "./src/logging/application/TransportFailure.error.js";
 export { JsonEntryFormatter } from "./src/formatting/domain/JsonEntryFormatter.js";
 export { PrettyEntryFormatter } from "./src/formatting/domain/PrettyEntryFormatter.js";
 export type { IPrettyFormatterOptions } from "./src/formatting/domain/IPrettyFormatterOptions.js";
@@ -22,6 +23,8 @@ export type {
   ILogFormat,
 } from "./src/logging/application/ITransportRegistration.js";
 export type { ITransport } from "./src/logging/application/ports/outbound/ITransport.port.js";
+export type { ITransportDelivery } from "./src/logging/application/ports/outbound/ITransportDelivery.port.js";
+export type { IDiagnosticsOutput } from "./src/logging/application/ports/outbound/IDiagnosticsOutput.port.js";
 export type { IEntryFormatter } from "./src/logging/application/ports/outbound/IEntryFormatter.port.js";
 export type { IClock } from "./src/logging/application/ports/outbound/IClock.port.js";
 export type { IRejectionReason } from "./src/logging/application/IRejectionReason.js";
