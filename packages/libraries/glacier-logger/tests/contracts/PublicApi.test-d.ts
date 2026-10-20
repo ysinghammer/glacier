@@ -1,10 +1,17 @@
 import { LoggerFactory } from "../../index.js";
-import { JsonEntryFormatter, PrettyEntryFormatter } from "../../index.js";
+import {
+  JsonEntryFormatter,
+  NodeFileTransport,
+  NodeStdoutTransport,
+  PrettyEntryFormatter,
+} from "../../index.js";
+import { BrowserConsoleTransport } from "../../index.browser.js";
 import type {
   IEntryFormatter,
   ILogCall,
   IStyledOutput,
   ILoggerConfiguration,
+  ITransport,
   Logger,
 } from "../../index.js";
 
@@ -54,3 +61,10 @@ export const prettyFormatter: IEntryFormatter = new PrettyEntryFormatter({ isCol
 export declare const styled: IStyledOutput;
 // @ts-expect-error colour must be decided explicitly
 new PrettyEntryFormatter({});
+
+// Transports: every shipped transport implements the transport contract.
+export const stdoutTransport: ITransport = new NodeStdoutTransport();
+export const fileTransport: ITransport = new NodeFileTransport({ path: "logs/app.log" });
+export const consoleTransport: ITransport = new BrowserConsoleTransport();
+// @ts-expect-error a file transport needs a path
+new NodeFileTransport({});

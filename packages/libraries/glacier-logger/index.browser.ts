@@ -31,3 +31,6 @@ export type { IRejectionReason } from "./src/logging/application/IRejectionReaso
 export type { ILoggerCreationOutcome } from "./src/logging/application/ILoggerCreationOutcome.js";
 export type { ILoggerFactoryCreationOutcome } from "./src/logging/application/ILoggerFactoryCreationOutcome.js";
 export type { ILoggerFactoryOptions } from "./src/logging/application/ILoggerFactoryOptions.js";
+export { BrowserConsoleTransport } from "./src/transports/infrastructure/adapters/outbound/BrowserConsoleTransport.adapter.js";
+export type { IBrowserConsoleTransportOptions } from "./src/transports/infrastructure/adapters/outbound/IBrowserConsoleTransportOptions.js";
+export type { IConsoleOutput } from "./src/transports/application/ports/outbound/IConsoleOutput.port.js";
