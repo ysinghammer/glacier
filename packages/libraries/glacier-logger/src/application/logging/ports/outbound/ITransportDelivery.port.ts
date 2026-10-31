@@ -1,5 +1,5 @@
-import type { IStyledOutput } from "../../../../domain/formatting/IStyledOutput.js";
-import type { ILogFormat } from "../../ITransportRegistration.js";
+import type { IStyledOutput } from "../../../../domain/formatting/types/IStyledOutput.js";
+import type { ILogFormat } from "../../types/ITransportRegistration.js";
 
 /**
  * What a transport gets next to an entry: the entry rendered the way its registration asked for,

@@ -1,4 +1,4 @@
-import type { ILogEntry } from "../../../../domain/logging/ILogEntry.js";
+import type { ILogEntry } from "../../../../domain/logging/types/ILogEntry.js";
 
 /** Turns an entry into the text a transport writes. */
 export interface IEntryFormatter {

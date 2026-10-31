@@ -1,7 +1,7 @@
-import type { ILogLevel } from "../../domain/logging/ILogLevel.js";
+import type { ILogLevel } from "../../domain/logging/types/ILogLevel.js";
 import type { IDiagnosticsOutput } from "./ports/outbound/IDiagnosticsOutput.port.js";
 import type { IClock } from "./ports/outbound/IClock.port.js";
-import type { ITransportRegistration } from "./ITransportRegistration.js";
+import type { ITransportRegistration } from "./types/ITransportRegistration.js";
 
 /** Redaction settings: exact dot-separated paths, no wildcards. */
 export interface IRedactConfiguration {

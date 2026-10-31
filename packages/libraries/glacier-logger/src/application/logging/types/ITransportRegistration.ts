@@ -1,5 +1,5 @@
-import type { ILogLevel } from "../../domain/logging/ILogLevel.js";
-import type { ITransport } from "./ports/outbound/ITransport.port.js";
+import type { ILogLevel } from "../../../domain/logging/types/ILogLevel.js";
+import type { ITransport } from "../ports/outbound/ITransport.port.js";
 
 /** How a transport wants entries rendered. */
 export type ILogFormat = "json" | "pretty";

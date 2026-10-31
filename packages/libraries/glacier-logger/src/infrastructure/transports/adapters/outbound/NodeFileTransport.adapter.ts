@@ -1,9 +1,9 @@
-import type { ILogEntry } from "../../../../domain/logging/ILogEntry.js";
+import type { ILogEntry } from "../../../../domain/logging/types/ILogEntry.js";
 import type { ITransport } from "../../../../application/logging/ports/outbound/ITransport.port.js";
 import type { ITransportDelivery } from "../../../../application/logging/ports/outbound/ITransportDelivery.port.js";
 import { BufferedLineWriter } from "../../../../application/transports/BufferedLineWriter.js";
 import { ExitFlushGuard } from "../../../../application/transports/ExitFlushGuard.js";
-import type { INodeFileTransportOptions } from "./INodeFileTransportOptions.js";
+import type { INodeFileTransportOptions } from "./types/INodeFileTransportOptions.js";
 import { FileTextSink } from "./FileTextSink.adapter.js";
 import { NodeFileSystem } from "./NodeFileSystem.adapter.js";
 import { NodeProcessLocator } from "./NodeProcessLocator.adapter.js";

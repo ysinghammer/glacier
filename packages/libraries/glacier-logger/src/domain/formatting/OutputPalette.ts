@@ -1,4 +1,4 @@
-import type { IOutputTone } from "./IOutputTone.js";
+import type { IOutputTone } from "./types/IOutputTone.js";
 
 const ANSI_RESET = "\u001b[0m";
 

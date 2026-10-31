@@ -1,6 +1,6 @@
-import { TransportFailureError } from "../logging/TransportFailure.error.js";
-import type { IBufferingOptions } from "./IBufferingOptions.js";
-import type { IFlushable } from "./IFlushable.js";
+import { TransportFailureError } from "../logging/errors/TransportFailure.error.js";
+import type { IBufferingOptions } from "./types/IBufferingOptions.js";
+import type { IFlushable } from "./types/IFlushable.js";
 import type { ExitFlushGuard } from "./ExitFlushGuard.js";
 import type { ITextSink } from "./ports/outbound/ITextSink.port.js";
 

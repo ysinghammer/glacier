@@ -1,4 +1,4 @@
-import type { ILogLevel } from "./ILogLevel.js";
+import type { ILogLevel } from "./types/ILogLevel.js";
 
 const LEVEL_VALUES: Readonly<Record<ILogLevel, number>> = {
   trace: 10,

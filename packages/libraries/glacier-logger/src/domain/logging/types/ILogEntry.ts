@@ -1,4 +1,4 @@
-import type { ISerializedError } from "../serialization/ISerializedError.js";
+import type { ISerializedError } from "../../serialization/ISerializedError.js";
 import type { ILogLevel } from "./ILogLevel.js";
 
 /**

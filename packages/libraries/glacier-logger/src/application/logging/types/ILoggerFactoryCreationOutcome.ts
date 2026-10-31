@@ -1,4 +1,4 @@
-import type { LoggerFactory } from "./Logger.factory.js";
+import type { LoggerFactory } from "../Logger.factory.js";
 import type { IRejectionReason } from "./IRejectionReason.js";
 
 /** Result of `LoggerFactory.create`. */

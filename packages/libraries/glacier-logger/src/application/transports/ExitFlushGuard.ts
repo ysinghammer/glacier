@@ -1,6 +1,6 @@
-import type { IFlushable } from "./IFlushable.js";
-import type { IProcessEvent } from "./IProcessEvent.js";
-import type { IProcessSignal } from "./IProcessSignal.js";
+import type { IFlushable } from "./types/IFlushable.js";
+import type { IProcessEvent } from "./types/IProcessEvent.js";
+import type { IProcessSignal } from "./types/IProcessSignal.js";
 import type { IProcessHost } from "./ports/outbound/IProcessHost.port.js";
 
 /**

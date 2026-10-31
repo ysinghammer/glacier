@@ -1,9 +1,9 @@
 import type { ITransport } from "../../../../application/logging/ports/outbound/ITransport.port.js";
 import type { ITransportDelivery } from "../../../../application/logging/ports/outbound/ITransportDelivery.port.js";
-import type { ILogEntry } from "../../../../domain/logging/ILogEntry.js";
-import type { ILogLevel } from "../../../../domain/logging/ILogLevel.js";
+import type { ILogEntry } from "../../../../domain/logging/types/ILogEntry.js";
+import type { ILogLevel } from "../../../../domain/logging/types/ILogLevel.js";
 import type { IConsoleOutput } from "../../../../application/transports/ports/outbound/IConsoleOutput.port.js";
-import type { IBrowserConsoleTransportOptions } from "./IBrowserConsoleTransportOptions.js";
+import type { IBrowserConsoleTransportOptions } from "./types/IBrowserConsoleTransportOptions.js";
 
 const CONSOLE_METHOD_BY_LEVEL: Readonly<Record<ILogLevel, keyof IConsoleOutput>> = {
   trace: "debug",

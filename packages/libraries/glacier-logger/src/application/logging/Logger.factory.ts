@@ -2,17 +2,17 @@ import { Bindings } from "../../domain/logging/Bindings.js";
 import { EnvironmentDiagnostics } from "../../infrastructure/logging/adapters/outbound/EnvironmentDiagnostics.adapter.js";
 import { PathRedactor } from "../../domain/serialization/PathRedactor.js";
 import type { ILoggerConfiguration } from "./ILoggerConfiguration.config.js";
-import type { ILoggerCreationOutcome } from "./ILoggerCreationOutcome.js";
-import type { ILoggerFactoryCreationOutcome } from "./ILoggerFactoryCreationOutcome.js";
-import type { ILoggerFactoryOptions } from "./ILoggerFactoryOptions.js";
-import type { ILoggerRuntime } from "./ILoggerRuntime.js";
-import type { IRejectionReason } from "./IRejectionReason.js";
+import type { ILoggerCreationOutcome } from "./types/ILoggerCreationOutcome.js";
+import type { ILoggerFactoryCreationOutcome } from "./types/ILoggerFactoryCreationOutcome.js";
+import type { ILoggerFactoryOptions } from "./types/ILoggerFactoryOptions.js";
+import type { ILoggerRuntime } from "./types/ILoggerRuntime.js";
+import type { IRejectionReason } from "./types/IRejectionReason.js";
 import { FailureReporter } from "./FailureReporter.js";
-import { InvalidLoggerConfigurationError } from "./InvalidLoggerConfiguration.error.js";
+import { InvalidLoggerConfigurationError } from "./errors/InvalidLoggerConfiguration.error.js";
 import { Logger } from "./Logger.js";
 import { LoggerConfigurationValidator } from "./LoggerConfigurationValidator.js";
 import type { ITransport } from "./ports/outbound/ITransport.port.js";
-import { TransportFailureError } from "./TransportFailure.error.js";
+import { TransportFailureError } from "./errors/TransportFailure.error.js";
 
 /**
  * Root of the logging capability. It cannot log: it only creates loggers, one per context, and

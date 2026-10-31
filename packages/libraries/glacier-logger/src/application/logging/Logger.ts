@@ -1,15 +1,15 @@
 import { Bindings } from "../../domain/logging/Bindings.js";
-import type { ILogCall } from "../../domain/logging/ILogCall.js";
-import type { ILogFields } from "../../domain/logging/ILogFields.js";
-import type { ILogEntry } from "../../domain/logging/ILogEntry.js";
-import type { ILogLevel } from "../../domain/logging/ILogLevel.js";
+import type { ILogCall } from "../../domain/logging/types/ILogCall.js";
+import type { ILogFields } from "../../domain/logging/types/ILogFields.js";
+import type { ILogEntry } from "../../domain/logging/types/ILogEntry.js";
+import type { ILogLevel } from "../../domain/logging/types/ILogLevel.js";
 import { LogEntries } from "../../domain/logging/LogEntries.js";
 import { LogLevels } from "../../domain/logging/LogLevels.js";
 import { TransportDelivery } from "./TransportDelivery.js";
-import { TransportFailureError } from "./TransportFailure.error.js";
-import { InvalidBindingsError } from "./InvalidBindings.error.js";
-import type { ITransportRegistration } from "./ITransportRegistration.js";
-import type { ILoggerRuntime } from "./ILoggerRuntime.js";
+import { TransportFailureError } from "./errors/TransportFailure.error.js";
+import { InvalidBindingsError } from "./errors/InvalidBindings.error.js";
+import type { ITransportRegistration } from "./types/ITransportRegistration.js";
+import type { ILoggerRuntime } from "./types/ILoggerRuntime.js";
 
 /**
  * Writes entries for one context. Obtain it from `LoggerFactory.createLogger`; it is immutable

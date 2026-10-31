@@ -1,4 +1,4 @@
-import type { ILogEntry } from "../../../../domain/logging/ILogEntry.js";
+import type { ILogEntry } from "../../../../domain/logging/types/ILogEntry.js";
 import type { ITransportDelivery } from "./ITransportDelivery.port.js";
 
 /**

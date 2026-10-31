@@ -1,8 +1,8 @@
 import { JsonEntryFormatter } from "../../domain/formatting/JsonEntryFormatter.js";
 import { PrettyEntryFormatter } from "../../domain/formatting/PrettyEntryFormatter.js";
-import type { IStyledOutput } from "../../domain/formatting/IStyledOutput.js";
-import type { ILogEntry } from "../../domain/logging/ILogEntry.js";
-import type { ILogFormat, ITransportRegistration } from "./ITransportRegistration.js";
+import type { IStyledOutput } from "../../domain/formatting/types/IStyledOutput.js";
+import type { ILogEntry } from "../../domain/logging/types/ILogEntry.js";
+import type { ILogFormat, ITransportRegistration } from "./types/ITransportRegistration.js";
 import type { ITransportDelivery } from "./ports/outbound/ITransportDelivery.port.js";
 
 const LINE_END = "\n";

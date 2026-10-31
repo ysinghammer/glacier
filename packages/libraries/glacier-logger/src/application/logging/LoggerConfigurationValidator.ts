@@ -2,7 +2,7 @@ import { RedactionPaths } from "../../domain/serialization/RedactionPaths.js";
 import { Bindings } from "../../domain/logging/Bindings.js";
 import { LogLevels } from "../../domain/logging/LogLevels.js";
 import type { ILoggerConfiguration } from "./ILoggerConfiguration.config.js";
-import type { IRejectionReason } from "./IRejectionReason.js";
+import type { IRejectionReason } from "./types/IRejectionReason.js";
 
 /** Checks a configuration and reports every problem at once. */
 export class LoggerConfigurationValidator {

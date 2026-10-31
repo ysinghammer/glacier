@@ -1,4 +1,4 @@
-import type { IBindingViolation } from "./IBindingViolation.js";
+import type { IBindingViolation } from "./types/IBindingViolation.js";
 import { ReservedKeys } from "./ReservedKeys.js";
 
 /** Invariants and merging of bindings, the structured data attached to every entry of a logger. */

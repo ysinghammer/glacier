@@ -1,4 +1,4 @@
-import type { IOutputStream } from "../../../../application/transports/IOutputStream.js";
+import type { IOutputStream } from "../../../../application/transports/types/IOutputStream.js";
 import type { ITextSink } from "../../../../application/transports/ports/outbound/ITextSink.port.js";
 
 /** Writes batches to an output stream and settles when the stream confirms each one, so the writer honours backpressure. */

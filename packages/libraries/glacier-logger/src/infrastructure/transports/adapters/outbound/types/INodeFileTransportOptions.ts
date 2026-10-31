@@ -1,6 +1,6 @@
-import type { IBufferingOptions } from "../../../../application/transports/IBufferingOptions.js";
-import type { IFileSystem } from "../../../../application/transports/ports/outbound/IFileSystem.port.js";
-import type { IProcessHost } from "../../../../application/transports/ports/outbound/IProcessHost.port.js";
+import type { IBufferingOptions } from "../../../../../application/transports/types/IBufferingOptions.js";
+import type { IFileSystem } from "../../../../../application/transports/ports/outbound/IFileSystem.port.js";
+import type { IProcessHost } from "../../../../../application/transports/ports/outbound/IProcessHost.port.js";
 
 /** Options of `NodeFileTransport`. */
 export interface INodeFileTransportOptions extends IBufferingOptions {

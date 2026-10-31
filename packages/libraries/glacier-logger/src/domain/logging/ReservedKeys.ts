@@ -1,4 +1,4 @@
-import type { IReservedKey } from "./IReservedKey.js";
+import type { IReservedKey } from "./types/IReservedKey.js";
 
 const RESERVED_KEYS: ReadonlySet<string> = new Set<IReservedKey>([
   "message",

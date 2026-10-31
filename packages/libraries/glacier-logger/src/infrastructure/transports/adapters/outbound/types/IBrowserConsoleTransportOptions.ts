@@ -1,4 +1,4 @@
-import type { IConsoleOutput } from "../../../../application/transports/ports/outbound/IConsoleOutput.port.js";
+import type { IConsoleOutput } from "../../../../../application/transports/ports/outbound/IConsoleOutput.port.js";
 
 /** Options of `BrowserConsoleTransport`. */
 export interface IBrowserConsoleTransportOptions {

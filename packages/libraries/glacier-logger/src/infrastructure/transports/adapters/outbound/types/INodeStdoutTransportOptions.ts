@@ -1,5 +1,5 @@
-import type { IBufferingOptions } from "../../../../application/transports/IBufferingOptions.js";
-import type { IProcessHost } from "../../../../application/transports/ports/outbound/IProcessHost.port.js";
+import type { IBufferingOptions } from "../../../../../application/transports/types/IBufferingOptions.js";
+import type { IProcessHost } from "../../../../../application/transports/ports/outbound/IProcessHost.port.js";
 
 /** Options of `NodeStdoutTransport`. */
 export interface INodeStdoutTransportOptions extends IBufferingOptions {

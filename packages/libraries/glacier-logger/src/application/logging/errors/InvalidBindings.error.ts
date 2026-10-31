@@ -1,4 +1,4 @@
-import type { IBindingViolation } from "../../domain/logging/IBindingViolation.js";
+import type { IBindingViolation } from "../../../domain/logging/types/IBindingViolation.js";
 
 /** Thrown by `Logger.child` when bindings bypass the compile-time reserved-key check. */
 export class InvalidBindingsError extends Error {

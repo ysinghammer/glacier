@@ -1,4 +1,4 @@
-import type { IRejectionReason } from "./IRejectionReason.js";
+import type { IRejectionReason } from "../types/IRejectionReason.js";
 
 /** Thrown by `new LoggerFactory(config)` when the configuration is invalid. */
 export class InvalidLoggerConfigurationError extends Error {

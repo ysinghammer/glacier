@@ -1,5 +1,5 @@
 import type { IEntryFormatter } from "../../application/logging/ports/outbound/IEntryFormatter.port.js";
-import type { ILogEntry } from "../logging/ILogEntry.js";
+import type { ILogEntry } from "../logging/types/ILogEntry.js";
 import { SafeValueSerializer } from "../serialization/SafeValueSerializer.js";
 
 /**

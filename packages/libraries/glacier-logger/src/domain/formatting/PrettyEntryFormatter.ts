@@ -1,8 +1,8 @@
 import type { IEntryFormatter } from "../../application/logging/ports/outbound/IEntryFormatter.port.js";
-import type { ILogEntry } from "../logging/ILogEntry.js";
-import type { IOutputTone } from "./IOutputTone.js";
-import type { IPrettyFormatterOptions } from "./IPrettyFormatterOptions.js";
-import type { IStyledOutput } from "./IStyledOutput.js";
+import type { ILogEntry } from "../logging/types/ILogEntry.js";
+import type { IOutputTone } from "./types/IOutputTone.js";
+import type { IPrettyFormatterOptions } from "./types/IPrettyFormatterOptions.js";
+import type { IStyledOutput } from "./types/IStyledOutput.js";
 import { OutputPalette } from "./OutputPalette.js";
 import { PrettyValueRenderer } from "./PrettyValueRenderer.js";
 

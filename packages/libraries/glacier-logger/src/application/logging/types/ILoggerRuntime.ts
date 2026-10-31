@@ -1,6 +1,6 @@
-import type { ILogLevel } from "../../domain/logging/ILogLevel.js";
-import type { IRedaction } from "../../domain/logging/IRedaction.js";
-import type { IClock } from "./ports/outbound/IClock.port.js";
+import type { ILogLevel } from "../../../domain/logging/types/ILogLevel.js";
+import type { IRedaction } from "../../../domain/logging/types/IRedaction.js";
+import type { IClock } from "../ports/outbound/IClock.port.js";
 import type { ITransportRegistration } from "./ITransportRegistration.js";
 
 /** Validated, immutable settings shared by a factory and every logger it creates. */

@@ -1,6 +1,6 @@
-import type { IOutputStream } from "../../IOutputStream.js";
-import type { IProcessEvent } from "../../IProcessEvent.js";
-import type { IProcessSignal } from "../../IProcessSignal.js";
+import type { IOutputStream } from "../../types/IOutputStream.js";
+import type { IProcessEvent } from "../../types/IProcessEvent.js";
+import type { IProcessSignal } from "../../types/IProcessSignal.js";
 
 /** The slice of the Node `process` object that buffered transports use. */
 export interface IProcessHost {

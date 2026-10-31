@@ -2,9 +2,9 @@ import { ErrorSerializer } from "../serialization/ErrorSerializer.js";
 import type { ISerializedError } from "../serialization/ISerializedError.js";
 import { PathRedactor } from "../serialization/PathRedactor.js";
 import { SafeValueSerializer } from "../serialization/SafeValueSerializer.js";
-import type { ILogEntry } from "./ILogEntry.js";
-import type { ILogEntryInput } from "./ILogEntryInput.js";
-import type { IRedaction } from "./IRedaction.js";
+import type { ILogEntry } from "./types/ILogEntry.js";
+import type { ILogEntryInput } from "./types/ILogEntryInput.js";
+import type { IRedaction } from "./types/IRedaction.js";
 import { ReservedKeys } from "./ReservedKeys.js";
 
 const ERROR_KEY = "err";
