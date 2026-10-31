@@ -55,8 +55,9 @@ Later machines must compare Glacier with earlier Glacier runs on that machine, n
   fingerprint (SHA-256): `10ccd3d75c2c8ff1bccaa39acb4800b9e4191bf5bedca97e013469553ea50ee0`.
   It hashes the sorted path/content-SHA manifest for HTTP/schema/reflection source/public entries,
   package/compiler manifests, benchmark support and root package/lock/workspace/compiler/Turbo
-  configuration, excluding documentation and generated artifacts. The baseline-add commit retains
-  that measured code; its actual hash is recorded after commit in the removal review.
+  configuration, excluding documentation and generated artifacts. The exact measured source is
+  retained in baseline-add/measurement commit **`4120475c4c26032b0b7a9666ef2c1e9d43ad3101`**;
+  every fingerprinted file was verified against that immutable commit during removal review.
 
 Primary runs used **32 workers, 30,000 warmup requests, five samples of 150,000 requests** each,
 with all other settings above unchanged. Execute with:
@@ -66,6 +67,7 @@ pnpm exec turbo run bench --filter=@glacier/http -- 32 150000 30000 5 GlacierBen
 ```
 
 The temporary baseline used the same command with `ExpressBenchmark` as its final argument.
+That is a **historical command at the baseline commit**, not a supported current option.
 Order was **Glacier A → Express A → Express B → Glacier B**, each with a fresh server, on
 this same machine. Each task actually ran uncached; prerequisite builds may use Turbo cache,
 but the benchmark task never replays prior results. No CI/test/profile was run concurrently
@@ -175,3 +177,12 @@ These bounds leave modest headroom around the actual primary results, do not pro
 speedup, and must not become noisy CI timing gates. A future different machine needs its own
 Glacier baseline and newly approved targets. **Separate user approval is required before release**;
 recording this proposal does not authorize publishing, pushing, opening a PR or releasing.
+
+## Baseline removal review
+
+The following separate story-008/task-003 commit removes Express, its types, the typed baseline
+server/process, temporary Express correctness scenario and baseline selector. The permanent
+Glacier harness and its correctness tests remain; manifests and lockfile contain no Express
+or Express type packages. The measured baseline is preserved in the immutable add/measurement
+commit above, not rewritten away. Raw measurements remain ignored/local. Subsequent runs on this
+machine can use this Glacier baseline; runs elsewhere require their own earlier Glacier evidence.

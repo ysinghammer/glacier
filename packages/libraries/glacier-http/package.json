@@ -24,9 +24,7 @@
     "@glacier/schema": "workspace:*"
   },
   "devDependencies": {
-    "@types/express": "5.0.6",
     "@vitest/coverage-v8": "5.0.3",
-    "express": "5.3.0",
     "vitest": "5.0.3"
   }
 }
