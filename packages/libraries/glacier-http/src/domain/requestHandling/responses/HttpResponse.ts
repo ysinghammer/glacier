@@ -31,24 +31,56 @@ export class HttpResponse<T extends object | readonly object[] | void> {
     if (token !== RESPONSE_CREATION) throw new HttpContractError("Use HttpResponse factories");
     this.#body = body;
     this.#status = status;
+    const headers = HttpResponse.#copyHeaders(options.headers);
+    HttpResponse.#appendCookies(headers, options.cookies);
+    this.#headers = Object.freeze(headers);
+    Object.freeze(this);
+  }
+
+  static #copyHeaders(
+    supplied: IHttpResponseOptions["headers"],
+  ): Record<string, string | readonly string[]> {
     const headers: Record<string, string | readonly string[]> = Object.create(null);
-    for (const [name, value] of Object.entries(
-      options.headers === undefined ? {} : options.headers,
-    )) {
+    for (const [name, value] of Object.entries(supplied === undefined ? {} : supplied)) {
       validateHeaderName(name);
       const normalizedName = name.toLowerCase();
-      if (RESERVED_HEADERS.has(normalizedName) || Object.hasOwn(headers, normalizedName))
-        throw new TypeError("Reserved or duplicate response header");
-      const values = typeof value === "string" ? [value] : value;
-      if (!Array.isArray(values) || values.length === 0)
-        throw new TypeError("Invalid response header values");
-      for (const field of values) {
-        if (typeof field !== "string") throw new TypeError("Invalid response header value");
-        validateHeaderValue(name, field);
-      }
-      headers[normalizedName] = typeof value === "string" ? value : Object.freeze([...values]);
+      HttpResponse.#validateHeaderName(normalizedName, headers);
+      headers[normalizedName] = HttpResponse.#copyHeaderValue(name, value);
     }
-    const cookies = [...(options.cookies === undefined ? [] : options.cookies)];
+    return headers;
+  }
+
+  static #validateHeaderName(
+    normalizedName: string,
+    headers: Readonly<Record<string, string | readonly string[]>>,
+  ): void {
+    if (RESERVED_HEADERS.has(normalizedName) || Object.hasOwn(headers, normalizedName))
+      throw new TypeError("Reserved or duplicate response header");
+  }
+
+  static #copyHeaderValue(
+    name: string,
+    value: string | readonly string[],
+  ): string | readonly string[] {
+    if (typeof value === "string") {
+      validateHeaderValue(name, value);
+      return value;
+    }
+    if (!Array.isArray(value) || value.length === 0)
+      throw new TypeError("Invalid response header values");
+    const fields = value.map((field) => {
+      if (typeof field !== "string") throw new TypeError("Invalid response header value");
+      validateHeaderValue(name, field);
+      return field;
+    });
+    return Object.freeze(fields);
+  }
+
+  static #appendCookies(
+    headers: Record<string, string | readonly string[]>,
+    supplied: IHttpResponseOptions["cookies"],
+  ): void {
+    const cookies = [...(supplied === undefined ? [] : supplied)];
     for (const cookie of cookies) {
       if (!(cookie instanceof HttpCookie)) throw new TypeError("Invalid response cookie");
     }
@@ -60,8 +92,6 @@ export class HttpResponse<T extends object | readonly object[] | void> {
         ...cookies.map((cookie) => cookie[COOKIE_WIRE]()),
       ]);
     }
-    this.#headers = Object.freeze(headers);
-    Object.freeze(this);
   }
 
   /** Creates a JSON success value, rejecting primitives and invalid/bodyless status codes. */

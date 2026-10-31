@@ -18,73 +18,8 @@ export class OpenApiInputs {
       .filter((part) => part.startsWith(":"))
       .map((part) => part.slice(1));
     for (const binding of endpoint.bindings) {
-      if (!("options" in binding)) continue;
-      if (
-        binding.options.description !== undefined &&
-        typeof binding.options.description !== "string"
-      )
-        throw new TypeError("Invalid binder description");
-      if (binding.location === "body") {
-        requestBody = {
-          required: true,
-          ...(binding.options.description === undefined
-            ? {}
-            : { description: binding.options.description }),
-          content: {
-            "application/json": {
-              schema: schemas.reference(binding.dto, "input"),
-              ...OpenApiInputs.#examples(binding.options),
-            },
-          },
-        };
-        continue;
-      }
-      if ("dto" in binding) {
-        const definition = schemas.definition(binding.dto, "input");
-        if (definition.type !== "object")
-          throw new TypeError("Structured binder requires an object schema");
-        const required = Array.isArray(definition.required) ? definition.required : [];
-        const properties = OpenApiJson.object(definition.properties);
-        for (const [name, value] of Object.entries(properties)) {
-          const location =
-            binding.location === "params"
-              ? "path"
-              : binding.location === "headers"
-                ? "header"
-                : binding.location === "cookies"
-                  ? "cookie"
-                  : "query";
-          if (location === "path" && !pathNames.includes(name))
-            throw new TypeError("Path DTO property has no route segment");
-          const schema = OpenApiJson.object(value);
-          if (location === "query") OpenApiInputs.#query(schema, schemas, new Set());
-          const parameter = OpenApiInputs.#parameter(
-            name,
-            location,
-            schema,
-            location === "path" || required.includes(name),
-            binding.options.description,
-          );
-          OpenApiInputs.#add(parameters, names, parameter);
-        }
-      } else {
-        const location =
-          binding.location === "param"
-            ? "path"
-            : binding.location === "header"
-              ? "header"
-              : "cookie";
-        OpenApiInputs.#add(parameters, names, {
-          ...OpenApiInputs.#parameter(
-            binding.name,
-            location,
-            { type: "string" },
-            location === "path",
-            binding.options.description,
-          ),
-          ...OpenApiInputs.#examples(binding.options),
-        });
-      }
+      const body = OpenApiInputs.#binding(binding, parameters, names, pathNames, schemas);
+      if (body !== undefined) requestBody = body;
     }
     for (const name of pathNames) {
       if (!names.has(`path:${name}`))
@@ -98,6 +33,102 @@ export class OpenApiInputs {
       ...(parameters.length === 0 ? {} : { parameters }),
       ...(requestBody === undefined ? {} : { requestBody }),
     };
+  }
+
+  static #binding(
+    binding: IHttpEndpointMetadata["bindings"][number],
+    parameters: IJsonObject[],
+    names: Set<string>,
+    pathNames: readonly string[],
+    schemas: OpenApiSchemas,
+  ): IJsonObject | undefined {
+    if (!("options" in binding)) return undefined;
+    if (
+      binding.options.description !== undefined &&
+      typeof binding.options.description !== "string"
+    )
+      throw new TypeError("Invalid binder description");
+    if (binding.location === "body")
+      return {
+        required: true,
+        ...(binding.options.description === undefined
+          ? {}
+          : { description: binding.options.description }),
+        content: {
+          "application/json": {
+            schema: schemas.reference(binding.dto, "input"),
+            ...OpenApiInputs.#examples(binding.options),
+          },
+        },
+      };
+    if ("dto" in binding) {
+      OpenApiInputs.#structuredParameters(binding, parameters, names, pathNames, schemas);
+      return undefined;
+    }
+    OpenApiInputs.#scalarParameter(binding, parameters, names);
+    return undefined;
+  }
+
+  static #structuredParameters(
+    binding: Extract<IHttpEndpointMetadata["bindings"][number], { readonly dto: unknown }>,
+    parameters: IJsonObject[],
+    names: Set<string>,
+    pathNames: readonly string[],
+    schemas: OpenApiSchemas,
+  ): void {
+    const definition = schemas.definition(binding.dto, "input");
+    if (definition.type !== "object")
+      throw new TypeError("Structured binder requires an object schema");
+    const required = Array.isArray(definition.required) ? definition.required : [];
+    const properties = OpenApiJson.object(definition.properties);
+    for (const [name, value] of Object.entries(properties)) {
+      const location = OpenApiInputs.#structuredLocation(binding.location);
+      if (location === "path" && !pathNames.includes(name))
+        throw new TypeError("Path DTO property has no route segment");
+      const schema = OpenApiJson.object(value);
+      if (location === "query") OpenApiInputs.#query(schema, schemas, new Set());
+      const parameter = OpenApiInputs.#parameter(
+        name,
+        location,
+        schema,
+        location === "path" || required.includes(name),
+        binding.options.description,
+      );
+      OpenApiInputs.#add(parameters, names, parameter);
+    }
+  }
+
+  static #structuredLocation(location: string): string {
+    switch (location) {
+      case "params":
+        return "path";
+      case "headers":
+        return "header";
+      case "cookies":
+        return "cookie";
+      default:
+        return "query";
+    }
+  }
+
+  static #scalarParameter(
+    binding: Extract<IHttpEndpointMetadata["bindings"][number], { readonly name: string }>,
+    parameters: IJsonObject[],
+    names: Set<string>,
+  ): void {
+    const location = binding.location === "param" ? "path" : binding.location;
+    const scalarLocation =
+      location === "header" ? "header" : location === "cookie" ? "cookie" : "path";
+    OpenApiInputs.#add(parameters, names, {
+      ...OpenApiInputs.#parameter(
+        binding.name,
+        scalarLocation,
+        { type: "string" },
+        scalarLocation === "path",
+        binding.options.description,
+      ),
+      ...OpenApiInputs.#examples(binding.options),
+    });
   }
 
   /** Named raw values become Example Objects without executing consumer serialization callbacks. */
@@ -169,17 +200,29 @@ export class OpenApiInputs {
     const resolved = schemas.resolve(schema);
     const types = Array.isArray(resolved.type) ? resolved.type : [resolved.type];
     if (types.includes("array")) {
-      if (Array.isArray(resolved.prefixItems) && resolved.prefixItems.length < 2)
-        throw new TypeError(
-          "Query tuples need at least two repeated scalar values; singleton promotion applies only to IsArray",
-        );
-      const items = Array.isArray(resolved.prefixItems)
-        ? resolved.prefixItems.map((item) => OpenApiJson.object(item))
-        : [OpenApiJson.object(resolved.items)];
-      if (items.some((item) => item.$ref !== undefined))
-        throw new TypeError("Query arrays require scalar elements at every depth");
+      OpenApiInputs.#queryArray(resolved);
       return;
     }
+    OpenApiInputs.#queryChildren(resolved, schemas, visited);
+  }
+
+  static #queryArray(resolved: IJsonObject): void {
+    if (Array.isArray(resolved.prefixItems) && resolved.prefixItems.length < 2)
+      throw new TypeError(
+        "Query tuples need at least two repeated scalar values; singleton promotion applies only to IsArray",
+      );
+    const items = Array.isArray(resolved.prefixItems)
+      ? resolved.prefixItems.map((item) => OpenApiJson.object(item))
+      : [OpenApiJson.object(resolved.items)];
+    if (items.some((item) => item.$ref !== undefined))
+      throw new TypeError("Query arrays require scalar elements at every depth");
+  }
+
+  static #queryChildren(
+    resolved: IJsonObject,
+    schemas: OpenApiSchemas,
+    visited: Set<string>,
+  ): void {
     for (const child of Object.values(OpenApiJson.object(resolved.properties ?? {})))
       OpenApiInputs.#query(OpenApiJson.object(child), schemas, visited);
     for (const key of ["anyOf", "oneOf"]) {

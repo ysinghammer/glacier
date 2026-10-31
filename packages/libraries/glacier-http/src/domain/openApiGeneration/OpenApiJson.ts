@@ -4,14 +4,36 @@ import type { IJsonObject, IJsonValue } from "@glacier/schema";
 export class OpenApiJson {
   /** Copies only finite, acyclic JSON data; unsafe values throw TypeError before a document is returned. */
   public static copy(value: unknown, active: Set<object> = new Set()): IJsonValue {
+    const primitive = OpenApiJson.#primitive(value);
+    if (primitive !== undefined) return primitive;
+    if (value === null || typeof value !== "object")
+      throw new TypeError("Documentation must be safe acyclic JSON");
+    return OpenApiJson.#copyObject(value, active);
+  }
+
+  static #primitive(value: unknown): IJsonValue | undefined {
     if (value === null || typeof value === "string" || typeof value === "boolean") return value;
     if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value !== "object" || active.has(value))
-      throw new TypeError("Documentation must be safe acyclic JSON");
+    if (typeof value === "number") throw new TypeError("Documentation must be safe acyclic JSON");
+    return undefined;
+  }
+
+  static #copyObject(value: object, active: Set<object>): IJsonValue {
+    if (active.has(value)) throw new TypeError("Documentation must be safe acyclic JSON");
     const prototype: unknown = Object.getPrototypeOf(value);
     if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null)
       throw new TypeError("Documentation must use plain JSON objects");
     active.add(value);
+    try {
+      const entries = OpenApiJson.#entries(value, active);
+      if (Array.isArray(value)) return OpenApiJson.#array(value, entries);
+      return Object.fromEntries(entries);
+    } finally {
+      active.delete(value);
+    }
+  }
+
+  static #entries(value: object, active: Set<object>): [string, IJsonValue][] {
     const descriptors = Object.getOwnPropertyDescriptors(value);
     const entries: [string, IJsonValue][] = [];
     for (const key of Object.keys(value)) {
@@ -20,13 +42,14 @@ export class OpenApiJson {
         throw new TypeError("Documentation accessors are unsupported");
       entries.push([key, OpenApiJson.copy(descriptor.value, active)]);
     }
-    active.delete(value);
-    if (Array.isArray(value)) {
-      if (entries.length !== value.length || entries.some(([key], index) => key !== String(index)))
-        throw new TypeError("Documentation arrays must be dense JSON arrays");
-      return entries.map(([, item]) => item);
-    }
-    return Object.fromEntries(entries);
+    return entries;
+  }
+
+  static #array(value: readonly unknown[], entries: [string, IJsonValue][]): IJsonValue[] {
+    const isDense =
+      entries.length === value.length && entries.every(([key], index) => key === String(index));
+    if (!isDense) throw new TypeError("Documentation arrays must be dense JSON arrays");
+    return entries.map(([, item]) => item);
   }
 
   /** Narrows a detached object contract; arrays/scalars cannot describe OpenAPI object records. */

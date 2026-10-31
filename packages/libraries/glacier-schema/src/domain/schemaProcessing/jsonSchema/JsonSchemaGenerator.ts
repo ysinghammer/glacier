@@ -201,6 +201,51 @@ export class JsonSchemaGenerator {
     if (this.#compatibility !== undefined) JsonSchemaCompatibility.wire(spec, this.#compatibility);
     switch (spec.kind) {
       case "string":
+      case "number":
+      case "int":
+      case "boolean":
+      case "bigint":
+      case "date":
+      case "literal":
+      case "enum":
+      case "any":
+        return this.#scalar(spec);
+      case "array":
+      case "tuple":
+      case "set":
+      case "map":
+      case "record":
+        return this.#collectionSpec(spec);
+      case "object":
+        return this.#reference(spec.target);
+      case "lazy":
+        return this.#reference(spec.resolve());
+      case "union":
+        return this.#union(spec);
+      case "oneOf":
+        return { oneOf: spec.options.map((option) => this.#spec(option)) };
+    }
+  }
+
+  #scalar(
+    spec: Extract<
+      ITypeSpec,
+      {
+        kind:
+          | "string"
+          | "number"
+          | "int"
+          | "boolean"
+          | "bigint"
+          | "date"
+          | "literal"
+          | "enum"
+          | "any";
+      }
+    >,
+  ): IJsonSchema {
+    switch (spec.kind) {
+      case "string":
         return JsonSchemaGenerator.#string(spec.rules);
       case "number":
         return { type: "number", ...JsonSchemaGenerator.#numeric(spec.rules) };
@@ -213,23 +258,40 @@ export class JsonSchemaGenerator {
       case "date":
         return { type: "string", format: "date-time" };
       case "literal":
-        if (
-          this.#direction === "output" &&
-          (typeof spec.value === "bigint" ||
-            (typeof spec.value === "number" && !Number.isFinite(spec.value)))
-        )
-          return { not: {} };
-        return JsonSchemaGenerator.#literal(spec.value);
+        return JsonSchemaGenerator.#literalSpec(spec.value, this.#direction);
       case "enum":
-        if (this.#direction === "output") {
-          const values = spec.values.filter(
-            (value) => typeof value === "string" || Number.isFinite(value),
-          );
-          return values.length === 0 ? { not: {} } : { enum: values };
-        }
-        return { enum: [...spec.values] };
+        return JsonSchemaGenerator.#enumSpec(spec.values, this.#direction);
       case "any":
         return {};
+    }
+  }
+
+  static #literalSpec(
+    value: string | number | boolean | bigint | null,
+    direction: "input" | "output",
+  ): IJsonSchema {
+    const invalidOutput =
+      direction === "output" &&
+      (typeof value === "bigint" || (typeof value === "number" && !Number.isFinite(value)));
+    if (invalidOutput) return { not: {} };
+    return JsonSchemaGenerator.#literal(value);
+  }
+
+  static #enumSpec(
+    values: readonly (string | number)[],
+    direction: "input" | "output",
+  ): IJsonSchema {
+    if (direction === "input") return { enum: [...values] };
+    const wireValues = values.filter(
+      (value) => typeof value === "string" || Number.isFinite(value),
+    );
+    return wireValues.length === 0 ? { not: {} } : { enum: wireValues };
+  }
+
+  #collectionSpec(
+    spec: Extract<ITypeSpec, { kind: "array" | "tuple" | "set" | "map" | "record" }>,
+  ): IJsonSchema {
+    switch (spec.kind) {
       case "array":
         return JsonSchemaGenerator.#compact({
           type: "array",
@@ -252,7 +314,6 @@ export class JsonSchemaGenerator {
           ...JsonSchemaGenerator.#items(spec.rules),
           uniqueItems: true,
         };
-      // A map has string keys in JSON, so it reads like a record.
       case "map":
         return JsonSchemaGenerator.#compact({
           type: "object",
@@ -266,14 +327,6 @@ export class JsonSchemaGenerator {
           additionalProperties: this.#spec(spec.value),
           ...JsonSchemaGenerator.#properties(spec.rules),
         });
-      case "object":
-        return this.#reference(spec.target);
-      case "lazy":
-        return this.#reference(spec.resolve());
-      case "union":
-        return this.#union(spec);
-      case "oneOf":
-        return { oneOf: spec.options.map((option) => this.#spec(option)) };
     }
   }
 

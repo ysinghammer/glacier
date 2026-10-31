@@ -12,36 +12,54 @@ export class MetadataDecorator {
   } {
     const [target, suppliedMember, extra] = arguments_;
     const member = typeof suppliedMember === "number" ? String(suppliedMember) : suppliedMember;
-    let owner: IClass | undefined;
-    let side: "instance" | "static" = "static";
-    if (MetadataTarget.isClass(target)) {
-      owner = target;
-    } else if (typeof target === "object" && target !== null) {
-      owner = MetadataTarget.classOfPrototype(target);
-      side = "instance";
+    const targetInfo = MetadataDecorator.#target(target);
+    if (arguments_.length === 1 && targetInfo.side === "static")
+      return { owner: targetInfo.owner, address: { kind: "class" } };
+    MetadataDecorator.#validateArity(arguments_.length);
+    if (typeof extra === "number")
+      return MetadataDecorator.#parameter(targetInfo.owner, targetInfo.side, member, extra);
+    return MetadataDecorator.#member(targetInfo.owner, targetInfo.side, member, extra);
+  }
+
+  static #target(target: unknown): {
+    readonly owner: IClass;
+    readonly side: "instance" | "static";
+  } {
+    if (MetadataTarget.isClass(target)) return { owner: target, side: "static" };
+    if (typeof target === "object" && target !== null) {
+      const owner = MetadataTarget.classOfPrototype(target);
+      if (owner !== undefined) return { owner, side: "instance" };
     }
-    if (owner === undefined) throw new MetadataBoundaryError("invalid-decorator-target");
-    if (arguments_.length === 1 && side === "static") {
-      return { owner, address: { kind: "class" } };
-    }
-    if (arguments_.length < 2 || arguments_.length > 3) {
+    throw new MetadataBoundaryError("invalid-decorator-target");
+  }
+
+  static #validateArity(length: number): void {
+    if (length < 2 || length > 3) throw new MetadataBoundaryError("invalid-decorator-location");
+  }
+
+  static #parameter(
+    owner: IClass,
+    side: "instance" | "static",
+    member: unknown,
+    position: number,
+  ): { readonly owner: IClass; readonly address: IDynamicClassMetadataAddress } {
+    if (member === undefined && side === "static")
+      return { owner, address: { kind: "constructor-parameter", position } };
+    if (typeof member === "string" || typeof member === "symbol")
+      return { owner, address: { kind: "method-parameter", side, member, position } };
+    throw new MetadataBoundaryError("invalid-decorator-location");
+  }
+
+  static #member(
+    owner: IClass,
+    side: "instance" | "static",
+    member: unknown,
+    extra: unknown,
+  ): { readonly owner: IClass; readonly address: IDynamicClassMetadataAddress } {
+    if (typeof member !== "string" && typeof member !== "symbol")
       throw new MetadataBoundaryError("invalid-decorator-location");
-    }
-    if (typeof extra === "number") {
-      if (member === undefined && side === "static") {
-        return { owner, address: { kind: "constructor-parameter", position: extra } };
-      }
-      if (typeof member === "string" || typeof member === "symbol") {
-        return { owner, address: { kind: "method-parameter", side, member, position: extra } };
-      }
+    if (extra !== undefined && (typeof extra !== "object" || extra === null))
       throw new MetadataBoundaryError("invalid-decorator-location");
-    }
-    if (
-      (typeof member !== "string" && typeof member !== "symbol") ||
-      (extra !== undefined && (typeof extra !== "object" || extra === null))
-    ) {
-      throw new MetadataBoundaryError("invalid-decorator-location");
-    }
     return { owner, address: { kind: "member", side, member } };
   }
 }

@@ -8,6 +8,193 @@ import {
   type IDiscoveredMetadataAddress,
 } from "../../index.js";
 
+/** Keeps loop-heavy assertions out of the scenario callbacks while checking public operations unchanged. */
+class DiscoveryContractAssertions {
+  static joinedTarget(
+    target: object,
+    inheritance: "own" | "inherited",
+    leaf: object,
+    list: ListMetadataDefinition<object>,
+    record: RecordMetadataDefinition<object>,
+    item: object,
+  ): void {
+    const lookup = { kind: "member", member: "member", inheritance } as const;
+    const definitions = MetadataDiscovery.definitionsDynamic(target, lookup);
+    if (!definitions.isValid) throw new Error(definitions.code);
+    expect(new Set(definitions.definitions)).toEqual(new Set([list, record]));
+    expect(definitions.definitions).toHaveLength(2);
+    DiscoveryContractAssertions.#joinedDefinition(
+      target,
+      inheritance,
+      leaf,
+      list,
+      item,
+      definitions,
+    );
+    DiscoveryContractAssertions.#joinedDefinition(
+      target,
+      inheritance,
+      leaf,
+      record,
+      item,
+      definitions,
+    );
+    const listRead = list.readDynamic(target, lookup);
+    const recordRead = record.readDynamic(target, lookup);
+    expect(listRead).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: inheritance === "own" ? [item] : [item, item],
+    });
+    expect(recordRead).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: inheritance === "own" ? {} : { item },
+    });
+    if (!listRead.isValid || !listRead.isPresent) throw new Error("missing list");
+    expect(listRead.value[0]).toBe(item);
+    if (recordRead.isValid && recordRead.isPresent && inheritance === "inherited")
+      expect(recordRead.value["item"]).toBe(item);
+  }
+
+  static #joinedDefinition(
+    target: object,
+    inheritance: "own" | "inherited",
+    leaf: object,
+    definition: ListMetadataDefinition<object> | RecordMetadataDefinition<object>,
+    item: object,
+    allDefinitions: { readonly isValid: true; readonly definitions: readonly object[] },
+  ): void {
+    const locations = definition.locations(target, { inheritance });
+    if (!locations.isValid) throw new Error(locations.code);
+    const expected: IDynamicClassMetadataAddress[] = [
+      { kind: "member", side: "instance", member: "member" },
+    ];
+    if (target === leaf && definition instanceof ListMetadataDefinition)
+      expected.push({ kind: "member", side: "static", member: "member" });
+    expect(new Set(locations.addresses)).toEqual(new Set(expected));
+    expect(locations.addresses).toHaveLength(expected.length);
+    for (const address of locations.addresses)
+      DiscoveryContractAssertions.#joinedAddress(
+        definition,
+        target,
+        inheritance,
+        address,
+        item,
+        allDefinitions,
+      );
+  }
+
+  static #joinedAddress(
+    definition: ListMetadataDefinition<object> | RecordMetadataDefinition<object>,
+    target: object,
+    inheritance: "own" | "inherited",
+    address: IDiscoveredMetadataAddress,
+    item: object,
+    allDefinitions: { readonly isValid: true; readonly definitions: readonly object[] },
+  ): void {
+    const read = definition.readDynamic(target, { ...address, inheritance });
+    if (!read.isValid || !read.isPresent) throw new Error("missing joined declaration");
+    expect(Object.isFrozen(read.value)).toBe(true);
+    expect(Reflect.set(read.value, "changed", item)).toBe(false);
+    expect(MetadataDiscovery.definitionsDynamic(target, { ...address, inheritance })).toEqual(
+      address.kind === "member" && address.side === "static"
+        ? { isValid: true, definitions: [definition] }
+        : allDefinitions,
+    );
+  }
+
+  static middleAddress(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    address: IDiscoveredMetadataAddress,
+  ): void {
+    expect(definition.readDynamic(target, { ...address, inheritance: "own" })).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: "middle",
+    });
+    expect(
+      MetadataDiscovery.definitionsDynamic(target, { ...address, inheritance: "own" }),
+    ).toEqual({ isValid: true, definitions: [definition] });
+  }
+
+  static middleAddresses(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    addresses: readonly IDiscoveredMetadataAddress[],
+  ): void {
+    for (const address of addresses)
+      DiscoveryContractAssertions.middleAddress(definition, target, address);
+  }
+
+  static targetAddresses(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    leaf: object,
+    canonical: readonly IDiscoveredMetadataAddress[],
+  ): void {
+    const result = definition.locations(target);
+    if (!result.isValid) throw new Error(result.code);
+    const expected =
+      target === leaf ? canonical : DiscoveryContractAssertions.#instanceAddresses(canonical);
+    expect(new Set(result.addresses)).toEqual(new Set(expected));
+    expect(result.addresses).toHaveLength(expected.length);
+    for (const address of result.addresses)
+      DiscoveryContractAssertions.#canonicalAddress(definition, target, address);
+    expect(definition.locations(target, { inheritance: "own" })).toEqual({
+      isValid: true,
+      addresses: [{ kind: "class" }],
+    });
+    const own = definition.locations(target, { inheritance: "own" });
+    if (!own.isValid) throw new Error(own.code);
+    for (const address of own.addresses)
+      DiscoveryContractAssertions.#ownAddress(definition, target, address);
+  }
+
+  static #instanceAddresses(
+    canonical: readonly IDiscoveredMetadataAddress[],
+  ): IDiscoveredMetadataAddress[] {
+    return canonical.filter(
+      (address) =>
+        address.kind === "class" ||
+        (address.kind !== "constructor-parameter" && address.side === "instance"),
+    );
+  }
+
+  static #canonicalAddress(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    address: IDiscoveredMetadataAddress,
+  ): void {
+    expect(Object.getPrototypeOf(address)).toBe(Object.prototype);
+    expect("target" in address).toBe(false);
+    expect("owner" in address).toBe(false);
+    expect("inheritance" in address).toBe(false);
+    expect(definition.readDynamic(target, address)).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: address.kind === "class" ? undefined : "middle",
+    });
+    expect(MetadataDiscovery.definitionsDynamic(target, address)).toEqual({
+      isValid: true,
+      definitions: [definition],
+    });
+  }
+
+  static #ownAddress(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    address: IDiscoveredMetadataAddress,
+  ): void {
+    expect(definition.readDynamic(target, { ...address, inheritance: "own" })).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: undefined,
+    });
+  }
+}
+
 describe("metadata-bearing discovery contracts", () => {
   it("exposes a frozen nonconstructible record with stable readonly operation bindings", () => {
     const checked = MetadataDiscovery.definitions;
@@ -79,53 +266,10 @@ describe("metadata-bearing discovery contracts", () => {
         throw new Error("shadowed constructor must not execute");
       },
     });
-    for (const inheritance of ["own", "inherited"] as const) {
-      const lookup = { kind: "member", member: "member", inheritance } as const;
-      for (const target of [Leaf, first, new Leaf()]) {
-        const definitions = MetadataDiscovery.definitionsDynamic(target, lookup);
-        if (!definitions.isValid) throw new Error(definitions.code);
-        expect(new Set(definitions.definitions)).toEqual(new Set([list, record]));
-        expect(definitions.definitions).toHaveLength(2);
-        for (const definition of [list, record]) {
-          const locations = definition.locations(target, { inheritance });
-          if (!locations.isValid) throw new Error(locations.code);
-          const expected = [{ kind: "member", side: "instance", member: "member" }];
-          if (target === Leaf && definition === list)
-            expected.push({ kind: "member", side: "static", member: "member" });
-          expect(new Set(locations.addresses)).toEqual(new Set(expected));
-          expect(locations.addresses).toHaveLength(expected.length);
-          for (const address of locations.addresses) {
-            const read = definition.readDynamic(target, { ...address, inheritance });
-            if (!read.isValid || !read.isPresent) throw new Error("missing joined declaration");
-            expect(Object.isFrozen(read.value)).toBe(true);
-            expect(Reflect.set(read.value, "changed", item)).toBe(false);
-            expect(
-              MetadataDiscovery.definitionsDynamic(target, { ...address, inheritance }),
-            ).toEqual(
-              address.kind === "member" && address.side === "static"
-                ? { isValid: true, definitions: [list] }
-                : definitions,
-            );
-          }
-        }
-        const listRead = list.readDynamic(target, lookup);
-        const recordRead = record.readDynamic(target, lookup);
-        expect(listRead).toEqual({
-          isValid: true,
-          isPresent: true,
-          value: inheritance === "own" ? [item] : [item, item],
-        });
-        expect(recordRead).toEqual({
-          isValid: true,
-          isPresent: true,
-          value: inheritance === "own" ? {} : { item },
-        });
-        if (!listRead.isValid || !listRead.isPresent) throw new Error("missing list");
-        expect(listRead.value[0]).toBe(item);
-        if (recordRead.isValid && recordRead.isPresent && inheritance === "inherited")
-          expect(recordRead.value["item"]).toBe(item);
-      }
-    }
+    const targets = [Leaf, first, new Leaf()];
+    for (const inheritance of ["own", "inherited"] as const)
+      for (const target of targets)
+        DiscoveryContractAssertions.joinedTarget(target, inheritance, Leaf, list, record, item);
     const before = list.locations(Leaf);
     expect(() => list.decorator([])(first, "member")).toThrow(
       expect.objectContaining({ code: "invalid-decorator-target" }),
@@ -247,64 +391,15 @@ describe("metadata-bearing discovery contracts", () => {
     if (!middleOwn.isValid) throw new Error(middleOwn.code);
     expect(new Set(middleOwn.addresses)).toEqual(new Set(canonical));
     expect(middleOwn.addresses).toHaveLength(canonical.length);
-    for (const address of middleOwn.addresses) {
-      expect(definition.readDynamic(Middle, { ...address, inheritance: "own" })).toEqual({
-        isValid: true,
-        isPresent: true,
-        value: "middle",
-      });
-      expect(
-        MetadataDiscovery.definitionsDynamic(Middle, { ...address, inheritance: "own" }),
-      ).toEqual({ isValid: true, definitions: [definition] });
-    }
+    DiscoveryContractAssertions.middleAddresses(definition, Middle, middleOwn.addresses);
     const instance = new Leaf();
     Object.defineProperty(instance, "constructor", {
       get: () => {
         throw new Error("instance constructor must not be read");
       },
     });
-    for (const target of [Leaf, instance, new Leaf()]) {
-      const result = definition.locations(target);
-      if (!result.isValid) throw new Error(result.code);
-      const expected =
-        target === Leaf
-          ? canonical
-          : canonical.filter(
-              (address) =>
-                address.kind === "class" ||
-                (address.kind !== "constructor-parameter" && address.side === "instance"),
-            );
-      expect(new Set(result.addresses)).toEqual(new Set(expected));
-      expect(result.addresses).toHaveLength(expected.length);
-      for (const address of result.addresses) {
-        expect(Object.getPrototypeOf(address)).toBe(Object.prototype);
-        expect("target" in address).toBe(false);
-        expect("owner" in address).toBe(false);
-        expect("inheritance" in address).toBe(false);
-        expect(definition.readDynamic(target, address)).toEqual({
-          isValid: true,
-          isPresent: true,
-          value: address.kind === "class" ? undefined : "middle",
-        });
-        expect(MetadataDiscovery.definitionsDynamic(target, address)).toEqual({
-          isValid: true,
-          definitions: [definition],
-        });
-      }
-      expect(definition.locations(target, { inheritance: "own" })).toEqual({
-        isValid: true,
-        addresses: [{ kind: "class" }],
-      });
-      const own = definition.locations(target, { inheritance: "own" });
-      if (!own.isValid) throw new Error(own.code);
-      for (const address of own.addresses) {
-        expect(definition.readDynamic(target, { ...address, inheritance: "own" })).toEqual({
-          isValid: true,
-          isPresent: true,
-          value: undefined,
-        });
-      }
-    }
+    for (const target of [Leaf, instance, new Leaf()])
+      DiscoveryContractAssertions.targetAddresses(definition, target, Leaf, canonical);
     expect(definition.locations(class Unrelated {})).toEqual({ isValid: true, addresses: [] });
     expect(new ValueMetadataDefinition<string>("label").locations(Leaf)).toEqual({
       isValid: true,

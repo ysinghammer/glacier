@@ -22,6 +22,7 @@ import type { IHttpErrorContext } from "../../../../domain/requestHandling/serve
 import type { IHttpInputIssue } from "../../../../domain/requestHandling/requests/types/IHttpInputIssue.js";
 import type { IConstructableClass } from "@glacier/reflection";
 import type { IHttpServerRegistration } from "../../../../domain/requestHandling/server/IHttpServerRegistration.js";
+import type { IHttpEndpointMetadata } from "../../../../domain/requestHandling/routing/types/IHttpEndpointMetadata.js";
 import type { IHttpErrorMapping } from "../../../../domain/requestHandling/responses/types/IHttpErrorMapping.js";
 import { ErrorMappings } from "../../../../domain/requestHandling/responses/ErrorMappings.js";
 import { ResponseLogs } from "../../../../application/requestHandling/ResponseLogs.js";
@@ -70,19 +71,7 @@ export class HttpServer {
 
   /** Prepares metadata only; construction never opens a listener. */
   private constructor(options: IHttpServerOptions) {
-    if (!Array.isArray(options.controllers) || typeof options.onError !== "function")
-      throw new TypeError("Invalid server options");
-    if (
-      options.limits !== undefined &&
-      (typeof options.limits !== "object" ||
-        options.limits === null ||
-        Array.isArray(options.limits))
-    )
-      throw new TypeError("Invalid server limits");
-    for (const limit of Object.values(options.limits ?? {})) {
-      if (!Number.isSafeInteger(limit) || limit <= 0 || limit > MAX_NODE_RECEIVE_LIMIT)
-        throw new TypeError("Invalid server limit");
-    }
+    HttpServer.#validateOptions(options);
     this.#routes = new PreparedRoutes(
       [...options.controllers],
       options.authentication !== undefined,
@@ -93,16 +82,13 @@ export class HttpServer {
     this.#targetBytes = options.limits?.requestTargetBytes ?? DEFAULT_TARGET_BYTES;
     this.#queryPairs = options.limits?.queryPairs ?? DEFAULT_QUERY_PAIRS;
     this.#queryDepth = options.limits?.queryDepth ?? DEFAULT_QUERY_DEPTH;
-    this.#headersTimeoutMs =
-      options.limits?.headersTimeoutMs ??
-      Math.min(DEFAULT_HEADERS_TIMEOUT_MS, this.#requestTimeoutMs);
+    this.#headersTimeoutMs = HttpServer.#headersTimeout(
+      options.limits?.headersTimeoutMs,
+      this.#requestTimeoutMs,
+    );
     const pendingResponseLogs =
       options.limits?.pendingResponseLogs ?? DEFAULT_PENDING_RESPONSE_LOGS;
     this.#shutdownTimeoutMs = options.limits?.shutdownTimeoutMs ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
-    if (this.#headersTimeoutMs > this.#requestTimeoutMs)
-      throw new TypeError("Header receive limit exceeds request receive limit");
-    if (options.onResponseLog !== undefined && typeof options.onResponseLog !== "function")
-      throw new TypeError("Invalid response logging hook");
     this.#registration = Object.freeze({
       // PreparedRoutes already validates these constructor identities through public reflection.
       controllers: Object.freeze(
@@ -116,22 +102,58 @@ export class HttpServer {
     this.#logs = new ResponseLogs(options.onResponseLog, pendingResponseLogs, (error, context) => {
       this.#diagnose(error, context);
     });
-    const authentication = options.authentication;
-    if (authentication !== undefined) {
-      if (
-        typeof authentication.authenticate !== "function" ||
-        authentication.challenge === undefined ||
-        typeof authentication.challenge.scheme !== "string" ||
-        !CHALLENGE_SCHEME.test(authentication.challenge.scheme)
-      )
-        throw new TypeError("Invalid authentication challenge");
-      const realm = authentication.challenge.realm;
-      if (realm !== undefined && (typeof realm !== "string" || !CHALLENGE_REALM.test(realm)))
-        throw new TypeError("Invalid authentication realm");
-      this.#challenge =
-        authentication.challenge.scheme + (realm === undefined ? "" : ` realm="${realm}"`);
+    this.#challenge = HttpServer.#createChallenge(options.authentication);
+    this.#options = HttpServer.#snapshotOptions(options);
+  }
+
+  static #validateOptions(options: IHttpServerOptions): void {
+    if (!Array.isArray(options.controllers) || typeof options.onError !== "function")
+      throw new TypeError("Invalid server options");
+    HttpServer.#validateLimits(options.limits);
+    if (options.onResponseLog !== undefined && typeof options.onResponseLog !== "function")
+      throw new TypeError("Invalid response logging hook");
+  }
+
+  static #validateLimits(limits: IHttpServerOptions["limits"]): void {
+    if (
+      limits !== undefined &&
+      (typeof limits !== "object" || limits === null || Array.isArray(limits))
+    )
+      throw new TypeError("Invalid server limits");
+    for (const limit of Object.values(limits ?? {})) {
+      if (!Number.isSafeInteger(limit) || limit <= 0 || limit > MAX_NODE_RECEIVE_LIMIT)
+        throw new TypeError("Invalid server limit");
     }
-    this.#options = Object.freeze({
+  }
+
+  static #headersTimeout(supplied: number | undefined, requestTimeoutMs: number): number {
+    const timeout = supplied ?? Math.min(DEFAULT_HEADERS_TIMEOUT_MS, requestTimeoutMs);
+    if (timeout > requestTimeoutMs)
+      throw new TypeError("Header receive limit exceeds request receive limit");
+    return timeout;
+  }
+
+  static #createChallenge(
+    authentication: IHttpServerOptions["authentication"],
+  ): string | undefined {
+    if (authentication === undefined) return undefined;
+    const challenge = authentication.challenge;
+    if (
+      typeof authentication.authenticate !== "function" ||
+      challenge === undefined ||
+      typeof challenge.scheme !== "string" ||
+      !CHALLENGE_SCHEME.test(challenge.scheme)
+    )
+      throw new TypeError("Invalid authentication challenge");
+    const realm = challenge.realm;
+    if (realm !== undefined && (typeof realm !== "string" || !CHALLENGE_REALM.test(realm)))
+      throw new TypeError("Invalid authentication realm");
+    return challenge.scheme + (realm === undefined ? "" : ` realm="${realm}"`);
+  }
+
+  static #snapshotOptions(options: IHttpServerOptions): IHttpServerOptions {
+    const authentication = options.authentication;
+    return Object.freeze({
       controllers: Object.freeze([...options.controllers]),
       onError: options.onError,
       ...(authentication === undefined
@@ -325,8 +347,8 @@ export class HttpServer {
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     abort: AbortController,
-    isContinue = false,
-    isExpectationRejected = false,
+    isContinue: boolean,
+    isExpectationRejected: boolean,
   ): Promise<void> {
     if (this.#rejectedSockets.has(incoming.socket)) {
       outgoing.destroy();
@@ -345,199 +367,418 @@ export class HttpServer {
     outgoing.once("close", () => {
       if (!outgoing.writableFinished) abort.abort();
     });
-    let context: IHttpErrorContext = { requestId, method: String(incoming.method), phase: "input" };
+    const context: IRequestContextState = {
+      current: { requestId, method: String(incoming.method), phase: "input" },
+    };
     try {
-      const targetResult = RequestTarget.parse(
-        String(incoming.url),
-        this.#targetBytes,
-        this.#queryPairs,
-        this.#queryDepth,
-      );
-      if (!targetResult.ok) {
-        this.#problem(outgoing, requestId, targetResult.status, [], true);
-        return;
-      }
-      const target = targetResult.value;
-      const match = this.#routes.match(target.pathname, String(incoming.method));
-      const selected = match?.selected;
-      if (selected !== undefined) {
-        const endpoint = selected.route.metadata;
-        completion.match(endpoint.template, endpoint.isResponseLoggingSkipped);
-        context = { ...context, route: endpoint.template };
-      }
-      if (isExpectationRejected) {
-        this.#problem(outgoing, requestId, 417, [], true);
-        return;
-      }
-      const headersResult = RequestHeaders.parse(incoming.rawHeaders);
-      if (!headersResult.ok) {
-        this.#problem(outgoing, requestId, headersResult.status, [], true);
-        return;
-      }
-      const headers = headersResult.value;
-      const cookiesResult = RequestCookies.parse(headers.getAll("cookie"));
-      if (!cookiesResult.ok) {
-        this.#problem(outgoing, requestId, cookiesResult.status, [], true);
-        return;
-      }
-      const cookies = cookiesResult.value;
-      if (match === undefined) {
-        this.#problem(outgoing, requestId, 404, [], true);
-        return;
-      }
-      if (incoming.method === "OPTIONS") {
-        outgoing.setHeader("Allow", match.allow);
-        outgoing.setHeader("X-Request-Id", requestId);
-        if (
-          isContinue ||
-          Number(headers.get("content-length")) > 0 ||
-          headers.get("transfer-encoding") !== undefined
-        )
-          outgoing.setHeader("Connection", "close");
-        outgoing.statusCode = 204;
-        outgoing.end();
-        return;
-      }
-      if (selected === undefined) {
-        outgoing.setHeader("Allow", match.allow);
-        this.#problem(outgoing, requestId, 405, [], true);
-        return;
-      }
-      const endpoint = selected.route.metadata;
-      const route = endpoint.template;
-      context = { ...context, route };
-      const request = HttpRequest[REQUEST_CREATION]({
+      await this.#processRequest(
+        incoming,
+        outgoing,
+        abort,
         requestId,
-        method: String(incoming.method),
-        url: String(incoming.url),
-        pathname: target.pathname,
-        route,
-        params: selected.params,
-        query: target.query,
-        remoteAddress: incoming.socket.remoteAddress,
-        signal: abort.signal,
-        headers,
-        cookies,
-      });
-      context = { ...context, phase: "authentication" };
-      let userId: string | undefined;
-      if (this.#options.authentication !== undefined && !endpoint.isPublic) {
-        userId = await this.#options.authentication.authenticate(request);
-        if (userId === undefined) {
-          outgoing.setHeader("WWW-Authenticate", String(this.#challenge));
-          this.#problem(outgoing, requestId, 401, [], true);
-          return;
-        }
-        if (typeof userId !== "string" || userId.length === 0)
-          throw new Error("Invalid authentication result");
-      }
-      completion.authenticate(userId);
-      context = { ...context, phase: "input" };
-      const hasBodyBinder = endpoint.bindings.some((binding) => binding.location === "body");
-      const preflight = RequestBody.preflight(headers, hasBodyBinder, this.#bodyBytes);
-      if (preflight !== undefined) {
-        this.#problem(outgoing, requestId, preflight, [], true);
-        return;
-      }
-      let bodyInput: unknown;
-      const shouldReadBody = hasBodyBinder || headers.get("transfer-encoding") !== undefined;
-      if (shouldReadBody) {
-        if (isContinue) outgoing.writeContinue();
-        const bodyResult = await RequestBody.read(
-          incoming,
-          this.#bodyBytes,
-          this.#requestTimeoutMs,
-          hasBodyBinder,
-        );
-        if (!bodyResult.ok) {
-          this.#problem(outgoing, requestId, bodyResult.status, [], true);
-          return;
-        }
-        bodyInput = bodyResult.value;
-      }
-      const binding = RequestBinding.bind(
-        endpoint.bindings,
-        request,
-        bodyInput,
-        headers.toRecord(),
-        cookies.toRecord(),
-        userId,
+        completion,
+        context,
+        isContinue,
+        isExpectationRejected,
       );
-      if (!binding.ok) {
-        this.#problem(outgoing, requestId, 400, binding.issues);
-        return;
-      }
-      context = { ...context, phase: "controller" };
-      let result: unknown;
-      try {
-        result = await Reflect.apply(
-          selected.route.handler,
-          selected.route.controller,
-          binding.arguments,
-        );
-      } catch (error: unknown) {
-        const mapping = ErrorMappings.resolve(error, [
-          endpoint.endpointErrorMappings,
-          endpoint.controllerErrorMappings,
-          this.#registration.errorMappings,
-        ]);
-        if (mapping === undefined) throw error;
-        if (mapping.status >= 500) {
-          completion.fail();
-          this.#diagnose(error, context);
-        }
-        this.#problem(outgoing, requestId, mapping.status, [], false, mapping);
-        return;
-      }
-      context = { ...context, phase: "output" };
-      if (result !== undefined && !(result instanceof HttpResponse))
-        throw new Error("Invalid HTTP response result");
-      const value =
-        result === undefined ? HttpResponse.noContent()[RESPONSE_WIRE]() : result[RESPONSE_WIRE]();
-      const declaration = endpoint.responses.find((response) => response.status === value.status);
-      if (declaration === undefined) throw new Error("Undeclared response status");
-      let body = "";
-      if (declaration.status !== 204) {
-        const values = declaration.isArray === true ? value.body : [value.body];
-        if (!Array.isArray(values)) throw new Error("Expected DTO array");
-        const projected = [];
-        for (const item of values) {
-          const serialized = Schema.safeSerialize(declaration.type, item);
-          if (!serialized.ok) {
-            completion.fail();
-            this.#diagnose(new Error("Invalid response DTO"), {
-              requestId,
-              method: request.method,
-              route,
-              phase: "output",
-              issues: Object.freeze(
-                serialized.issues.map((issue) =>
-                  Object.freeze({ path: Object.freeze([...issue.path]), code: issue.code }),
-                ),
-              ),
-            });
-            this.#problem(outgoing, requestId, 500);
-            return;
-          }
-          projected.push(serialized.value);
-        }
-        body = JSON.stringify(declaration.isArray === true ? projected : projected[0]);
-      }
-      for (const [name, fields] of Object.entries(value.headers))
-        outgoing.setHeader(name, typeof fields === "string" ? fields : [...fields]);
-      outgoing.setHeader("X-Request-Id", requestId);
-      if (declaration.status !== 204) {
-        outgoing.setHeader("Content-Type", "application/json");
-        outgoing.setHeader("Content-Length", Buffer.byteLength(body));
-      }
-      outgoing.statusCode = value.status;
-      if (isContinue && !shouldReadBody) outgoing.setHeader("Connection", "close");
-      this.#send(outgoing, body);
     } catch (error: unknown) {
       completion.fail();
-      this.#diagnose(error, context);
+      this.#diagnose(error, context.current);
       this.#problem(outgoing, requestId, 500, [], true);
     }
+  }
+
+  async #processRequest(
+    incoming: IncomingMessage,
+    outgoing: ServerResponse,
+    abort: AbortController,
+    requestId: string,
+    completion: ResponseCompletion,
+    context: IRequestContextState,
+    isContinue: boolean,
+    isExpectationRejected: boolean,
+  ): Promise<void> {
+    const prepared = this.#prepareRequest(
+      incoming,
+      outgoing,
+      requestId,
+      completion,
+      context,
+      isContinue,
+      isExpectationRejected,
+    );
+    if (prepared === undefined) return;
+    const request = HttpServer.#request(incoming, abort, requestId, prepared);
+    const endpoint = prepared.selected.route.metadata;
+    context.current = { ...context.current, phase: "authentication" };
+    const userId = await this.#authenticate(request, endpoint, outgoing, requestId, completion);
+    if (!userId.ok) return;
+    context.current = { ...context.current, phase: "input" };
+    const binding = await this.#bindRequest(
+      incoming,
+      outgoing,
+      prepared,
+      request,
+      userId.value,
+      requestId,
+      isContinue,
+    );
+    if (binding === undefined) return;
+    context.current = { ...context.current, phase: "controller" };
+    const invocation = await this.#invokeController(
+      prepared.selected,
+      endpoint,
+      binding.arguments,
+      outgoing,
+      requestId,
+      completion,
+      context,
+    );
+    if (invocation.handled) return;
+    context.current = { ...context.current, phase: "output" };
+    this.#writeResponse(
+      invocation.value,
+      prepared,
+      request,
+      outgoing,
+      requestId,
+      completion,
+      context,
+      isContinue,
+      binding.shouldReadBody,
+    );
+  }
+
+  #prepareRequest(
+    incoming: IncomingMessage,
+    outgoing: ServerResponse,
+    requestId: string,
+    completion: ResponseCompletion,
+    context: IRequestContextState,
+    isContinue: boolean,
+    isExpectationRejected: boolean,
+  ): IPreparedRequest | undefined {
+    const target = this.#parseTarget(incoming, outgoing, requestId);
+    if (target === undefined) return undefined;
+    const match = this.#routes.match(target.pathname, String(incoming.method));
+    const selected = match?.selected;
+    if (selected !== undefined) {
+      const metadata = selected.route.metadata;
+      completion.match(metadata.template, metadata.isResponseLoggingSkipped);
+      context.current = { ...context.current, route: metadata.template };
+    }
+    if (isExpectationRejected) {
+      this.#problem(outgoing, requestId, 417, [], true);
+      return undefined;
+    }
+    const headers = this.#parseHeaders(incoming, outgoing, requestId);
+    if (headers === undefined) return undefined;
+    const cookies = this.#parseCookies(headers, outgoing, requestId);
+    if (cookies === undefined) return undefined;
+    if (match === undefined) {
+      this.#problem(outgoing, requestId, 404, [], true);
+      return undefined;
+    }
+    if (this.#handleOptions(incoming, outgoing, requestId, match, headers, isContinue))
+      return undefined;
+    if (selected === undefined) {
+      outgoing.setHeader("Allow", match.allow);
+      this.#problem(outgoing, requestId, 405, [], true);
+      return undefined;
+    }
+    return { target, selected, headers, cookies };
+  }
+
+  #parseTarget(
+    incoming: IncomingMessage,
+    outgoing: ServerResponse,
+    requestId: string,
+  ): Extract<ReturnType<typeof RequestTarget.parse>, { readonly ok: true }>["value"] | undefined {
+    const result = RequestTarget.parse(
+      String(incoming.url),
+      this.#targetBytes,
+      this.#queryPairs,
+      this.#queryDepth,
+    );
+    if (result.ok) return result.value;
+    this.#problem(outgoing, requestId, result.status, [], true);
+    return undefined;
+  }
+
+  #parseHeaders(
+    incoming: IncomingMessage,
+    outgoing: ServerResponse,
+    requestId: string,
+  ): RequestHeaders | undefined {
+    const result = RequestHeaders.parse(incoming.rawHeaders);
+    if (result.ok) return result.value;
+    this.#problem(outgoing, requestId, result.status, [], true);
+    return undefined;
+  }
+
+  #parseCookies(
+    headers: RequestHeaders,
+    outgoing: ServerResponse,
+    requestId: string,
+  ): RequestCookies | undefined {
+    const result = RequestCookies.parse(headers.getAll("cookie"));
+    if (result.ok) return result.value;
+    this.#problem(outgoing, requestId, result.status, [], true);
+    return undefined;
+  }
+
+  #handleOptions(
+    incoming: IncomingMessage,
+    outgoing: ServerResponse,
+    requestId: string,
+    match: NonNullable<ReturnType<PreparedRoutes["match"]>>,
+    headers: RequestHeaders,
+    isContinue: boolean,
+  ): boolean {
+    if (incoming.method !== "OPTIONS") return false;
+    outgoing.setHeader("Allow", match.allow);
+    outgoing.setHeader("X-Request-Id", requestId);
+    const hasBody =
+      isContinue ||
+      Number(headers.get("content-length")) > 0 ||
+      headers.get("transfer-encoding") !== undefined;
+    if (hasBody) outgoing.setHeader("Connection", "close");
+    outgoing.statusCode = 204;
+    outgoing.end();
+    return true;
+  }
+
+  static #request(
+    incoming: IncomingMessage,
+    abort: AbortController,
+    requestId: string,
+    prepared: IPreparedRequest,
+  ): HttpRequest {
+    const endpoint = prepared.selected.route.metadata;
+    return HttpRequest[REQUEST_CREATION]({
+      requestId,
+      method: String(incoming.method),
+      url: String(incoming.url),
+      pathname: prepared.target.pathname,
+      route: endpoint.template,
+      params: prepared.selected.params,
+      query: prepared.target.query,
+      remoteAddress: incoming.socket.remoteAddress,
+      signal: abort.signal,
+      headers: prepared.headers,
+      cookies: prepared.cookies,
+    });
+  }
+
+  async #authenticate(
+    request: HttpRequest,
+    endpoint: IHttpEndpointMetadata,
+    outgoing: ServerResponse,
+    requestId: string,
+    completion: ResponseCompletion,
+  ): Promise<{ readonly ok: true; readonly value: string | undefined } | { readonly ok: false }> {
+    let userId: string | undefined;
+    if (this.#options.authentication !== undefined && !endpoint.isPublic) {
+      userId = await this.#options.authentication.authenticate(request);
+      if (userId === undefined) {
+        outgoing.setHeader("WWW-Authenticate", String(this.#challenge));
+        this.#problem(outgoing, requestId, 401, [], true);
+        return { ok: false };
+      }
+      if (typeof userId !== "string" || userId.length === 0)
+        throw new Error("Invalid authentication result");
+    }
+    completion.authenticate(userId);
+    return { ok: true, value: userId };
+  }
+
+  async #bindRequest(
+    incoming: IncomingMessage,
+    outgoing: ServerResponse,
+    prepared: IPreparedRequest,
+    request: HttpRequest,
+    userId: string | undefined,
+    requestId: string,
+    isContinue: boolean,
+  ): Promise<
+    { readonly arguments: readonly unknown[]; readonly shouldReadBody: boolean } | undefined
+  > {
+    const endpoint = prepared.selected.route.metadata;
+    const hasBodyBinder = endpoint.bindings.some((binding) => binding.location === "body");
+    const preflight = RequestBody.preflight(prepared.headers, hasBodyBinder, this.#bodyBytes);
+    if (preflight !== undefined) {
+      this.#problem(outgoing, requestId, preflight, [], true);
+      return undefined;
+    }
+    const shouldReadBody = hasBodyBinder || prepared.headers.get("transfer-encoding") !== undefined;
+    const body = await this.#readBody(
+      incoming,
+      outgoing,
+      requestId,
+      hasBodyBinder,
+      shouldReadBody,
+      isContinue,
+    );
+    if (!body.ok) return undefined;
+    const binding = RequestBinding.bind(
+      endpoint.bindings,
+      request,
+      body.value,
+      prepared.headers.toRecord(),
+      prepared.cookies.toRecord(),
+      userId,
+    );
+    if (!binding.ok) {
+      this.#problem(outgoing, requestId, 400, binding.issues);
+      return undefined;
+    }
+    return { arguments: binding.arguments, shouldReadBody };
+  }
+
+  async #readBody(
+    incoming: IncomingMessage,
+    outgoing: ServerResponse,
+    requestId: string,
+    hasBodyBinder: boolean,
+    shouldReadBody: boolean,
+    isContinue: boolean,
+  ): Promise<{ readonly ok: true; readonly value: unknown } | { readonly ok: false }> {
+    if (!shouldReadBody) return { ok: true, value: undefined };
+    if (isContinue) outgoing.writeContinue();
+    const result = await RequestBody.read(
+      incoming,
+      this.#bodyBytes,
+      this.#requestTimeoutMs,
+      hasBodyBinder,
+    );
+    if (result.ok) return { ok: true, value: result.value };
+    this.#problem(outgoing, requestId, result.status, [], true);
+    return { ok: false };
+  }
+
+  async #invokeController(
+    selected: IPreparedRequest["selected"],
+    endpoint: IHttpEndpointMetadata,
+    arguments_: readonly unknown[],
+    outgoing: ServerResponse,
+    requestId: string,
+    completion: ResponseCompletion,
+    context: IRequestContextState,
+  ): Promise<{ readonly handled: true } | { readonly handled: false; readonly value: unknown }> {
+    try {
+      const value = await Reflect.apply(
+        selected.route.handler,
+        selected.route.controller,
+        arguments_,
+      );
+      return { handled: false, value };
+    } catch (error: unknown) {
+      const mapping = ErrorMappings.resolve(error, [
+        endpoint.endpointErrorMappings,
+        endpoint.controllerErrorMappings,
+        this.#registration.errorMappings,
+      ]);
+      if (mapping === undefined) throw error;
+      if (mapping.status >= 500) {
+        completion.fail();
+        this.#diagnose(error, context.current);
+      }
+      this.#problem(outgoing, requestId, mapping.status, [], false, mapping);
+      return { handled: true };
+    }
+  }
+
+  #writeResponse(
+    result: unknown,
+    prepared: IPreparedRequest,
+    request: HttpRequest,
+    outgoing: ServerResponse,
+    requestId: string,
+    completion: ResponseCompletion,
+    context: IRequestContextState,
+    isContinue: boolean,
+    shouldReadBody: boolean,
+  ): void {
+    if (result !== undefined && !(result instanceof HttpResponse))
+      throw new Error("Invalid HTTP response result");
+    const value =
+      result === undefined ? HttpResponse.noContent()[RESPONSE_WIRE]() : result[RESPONSE_WIRE]();
+    const endpoint = prepared.selected.route.metadata;
+    const declaration = endpoint.responses.find((response) => response.status === value.status);
+    if (declaration === undefined) throw new Error("Undeclared response status");
+    const body = this.#serializeResponseBody(
+      declaration,
+      value.body,
+      request,
+      requestId,
+      outgoing,
+      completion,
+      context,
+    );
+    if (body === undefined) return;
+    for (const [name, fields] of Object.entries(value.headers))
+      outgoing.setHeader(name, typeof fields === "string" ? fields : [...fields]);
+    outgoing.setHeader("X-Request-Id", requestId);
+    if (declaration.status !== 204) {
+      outgoing.setHeader("Content-Type", "application/json");
+      outgoing.setHeader("Content-Length", Buffer.byteLength(body));
+    }
+    outgoing.statusCode = value.status;
+    if (isContinue && !shouldReadBody) outgoing.setHeader("Connection", "close");
+    this.#send(outgoing, body);
+  }
+
+  #serializeResponseBody(
+    declaration: IHttpEndpointMetadata["responses"][number],
+    value: unknown,
+    request: HttpRequest,
+    requestId: string,
+    outgoing: ServerResponse,
+    completion: ResponseCompletion,
+    context: IRequestContextState,
+  ): string | undefined {
+    if (declaration.status === 204) return "";
+    const values = declaration.isArray === true ? value : [value];
+    if (!Array.isArray(values)) throw new Error("Expected DTO array");
+    const projected: unknown[] = [];
+    for (const item of values) {
+      const serialized = Schema.safeSerialize(declaration.type, item);
+      if (!serialized.ok) {
+        this.#responseSerializationFailure(
+          serialized.issues,
+          request,
+          requestId,
+          outgoing,
+          completion,
+          context,
+        );
+        return undefined;
+      }
+      projected.push(serialized.value);
+    }
+    return JSON.stringify(declaration.isArray === true ? projected : projected[0]);
+  }
+
+  #responseSerializationFailure(
+    issues: readonly { readonly path: readonly (string | number)[]; readonly code: string }[],
+    request: HttpRequest,
+    requestId: string,
+    outgoing: ServerResponse,
+    completion: ResponseCompletion,
+    context: IRequestContextState,
+  ): void {
+    completion.fail();
+    this.#diagnose(new Error("Invalid response DTO"), {
+      ...context.current,
+      method: request.method,
+      phase: "output",
+      issues: Object.freeze(
+        issues.map((issue) =>
+          Object.freeze({ path: Object.freeze([...issue.path]), code: issue.code }),
+        ),
+      ),
+    });
+    this.#problem(outgoing, requestId, 500);
   }
 
   /** Emits secret-safe RFC 9457 failures without exposing exception messages or raw values. */
@@ -616,4 +857,15 @@ export class HttpServer {
       process.emitWarning("HTTP diagnostics failed");
     }
   }
+}
+
+interface IRequestContextState {
+  current: IHttpErrorContext;
+}
+
+interface IPreparedRequest {
+  readonly target: Extract<ReturnType<typeof RequestTarget.parse>, { readonly ok: true }>["value"];
+  readonly selected: NonNullable<NonNullable<ReturnType<PreparedRoutes["match"]>>["selected"]>;
+  readonly headers: RequestHeaders;
+  readonly cookies: RequestCookies;
 }

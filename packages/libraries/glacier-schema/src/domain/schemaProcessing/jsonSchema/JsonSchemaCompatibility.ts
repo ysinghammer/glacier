@@ -57,39 +57,53 @@ export class JsonSchemaCompatibility {
   /** Rejects known input types unavailable in JSON/text data; callbacks are deliberately not inspected or invoked. */
   public static wire(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
     if (options.direction === "output") return;
+    JsonSchemaCompatibility.#wireInput(spec, options);
+  }
+
+  static #wireInput(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
     if (spec.kind === "map" || spec.kind === "set")
       throw new SchemaDefinitionError("Map and Set inputs require non-wire instances");
     if (!options.coerce && (spec.kind === "date" || spec.kind === "bigint"))
       throw new SchemaDefinitionError("Strict wire input cannot supply Date or bigint instances");
-    if (spec.kind === "literal") {
-      if (
-        typeof spec.value === "bigint" &&
-        (!options.coerce || !Number.isSafeInteger(Number(spec.value)))
-      )
-        throw new SchemaDefinitionError(
-          "Bigint literal cannot be represented faithfully in this wire context",
-        );
-      if (
-        (typeof spec.value === "number" && !Number.isFinite(spec.value)) ||
-        (options.wire === "text" && spec.value === null)
-      )
-        throw new SchemaDefinitionError("Literal has no supported wire representation");
-    }
+    if (spec.kind === "literal") JsonSchemaCompatibility.#literalWire(spec.value, options);
     if (
       spec.kind === "enum" &&
       spec.values.some((value) => typeof value === "number" && !Number.isFinite(value))
     )
       throw new SchemaDefinitionError("Enum includes non-wire numeric values");
-    if (options.wire === "text" && !options.coerce) {
-      if (
-        spec.kind === "number" ||
-        spec.kind === "int" ||
-        spec.kind === "boolean" ||
-        (spec.kind === "literal" && typeof spec.value !== "string") ||
-        (spec.kind === "enum" && spec.values.some((value) => typeof value !== "string"))
-      )
-        throw new SchemaDefinitionError("Text input needs coercion for non-string scalars");
-    }
+    JsonSchemaCompatibility.#textWire(spec, options);
+  }
+
+  static #literalWire(
+    value: string | number | boolean | bigint | null,
+    options: IJsonSchemaCompatibilityOptions,
+  ): void {
+    const invalidBigint =
+      typeof value === "bigint" && (!options.coerce || !Number.isSafeInteger(Number(value)));
+    if (invalidBigint)
+      throw new SchemaDefinitionError(
+        "Bigint literal cannot be represented faithfully in this wire context",
+      );
+    const isNonFiniteNumber = typeof value === "number" && !Number.isFinite(value);
+    const isNullText = options.wire === "text" && value === null;
+    if (isNonFiniteNumber || isNullText)
+      throw new SchemaDefinitionError("Literal has no supported wire representation");
+  }
+
+  static #textWire(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
+    if (options.wire !== "text" || options.coerce) return;
+    const unsupportedScalar =
+      spec.kind === "number" ||
+      spec.kind === "int" ||
+      spec.kind === "boolean" ||
+      JsonSchemaCompatibility.#hasNonStringValues(spec);
+    if (unsupportedScalar)
+      throw new SchemaDefinitionError("Text input needs coercion for non-string scalars");
+  }
+
+  static #hasNonStringValues(spec: ITypeSpec): boolean {
+    if (spec.kind === "literal") return typeof spec.value !== "string";
+    return spec.kind === "enum" && spec.values.some((value) => typeof value !== "string");
   }
 
   /** Requires a preserved singleton wire discriminator after reachable definitions are complete, including cycles. */

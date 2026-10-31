@@ -38,25 +38,7 @@ class ReflectionCoverageProvider extends V8CoverageProvider {
       return result;
     }
     const map: unknown = JSON.parse(await readFile(`${url}.map`, "utf8"));
-    if (
-      result == null ||
-      map === null ||
-      typeof map !== "object" ||
-      !("version" in map) ||
-      map.version !== 3 ||
-      !("file" in map) ||
-      typeof map.file !== "string" ||
-      !("sourceRoot" in map) ||
-      map.sourceRoot !== "" ||
-      !("sources" in map) ||
-      !Array.isArray(map.sources) ||
-      !map.sources.every((source: unknown) => typeof source === "string") ||
-      !("names" in map) ||
-      !Array.isArray(map.names) ||
-      !map.names.every((name: unknown) => typeof name === "string") ||
-      !("mappings" in map) ||
-      typeof map.mappings !== "string"
-    )
+    if (result == null || !ReflectionCoverageProvider.#isSourceMap(map))
       throw new Error(`Invalid compiler source map: ${url}`);
     const sourceMap = {
       version: 3,
@@ -75,6 +57,34 @@ class ReflectionCoverageProvider extends V8CoverageProvider {
       },
     };
     return { ...result, map: sourceMap };
+  }
+
+  static #isSourceMap(map: unknown): map is {
+    readonly version: 3;
+    readonly file: string;
+    readonly sourceRoot: "";
+    readonly sources: string[];
+    readonly names: string[];
+    readonly mappings: string;
+  } {
+    return !(
+      map === null ||
+      typeof map !== "object" ||
+      !("version" in map) ||
+      map.version !== 3 ||
+      !("file" in map) ||
+      typeof map.file !== "string" ||
+      !("sourceRoot" in map) ||
+      map.sourceRoot !== "" ||
+      !("sources" in map) ||
+      !Array.isArray(map.sources) ||
+      !map.sources.every((source: unknown) => typeof source === "string") ||
+      !("names" in map) ||
+      !Array.isArray(map.names) ||
+      !map.names.every((name: unknown) => typeof name === "string") ||
+      !("mappings" in map) ||
+      typeof map.mappings !== "string"
+    );
   }
 
   /** Aligns equivalent compiler/source spans before the built-in merge; ambiguous or missing matches fail. */
@@ -149,7 +159,6 @@ class ReflectionCoverageProvider extends V8CoverageProvider {
       onFileRead: (data: CoverageType) => void;
     },
   ): Promise<void> {
-    const provider = this;
     let nativeScripts: ScriptCoverageWithOffset[] = [];
     await super.readCoverageFiles<CoverageType>({
       ...options,
@@ -163,15 +172,15 @@ class ReflectionCoverageProvider extends V8CoverageProvider {
         }
         options.onFileRead({ result: viteScripts } as CoverageType);
       },
-      async onFinished(project, environment) {
+      onFinished: async (project, environment) => {
         await options.onFinished(project, environment);
         if (nativeScripts.length !== 0) {
           options.onFileRead({ result: nativeScripts } as CoverageType);
-          provider.#isNativeConversion = true;
+          this.#isNativeConversion = true;
           try {
             await options.onFinished(project, environment);
           } finally {
-            provider.#isNativeConversion = false;
+            this.#isNativeConversion = false;
             nativeScripts = [];
           }
         }

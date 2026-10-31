@@ -67,51 +67,92 @@ export class OpenApiResponses {
     globals: readonly IHttpErrorMapping[],
     hasAuthentication: boolean,
   ): IJsonObject {
+    const responses = OpenApiResponses.#successResponses(endpoint, schemas);
+    const { alternatives, titles } = OpenApiResponses.#failureAlternatives(
+      endpoint,
+      globals,
+      hasAuthentication,
+    );
+    OpenApiResponses.#renderFailures(responses, alternatives, titles, hasAuthentication);
+    return responses;
+  }
+
+  static #successResponses(
+    endpoint: IHttpEndpointMetadata,
+    schemas: OpenApiSchemas,
+  ): Record<string, IJsonValue> {
     const responses: Record<string, IJsonValue> = {};
-    for (const response of endpoint.responses) {
-      const headerNames = new Set<string>();
-      if (response.description !== undefined && typeof response.description !== "string")
-        throw new TypeError("Invalid response description");
-      const headers: Record<string, IJsonValue> = {
-        "X-Request-Id": {
-          required: true,
-          schema: { type: "string" },
-          description: "Server-generated request identity.",
-        },
-      };
-      for (const [name, header] of Object.entries(response.headers ?? {})) {
-        if (headerNames.has(name.toLowerCase()))
-          throw new TypeError("Ambiguous response header documentation");
-        headerNames.add(name.toLowerCase());
-        if (RESERVED_HEADERS.has(name.toLowerCase()))
-          throw new TypeError("Reserved response header documentation");
-        if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name))
-          throw new TypeError("Invalid response header documentation");
-        OpenApiJson.object(header.schema);
-        Object.defineProperty(headers, name, {
-          value: OpenApiJson.object(header),
-          enumerable: true,
-        });
-      }
-      responses[String(response.status)] = {
-        description:
-          response.description ?? (response.status === 204 ? "No Content" : "Successful response"),
+    for (const response of endpoint.responses)
+      responses[String(response.status)] = OpenApiResponses.#successResponse(response, schemas);
+    return responses;
+  }
+
+  static #successResponse(
+    response: IHttpEndpointMetadata["responses"][number],
+    schemas: OpenApiSchemas,
+  ): IJsonObject {
+    if (response.description !== undefined && typeof response.description !== "string")
+      throw new TypeError("Invalid response description");
+    const headers = OpenApiResponses.#headers(response.headers);
+    if (response.status === 204)
+      return {
+        description: response.description ?? "No Content",
         headers,
-        ...(response.status === 204
-          ? {}
-          : {
-              content: {
-                "application/json": {
-                  schema:
-                    response.isArray === true
-                      ? { type: "array", items: schemas.reference(response.type, "output") }
-                      : schemas.reference(response.type, "output"),
-                  ...OpenApiInputs.examples(response),
-                },
-              },
-            }),
       };
+    return {
+      description: response.description ?? "Successful response",
+      headers,
+      content: {
+        "application/json": {
+          schema: OpenApiResponses.#responseSchema(response, schemas),
+          ...OpenApiInputs.examples(response),
+        },
+      },
+    };
+  }
+
+  static #headers(
+    supplied: IHttpEndpointMetadata["responses"][number]["headers"],
+  ): Record<string, IJsonValue> {
+    const names = new Set<string>();
+    const headers: Record<string, IJsonValue> = {
+      "X-Request-Id": {
+        required: true,
+        schema: { type: "string" },
+        description: "Server-generated request identity.",
+      },
+    };
+    for (const [name, header] of Object.entries(supplied ?? {})) {
+      const normalizedName = name.toLowerCase();
+      if (names.has(normalizedName)) throw new TypeError("Ambiguous response header documentation");
+      names.add(normalizedName);
+      OpenApiResponses.#validateHeaderName(name, normalizedName);
+      OpenApiJson.object(header.schema);
+      Object.defineProperty(headers, name, { value: OpenApiJson.object(header), enumerable: true });
     }
+    return headers;
+  }
+
+  static #validateHeaderName(name: string, normalizedName: string): void {
+    if (RESERVED_HEADERS.has(normalizedName))
+      throw new TypeError("Reserved response header documentation");
+    if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name))
+      throw new TypeError("Invalid response header documentation");
+  }
+
+  static #responseSchema(
+    response: Exclude<IHttpEndpointMetadata["responses"][number], { readonly status: 204 }>,
+    schemas: OpenApiSchemas,
+  ): IJsonValue {
+    const reference = schemas.reference(response.type, "output");
+    return response.isArray === true ? { type: "array", items: reference } : reference;
+  }
+
+  static #failureAlternatives(
+    endpoint: IHttpEndpointMetadata,
+    globals: readonly IHttpErrorMapping[],
+    hasAuthentication: boolean,
+  ): { readonly alternatives: Map<number, IJsonObject[]>; readonly titles: Map<number, string[]> } {
     const alternatives = new Map<number, IJsonObject[]>();
     const titles = new Map<number, string[]>();
     for (const [status, title] of Object.entries(FRAMEWORK_FAILURES))
@@ -126,33 +167,50 @@ export class OpenApiResponses {
         "Unauthorized",
       );
     const earlier: IHttpErrorMapping[] = [];
-    for (const scope of [
-      endpoint.endpointErrorMappings,
-      endpoint.controllerErrorMappings,
-      globals,
-    ]) {
-      for (const mapping of scope) {
-        if (
-          mapping.error === SchemaError ||
-          mapping.error === SchemaDefinitionError ||
-          mapping.error.prototype instanceof SchemaError ||
-          mapping.error.prototype instanceof SchemaDefinitionError
-        )
-          continue;
-        if (earlier.some((prior) => OpenApiResponses.#inherits(mapping.error, prior.error)))
-          continue;
-        OpenApiResponses.#problem(
-          alternatives,
-          titles,
-          mapping.status,
-          mapping.title,
-          mapping.type ?? "about:blank",
-          mapping.detail ?? mapping.title,
-        );
-      }
+    const scopes = [endpoint.endpointErrorMappings, endpoint.controllerErrorMappings, globals];
+    for (const scope of scopes) {
+      OpenApiResponses.#appendMappings(alternatives, titles, scope, earlier);
       earlier.push(...scope);
     }
-    for (const [status, variants] of alternatives) {
+    return { alternatives, titles };
+  }
+
+  static #appendMappings(
+    alternatives: Map<number, IJsonObject[]>,
+    titles: Map<number, string[]>,
+    scope: readonly IHttpErrorMapping[],
+    earlier: readonly IHttpErrorMapping[],
+  ): void {
+    for (const mapping of scope) {
+      if (!OpenApiResponses.#isDocumentable(mapping)) continue;
+      if (earlier.some((prior) => OpenApiResponses.#inherits(mapping.error, prior.error))) continue;
+      OpenApiResponses.#problem(
+        alternatives,
+        titles,
+        mapping.status,
+        mapping.title,
+        mapping.type ?? "about:blank",
+        mapping.detail ?? mapping.title,
+      );
+    }
+  }
+
+  static #isDocumentable(mapping: IHttpErrorMapping): boolean {
+    return !(
+      mapping.error === SchemaError ||
+      mapping.error === SchemaDefinitionError ||
+      mapping.error.prototype instanceof SchemaError ||
+      mapping.error.prototype instanceof SchemaDefinitionError
+    );
+  }
+
+  static #renderFailures(
+    responses: Record<string, IJsonValue>,
+    alternatives: Map<number, IJsonObject[]>,
+    titles: Map<number, string[]>,
+    hasAuthentication: boolean,
+  ): void {
+    for (const [status, variants] of alternatives)
       responses[String(status)] = {
         description: [...new Set(titles.get(status))].join(" / "),
         headers: {
@@ -175,8 +233,6 @@ export class OpenApiResponses {
           },
         },
       };
-    }
-    return responses;
   }
 
   /** Walks class prototypes without invoking consumer Symbol.hasInstance callbacks or exception constructors. */

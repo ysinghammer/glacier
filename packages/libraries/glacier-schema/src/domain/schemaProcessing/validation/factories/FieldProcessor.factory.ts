@@ -19,24 +19,71 @@ export class FieldProcessorFactory {
     const { optional, nullable, defaultValue, transform, refine } = definition.modifiers;
     const coerce = ValueCoercer.create(definition.type);
     const validate = ValueValidatorFactory.create(definition.type);
-    return (raw, context) => {
-      let value = raw;
-      if (context.options.coerce === true && value !== undefined && value !== null)
-        value = coerce(value);
-      if (value === undefined && defaultValue !== undefined) value = defaultValue();
-      if (value !== undefined && transform !== undefined) {
-        try {
-          value = transform(value);
-        } catch (error) {
-          return FieldProcessorFactory.#transformFailure(error);
-        }
+    return (raw, context) =>
+      FieldProcessorFactory.#process(
+        raw,
+        context,
+        { optional, nullable, defaultValue, transform, refine },
+        coerce,
+        validate,
+      );
+  }
+
+  static #process(
+    raw: unknown,
+    context: IParseContext,
+    modifiers: {
+      readonly optional: IFieldDefinition["modifiers"]["optional"];
+      readonly nullable: IFieldDefinition["modifiers"]["nullable"];
+      readonly defaultValue: IFieldDefinition["modifiers"]["defaultValue"];
+      readonly transform: IFieldDefinition["modifiers"]["transform"];
+      readonly refine: IFieldDefinition["modifiers"]["refine"];
+    },
+    coerce: (value: unknown) => unknown,
+    validate: ReturnType<typeof ValueValidatorFactory.create>,
+  ): IValueOutcome {
+    const value = FieldProcessorFactory.#transform(
+      raw,
+      context,
+      modifiers.defaultValue,
+      modifiers.transform,
+      coerce,
+    );
+    if (FieldProcessorFactory.#isTransformFailure(value)) return value.outcome;
+    if (value.value === undefined && modifiers.optional === true)
+      return { isValid: true, value: value.value };
+    if (value.value === null && modifiers.nullable === true)
+      return { isValid: true, value: value.value };
+    const outcome = validate(value.value, context);
+    if (!outcome.isValid || modifiers.refine === undefined) return outcome;
+    return FieldProcessorFactory.#refine(outcome, modifiers.refine);
+  }
+
+  static #transform(
+    raw: unknown,
+    context: IParseContext,
+    defaultValue: IFieldDefinition["modifiers"]["defaultValue"],
+    transform: IFieldDefinition["modifiers"]["transform"],
+    coerce: (value: unknown) => unknown,
+  ): { readonly value: unknown } | { readonly outcome: IValueOutcome } {
+    let value = raw;
+    if (context.options.coerce === true && value !== undefined && value !== null)
+      value = coerce(value);
+    if (value === undefined && defaultValue !== undefined) value = defaultValue();
+    if (value !== undefined && transform !== undefined) {
+      try {
+        value = transform(value);
+      } catch (error) {
+        return { outcome: FieldProcessorFactory.#transformFailure(error) };
       }
-      if (value === undefined && optional === true) return { isValid: true, value };
-      if (value === null && nullable === true) return { isValid: true, value };
-      const outcome = validate(value, context);
-      if (!outcome.isValid || refine === undefined) return outcome;
-      return FieldProcessorFactory.#refine(outcome, refine);
-    };
+    }
+    return { value };
+  }
+
+  static #isTransformFailure(
+    result: { readonly value: unknown } | { readonly outcome: IValueOutcome },
+  ): result is { readonly outcome: IValueOutcome } {
+    return "outcome" in result;
   }
 
   /** Applies the property refinement to a valid outcome. */

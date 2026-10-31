@@ -515,7 +515,9 @@ describe("OpenAPI consistency", () => {
     });
     const cycle: Record<string, unknown> = { ...INFO };
     cycle.self = cycle;
-    const sparse = new Array(2);
+    const sparse: unknown[] = [];
+    // Leave holes deliberately: a dense array would not exercise sparse-array rejection.
+    sparse.length = 2;
     const extraArray = ["x"];
     Object.defineProperty(extraArray, "extra", { value: "x", enumerable: true });
     for (const info of [

@@ -8,6 +8,12 @@ interface INormalizedMetadataAddress {
   readonly inheritance: "own" | "inherited";
 }
 
+type IAllowedMetadataAddress =
+  | { readonly kind: "class"; readonly fields: readonly string[] }
+  | { readonly kind: "member"; readonly fields: readonly string[] }
+  | { readonly kind: "method-parameter"; readonly fields: readonly string[] }
+  | { readonly kind: "constructor-parameter"; readonly fields: readonly string[] };
+
 /** Validates exact address combinations before storage or lookup. */
 export class MetadataAddress {
   /** Copies address fields, canonicalizing numeric names and omitted member sides. */
@@ -22,44 +28,87 @@ export class MetadataAddress {
     if (typeof input !== "object" || input === null || !("kind" in input)) {
       return { isValid: false, code: "invalid-address" };
     }
-    const kind = input.kind;
+    return MetadataAddress.#normalizeObject(input, isMutation, isInstance);
+  }
+
+  static #normalizeObject(
+    input: object,
+    isMutation: boolean,
+    isInstance: boolean,
+  ): INormalizedMetadataAddress | IMetadataAddressRejection {
+    const kind = Reflect.get(input, "kind");
     const inheritance = MetadataAddress.lookup(input, isMutation, true);
     if (!inheritance.isValid) return inheritance;
+    const allowed = MetadataAddress.#allowedFields(kind, isMutation);
+    if (allowed === undefined || !MetadataAddress.#hasOnlyAllowedFields(input, allowed.fields))
+      return { isValid: false, code: "invalid-address" };
+    if (allowed.kind === "class") {
+      return { isValid: true, address: { kind: allowed.kind }, inheritance: inheritance.mode };
+    }
+    if (allowed.kind === "constructor-parameter") {
+      if (isInstance) return { isValid: false, code: "instance-address-not-supported" };
+      const position = MetadataAddress.#position(input);
+      if (!position.isValid) return position;
+      return {
+        isValid: true,
+        address: { kind: allowed.kind, position: position.value },
+        inheritance: inheritance.mode,
+      };
+    }
+    const position =
+      allowed.kind === "member"
+        ? { isValid: true as const, value: 0 }
+        : MetadataAddress.#position(input);
+    if (!position.isValid) return position;
+    return MetadataAddress.#memberAddress(
+      input,
+      allowed.kind,
+      position.value,
+      inheritance.mode,
+      isInstance,
+    );
+  }
+
+  static #allowedFields(kind: unknown, isMutation: boolean): IAllowedMetadataAddress | undefined {
+    if (
+      kind !== "class" &&
+      kind !== "member" &&
+      kind !== "method-parameter" &&
+      kind !== "constructor-parameter"
+    )
+      return undefined;
     const allowed = ["kind"];
     if (!isMutation) allowed.push("inheritance");
     if (kind === "member" || kind === "method-parameter") allowed.push("side", "member");
     if (kind === "constructor-parameter" || kind === "method-parameter") allowed.push("position");
-    if (Reflect.ownKeys(input).some((key) => typeof key !== "string" || !allowed.includes(key))) {
-      return { isValid: false, code: "invalid-address" };
-    }
-    for (const field of ["side", "member", "position", "inheritance"]) {
-      if (field in input && !allowed.includes(field)) {
-        return { isValid: false, code: "invalid-address" };
-      }
-    }
-    if (kind === "class") {
-      return { isValid: true, address: { kind }, inheritance: inheritance.mode };
-    }
-    if (kind !== "member" && kind !== "method-parameter" && kind !== "constructor-parameter") {
-      return { isValid: false, code: "invalid-address" };
-    }
-    let position = 0;
-    if (kind !== "member") {
-      if (!("position" in input)) return { isValid: false, code: "invalid-address" };
-      const suppliedPosition = input.position;
-      if (
-        typeof suppliedPosition !== "number" ||
-        !Number.isSafeInteger(suppliedPosition) ||
-        suppliedPosition < 0
-      ) {
-        return { isValid: false, code: "invalid-position" };
-      }
-      position = suppliedPosition;
-    }
-    if (kind === "constructor-parameter") {
-      if (isInstance) return { isValid: false, code: "instance-address-not-supported" };
-      return { isValid: true, address: { kind, position }, inheritance: inheritance.mode };
-    }
+    return { kind, fields: allowed };
+  }
+
+  static #hasOnlyAllowedFields(input: object, allowed: readonly string[]): boolean {
+    for (const key of Reflect.ownKeys(input))
+      if (typeof key !== "string" || !allowed.includes(key)) return false;
+    for (const field of ["side", "member", "position", "inheritance"])
+      if (field in input && !allowed.includes(field)) return false;
+    return true;
+  }
+
+  static #position(
+    input: object,
+  ): { readonly isValid: true; readonly value: number } | IMetadataAddressRejection {
+    if (!("position" in input)) return { isValid: false, code: "invalid-address" };
+    const position: unknown = input.position;
+    if (typeof position !== "number" || !Number.isSafeInteger(position) || position < 0)
+      return { isValid: false, code: "invalid-position" };
+    return { isValid: true, value: position };
+  }
+
+  static #memberAddress(
+    input: object,
+    kind: "member" | "method-parameter",
+    position: number,
+    inheritance: "own" | "inherited",
+    isInstance: boolean,
+  ): INormalizedMetadataAddress | IMetadataAddressRejection {
     const side = "side" in input ? input.side : "instance";
     if (side !== "instance" && side !== "static") {
       return { isValid: false, code: "invalid-address" };
@@ -82,7 +131,7 @@ export class MetadataAddress {
     }
     const address: IDiscoveredMetadataAddress =
       kind === "member" ? { kind, side, member } : { kind, side, member, position };
-    return { isValid: true, address, inheritance: inheritance.mode };
+    return { isValid: true, address, inheritance };
   }
 
   /** Validates the separately supplied locations mode or an embedded read mode. */

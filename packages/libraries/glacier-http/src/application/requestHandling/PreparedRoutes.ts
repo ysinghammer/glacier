@@ -13,60 +13,53 @@ export class PreparedRoutes {
     for (const controller of controllers) {
       if (typeof controller !== "object" || controller === null)
         throw new TypeError("Register controller instances, not classes");
-      // The public metadata reader validates the constructor through reflection before using it.
-      const target = controller.constructor as IConstructableClass<object>;
-      for (const metadata of HttpEndpointMetadata.read(target)) {
-        if (
-          !hasAuthentication &&
-          metadata.bindings.some((binding) => binding.location === "userId")
-        )
-          throw new TypeError("UserId requires authentication");
-        const signature = metadata.template.replace(/:[^/]+/g, ":");
-        if (
-          routes.some(
-            (route) => route.signature === signature && route.metadata.method === metadata.method,
-          )
-        )
-          throw new TypeError(`Duplicate ${metadata.method} route`);
-        if (Object.hasOwn(controller, metadata.handlerName))
-          throw new TypeError("HTTP requires a declared instance method, not an instance override");
-        const handler: unknown = Reflect.get(controller, metadata.handlerName);
-        if (typeof handler !== "function") throw new TypeError("HTTP requires an instance method");
-        routes.push({
-          metadata,
-          signature,
-          segments: metadata.template.split("/"),
-          controller,
-          handler,
-        });
-      }
+      PreparedRoutes.#appendControllerRoutes(routes, controller, hasAuthentication);
     }
     this.#routes = Object.freeze(routes.sort(PreparedRoutes.#compare));
+  }
+
+  static #appendControllerRoutes(
+    routes: IPreparedRoute[],
+    controller: object,
+    hasAuthentication: boolean,
+  ): void {
+    // The public metadata reader validates the constructor through reflection before using it.
+    const target = controller.constructor as IConstructableClass<object>;
+    for (const metadata of HttpEndpointMetadata.read(target))
+      PreparedRoutes.#appendEndpoint(routes, controller, metadata, hasAuthentication);
+  }
+
+  static #appendEndpoint(
+    routes: IPreparedRoute[],
+    controller: object,
+    metadata: IHttpEndpointMetadata,
+    hasAuthentication: boolean,
+  ): void {
+    if (!hasAuthentication && metadata.bindings.some((binding) => binding.location === "userId"))
+      throw new TypeError("UserId requires authentication");
+    const signature = metadata.template.replace(/:[^/]+/g, ":");
+    const hasDuplicate = routes.some(
+      (route) => route.signature === signature && route.metadata.method === metadata.method,
+    );
+    if (hasDuplicate) throw new TypeError(`Duplicate ${metadata.method} route`);
+    if (Object.hasOwn(controller, metadata.handlerName))
+      throw new TypeError("HTTP requires a declared instance method, not an instance override");
+    const handler: unknown = Reflect.get(controller, metadata.handlerName);
+    if (typeof handler !== "function") throw new TypeError("HTTP requires an instance method");
+    routes.push({
+      metadata,
+      signature,
+      segments: metadata.template.split("/"),
+      controller,
+      handler,
+    });
   }
 
   /** Matches the most-specific path before choosing a method; Allow is stable across registration order. */
   public match(pathname: string, method: string): IRouteMatch | undefined {
     const segments = RoutingMetadata.canonical(pathname).split("/");
     const matches: { route: IPreparedRoute; params: Readonly<Record<string, string>> }[] = [];
-    for (const route of this.#routes) {
-      if (segments.length !== route.segments.length) continue;
-      const params: Record<string, string> = Object.create(null);
-      let isMatch = true;
-      for (const [index, segment] of route.segments.entries()) {
-        const actual = String(segments[index]);
-        if (segment.startsWith(":")) {
-          if (actual.length === 0) {
-            isMatch = false;
-            break;
-          }
-          params[segment.slice(1)] = actual;
-        } else if (segment !== actual) {
-          isMatch = false;
-          break;
-        }
-      }
-      if (isMatch) matches.push({ route, params: Object.freeze(params) });
-    }
+    for (const route of this.#routes) PreparedRoutes.#appendMatch(matches, route, segments);
     const first = matches[0];
     if (first === undefined) return undefined;
     const candidates = matches.filter((match) => match.route.signature === first.route.signature);
@@ -84,6 +77,31 @@ export class PreparedRoutes {
       (match) => match.route.metadata.method === (method === "HEAD" ? "GET" : method),
     );
     return { allow, selected };
+  }
+
+  static #appendMatch(
+    matches: { route: IPreparedRoute; params: Readonly<Record<string, string>> }[],
+    route: IPreparedRoute,
+    segments: readonly string[],
+  ): void {
+    const params = PreparedRoutes.#matchSegments(route, segments);
+    if (params !== undefined) matches.push({ route, params });
+  }
+
+  static #matchSegments(
+    route: IPreparedRoute,
+    segments: readonly string[],
+  ): Readonly<Record<string, string>> | undefined {
+    if (segments.length !== route.segments.length) return undefined;
+    const params: Record<string, string> = Object.create(null);
+    for (const [index, segment] of route.segments.entries()) {
+      const actual = String(segments[index]);
+      if (segment.startsWith(":")) {
+        if (actual.length === 0) return undefined;
+        params[segment.slice(1)] = actual;
+      } else if (segment !== actual) return undefined;
+    }
+    return Object.freeze(params);
   }
 
   /** Lexicographic segment precedence makes static routes win even when total static counts tie. */

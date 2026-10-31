@@ -2,6 +2,11 @@ import { spawnSync } from "node:child_process";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
+interface IDistributionEntry {
+  readonly import: string;
+  readonly types: string;
+}
+
 /** Builds an isolated consumer containing only the copied distribution and its authored fixtures. */
 export class DistributionContractPrepare {
   /** Runs existing installed tools with bounded completion and preserved diagnostics. */
@@ -91,48 +96,7 @@ export class DistributionContractPrepare {
     const manifest: unknown = JSON.parse(
       await readFile(new URL("package.json", packageDirectory), "utf8"),
     );
-    if (
-      manifest === null ||
-      typeof manifest !== "object" ||
-      !("exports" in manifest) ||
-      !("sideEffects" in manifest) ||
-      ("dependencies" in manifest && Object.keys(Object(manifest.dependencies)).length !== 0)
-    )
-      throw new Error(
-        "Independent consumer requires a root export map and no runtime dependencies",
-      );
-    const exports = manifest.exports;
-    if (
-      exports === null ||
-      typeof exports !== "object" ||
-      Object.keys(exports).length !== 2 ||
-      !("." in exports) ||
-      !("./register" in exports)
-    )
-      throw new Error("The distribution must expose exactly its root and registration entry");
-    const root = exports["."];
-    const registration = exports["./register"];
-    if (
-      root === null ||
-      typeof root !== "object" ||
-      !("import" in root) ||
-      typeof root.import !== "string" ||
-      !("types" in root) ||
-      root.import !== "./dist/index.js" ||
-      root.types !== "./dist/index.d.ts" ||
-      Object.keys(root).length !== 2 ||
-      registration === null ||
-      typeof registration !== "object" ||
-      !("import" in registration) ||
-      registration.import !== "./dist/register.js" ||
-      !("types" in registration) ||
-      registration.types !== "./dist/register.d.ts" ||
-      Object.keys(registration).length !== 2 ||
-      !Array.isArray(manifest.sideEffects) ||
-      manifest.sideEffects.length !== 1 ||
-      manifest.sideEffects[0] !== "./dist/register.js"
-    )
-      throw new Error("Exact generated entries and registration-only effects must be declared");
+    const { root, registration } = DistributionContractPrepare.#validateManifest(manifest);
     const resolution = spawnSync(
       process.execPath,
       [
@@ -155,33 +119,9 @@ export class DistributionContractPrepare {
       ["root-only", "DistributionRootOnly"],
       ["ordinary-metadata", "DistributionOrdinaryMetadata"],
       ["shared-metadata", "DistributionSharedMetadata"],
-    ]) {
+    ] as const) {
       // The retained entry imports only registration; a separate root-only observer reads its real records in the same graph.
-      await writeFile(
-        new URL("vite.config.mjs", consumer),
-        `export default ${JSON.stringify({
-          root: fileURLToPath(consumer),
-          build: {
-            target: "es2023",
-            minify: false,
-            emptyOutDir: false,
-            lib: {
-              entry:
-                name === "retained"
-                  ? {
-                      retained: fileURLToPath(new URL("DistributionRetained.js", consumer)),
-                      "retained-observer": fileURLToPath(
-                        new URL("DistributionOrdinaryMetadata.js", consumer),
-                      ),
-                    }
-                  : fileURLToPath(new URL(`${entry}.js`, consumer)),
-              formats: ["es"],
-              ...(name === "retained" ? {} : { fileName: name }),
-            },
-            outDir: fileURLToPath(new URL("bundle/", consumer)),
-          },
-        })};\n`,
-      );
+      await DistributionContractPrepare.#writeBuildConfig(name, entry, consumer);
       this.command([
         "exec",
         "vite",
@@ -204,6 +144,86 @@ export class DistributionContractPrepare {
         resolvedNodeRoot: expectedRoot,
         resolvedNodeRegistration: expectedRegistration,
       }),
+    );
+  }
+
+  static #validateManifest(value: unknown): {
+    readonly root: IDistributionEntry;
+    readonly registration: IDistributionEntry;
+  } {
+    if (!DistributionContractPrepare.#isRecord(value))
+      throw new Error(
+        "Independent consumer requires a root export map and no runtime dependencies",
+      );
+    if (!("exports" in value) || !("sideEffects" in value))
+      throw new Error(
+        "Independent consumer requires a root export map and no runtime dependencies",
+      );
+    if ("dependencies" in value && Object.keys(Object(value.dependencies)).length !== 0)
+      throw new Error(
+        "Independent consumer requires a root export map and no runtime dependencies",
+      );
+    if (!DistributionContractPrepare.#isRecord(value.exports))
+      throw new Error("The distribution must expose exactly its root and registration entry");
+    const exports = value.exports;
+    if (Object.keys(exports).length !== 2 || !("." in exports) || !("./register" in exports))
+      throw new Error("The distribution must expose exactly its root and registration entry");
+    if (
+      !Array.isArray(value.sideEffects) ||
+      value.sideEffects.length !== 1 ||
+      value.sideEffects[0] !== "./dist/register.js"
+    )
+      throw new Error("Exact generated entries and registration-only effects must be declared");
+    return {
+      root: DistributionContractPrepare.#entry(
+        exports["."],
+        "./dist/index.js",
+        "./dist/index.d.ts",
+      ),
+      registration: DistributionContractPrepare.#entry(
+        exports["./register"],
+        "./dist/register.js",
+        "./dist/register.d.ts",
+      ),
+    };
+  }
+
+  static #isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  static #entry(value: unknown, expectedImport: string, expectedTypes: string): IDistributionEntry {
+    if (!DistributionContractPrepare.#isRecord(value))
+      throw new Error("Exact generated entries and registration-only effects must be declared");
+    if (
+      value.import !== expectedImport ||
+      value.types !== expectedTypes ||
+      Object.keys(value).length !== 2
+    )
+      throw new Error("Exact generated entries and registration-only effects must be declared");
+    return { import: expectedImport, types: expectedTypes };
+  }
+
+  static async #writeBuildConfig(name: string, entry: string, consumer: URL): Promise<void> {
+    const retained = name === "retained";
+    const entries = retained
+      ? {
+          retained: fileURLToPath(new URL("DistributionRetained.js", consumer)),
+          "retained-observer": fileURLToPath(new URL("DistributionOrdinaryMetadata.js", consumer)),
+        }
+      : fileURLToPath(new URL(`${entry}.js`, consumer));
+    await writeFile(
+      new URL("vite.config.mjs", consumer),
+      `export default ${JSON.stringify({
+        root: fileURLToPath(consumer),
+        build: {
+          target: "es2023",
+          minify: false,
+          emptyOutDir: false,
+          lib: { entry: entries, formats: ["es"], ...(retained ? {} : { fileName: name }) },
+          outDir: fileURLToPath(new URL("bundle/", consumer)),
+        },
+      })};\n`,
     );
   }
 }

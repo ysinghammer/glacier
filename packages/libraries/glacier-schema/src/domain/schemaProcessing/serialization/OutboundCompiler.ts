@@ -155,85 +155,89 @@ export class OutboundCompiler {
       const instance: object = Object.create(target.prototype);
       context.names.set(instance, names);
       const issues: ISchemaIssue[] = [];
-      for (const { definition, validate } of fields) {
-        const { name, modifiers } = definition;
-        const descriptor = Object.getOwnPropertyDescriptor(value, name);
-        if (descriptor !== undefined && !("value" in descriptor)) {
-          issues.push(
-            ...OutboundCompiler.#issues(JsonProjection.failure("unsafe_accessor", [name])),
-          );
-          continue;
-        }
-        const raw: unknown = descriptor?.value;
-        if (raw === undefined && modifiers.optional === true) continue;
-        let outcome =
-          raw === null && modifiers.nullable === true
-            ? { isValid: true as const, value: null }
-            : validate(raw, context);
-        if (outcome.isValid && modifiers.refine !== undefined && raw !== null) {
-          try {
-            if (!modifiers.refine.test(outcome.value))
-              outcome = {
-                isValid: false,
-                failures: [
-                  {
-                    code: "custom",
-                    message: modifiers.refine.message ?? "Refinement failed",
-                    params: {},
-                  },
-                ],
-              };
-          } catch (error) {
-            outcome = {
-              isValid: false,
-              failures: [
-                {
-                  code: "custom",
-                  message: modifiers.refine.message ?? "Refinement failed",
-                  params: { reason: error instanceof Error ? error.message : String(error) },
-                },
-              ],
-            };
-          }
-        }
-        if (!outcome.isValid) {
-          for (const failure of outcome.failures)
-            issues.push({
-              ...failure,
-              path: [name, ...(failure.path ?? [])],
-              message: definition.message ?? failure.message,
-            });
-        } else {
-          Object.defineProperty(instance, name, {
-            value: outcome.value,
-            enumerable: true,
-            writable: true,
-            configurable: true,
-          });
-        }
-      }
-      if (issues.length === 0) {
-        for (const { test, options } of refinements) {
-          const base = {
-            path: options.path ?? [],
-            code: options.code ?? "custom",
-            message: options.message ?? "Refinement failed",
-          };
-          try {
-            if (!(test as (value: object) => boolean)(instance))
-              issues.push({ ...base, params: {} });
-          } catch (error) {
-            issues.push({
-              ...base,
-              params: { reason: error instanceof Error ? error.message : String(error) },
-            });
-          }
-        }
-      }
+      for (const field of fields)
+        issues.push(...OutboundCompiler.#validateField(value, context, field, instance));
+      if (issues.length === 0)
+        issues.push(...OutboundCompiler.#classRefinementIssues(instance, refinements));
       return issues.length === 0 ? { ok: true, value: instance } : { ok: false, issues };
     } finally {
       context.active.delete(value);
     }
+  }
+
+  static #validateField(
+    value: object,
+    context: IOutboundContext,
+    field: IOutboundField,
+    instance: object,
+  ): ISchemaIssue[] {
+    const { definition, validate } = field;
+    const { name, modifiers } = definition;
+    const descriptor = Object.getOwnPropertyDescriptor(value, name);
+    if (descriptor !== undefined && !("value" in descriptor))
+      return [...OutboundCompiler.#issues(JsonProjection.failure("unsafe_accessor", [name]))];
+    const raw: unknown = descriptor?.value;
+    if (raw === undefined && modifiers.optional === true) return [];
+    let outcome =
+      raw === null && modifiers.nullable === true
+        ? { isValid: true as const, value: null }
+        : validate(raw, context);
+    if (outcome.isValid && modifiers.refine !== undefined && raw !== null)
+      outcome = OutboundCompiler.#refineField(outcome, modifiers.refine);
+    if (!outcome.isValid) return OutboundCompiler.#fieldIssues(definition, outcome.failures);
+    Object.defineProperty(instance, name, {
+      value: outcome.value,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+    return [];
+  }
+
+  static #refineField(
+    outcome: Extract<IValueOutcome, { isValid: true }>,
+    refine: NonNullable<IFieldDefinition["modifiers"]["refine"]>,
+  ): IValueOutcome {
+    const message = refine.message ?? "Refinement failed";
+    try {
+      if (refine.test(outcome.value)) return outcome;
+      return { isValid: false, failures: [{ code: "custom", message, params: {} }] };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      return { isValid: false, failures: [{ code: "custom", message, params: { reason } }] };
+    }
+  }
+
+  static #fieldIssues(
+    definition: IFieldDefinition,
+    failures: readonly IValueFailure[],
+  ): ISchemaIssue[] {
+    return failures.map((failure) => ({
+      ...failure,
+      path: [definition.name, ...(failure.path ?? [])],
+      message: definition.message ?? failure.message,
+    }));
+  }
+
+  static #classRefinementIssues(
+    instance: object,
+    refinements: readonly IClassRefinement[],
+  ): ISchemaIssue[] {
+    const issues: ISchemaIssue[] = [];
+    for (const { test, options } of refinements) {
+      const base = {
+        path: options.path ?? [],
+        code: options.code ?? "custom",
+        message: options.message ?? "Refinement failed",
+      };
+      try {
+        if (!(test as (value: object) => boolean)(instance)) issues.push({ ...base, params: {} });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        issues.push({ ...base, params: { reason } });
+      }
+    }
+    return issues;
   }
 
   /** Resolves metadata references and rejects nonclass results before value processing. */
@@ -357,32 +361,8 @@ export class OutboundCompiler {
             validate: OutboundCompiler.#validator(variant),
           };
         });
-        return (value, context) => {
-          if (typeof value !== "object" || value === null || Array.isArray(value))
-            return OutboundCompiler.#outcome(JsonProjection.failure("invalid_type"));
-          for (const variant of variants) {
-            const descriptor = Object.getOwnPropertyDescriptor(value, variant.key);
-            if (descriptor !== undefined && !("value" in descriptor))
-              return OutboundCompiler.#outcome(
-                JsonProjection.failure("unsafe_accessor", [variant.key]),
-              );
-            if (descriptor?.value === variant.tag) return variant.validate(value, context);
-          }
-          return {
-            isValid: false,
-            failures: [
-              {
-                code: "invalid_discriminator",
-                path: [type.discriminator],
-                message: "Invalid output discriminator",
-                params: {
-                  discriminator: type.discriminator,
-                  expected: variants.map((variant) => variant.tag),
-                },
-              },
-            ],
-          };
-        };
+        return (value, context) =>
+          OutboundCompiler.#validateUnion(value, context, variants, type.discriminator);
       }
       case "oneOf": {
         const options = type.options.map((option) => OutboundCompiler.#validator(option));
@@ -416,66 +396,113 @@ export class OutboundCompiler {
     }
   }
 
+  static #validateUnion(
+    value: unknown,
+    context: IOutboundContext,
+    variants: readonly {
+      readonly tag: string;
+      readonly key: string;
+      readonly validate: IOutboundValidator;
+    }[],
+    discriminator: string,
+  ): IValueOutcome {
+    if (typeof value !== "object" || value === null || Array.isArray(value))
+      return OutboundCompiler.#outcome(JsonProjection.failure("invalid_type"));
+    for (const variant of variants) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, variant.key);
+      if (descriptor !== undefined && !("value" in descriptor))
+        return OutboundCompiler.#outcome(JsonProjection.failure("unsafe_accessor", [variant.key]));
+      if (descriptor?.value === variant.tag) return variant.validate(value, context);
+    }
+    return {
+      isValid: false,
+      failures: [
+        {
+          code: "invalid_discriminator",
+          path: [discriminator],
+          message: "Invalid output discriminator",
+          params: { discriminator, expected: variants.map((variant) => variant.tag) },
+        },
+      ],
+    };
+  }
+
   /** Makes descriptor-safe collection snapshots while keeping active ancestors for cycle detection. */
   static #collection(
     validate: IValueValidator,
     kind: "array" | "set" | "map" | "record",
   ): IOutboundValidator {
-    return (value, context) => {
-      if (typeof value !== "object" || value === null) return validate(value, context);
-      if (context.active.has(value))
-        return OutboundCompiler.#outcome(JsonProjection.failure("cyclic_value"));
-      context.active.add(value);
-      try {
-        let snapshot: unknown = value;
-        if (kind === "set" && value instanceof Set) {
-          try {
-            snapshot = new Set(Set.prototype.values.call(value));
-          } catch {
-            return OutboundCompiler.#outcome(JsonProjection.failure("invalid_type"));
-          }
-        }
-        if (kind === "map" && value instanceof Map) {
-          let entries: readonly (readonly [unknown, unknown])[];
-          try {
-            entries = [...Map.prototype.entries.call(value)];
-          } catch {
-            return OutboundCompiler.#outcome(JsonProjection.failure("invalid_type"));
-          }
-          if (entries.some(([key]) => typeof key !== "string"))
-            return OutboundCompiler.#outcome(JsonProjection.failure("invalid_json_value"));
-          snapshot = new Map(entries);
-        }
-        if (
-          (kind === "array" && Array.isArray(value)) ||
-          (kind === "record" &&
-            (Object.getPrototypeOf(value) === Object.prototype ||
-              Object.getPrototypeOf(value) === null))
-        ) {
-          const output: Record<string, unknown> | unknown[] = Array.isArray(value)
-            ? Array.from({ length: value.length })
-            : {};
-          for (const key of Object.keys(value)) {
-            const descriptor = Object.getOwnPropertyDescriptor(value, key);
-            if (descriptor !== undefined && !("value" in descriptor))
-              return OutboundCompiler.#outcome(
-                JsonProjection.failure("unsafe_accessor", [
-                  Array.isArray(value) ? Number(key) : key,
-                ]),
-              );
-            Object.defineProperty(output, key, {
-              value: descriptor?.value,
-              enumerable: true,
-              configurable: true,
-              writable: true,
-            });
-          }
-          snapshot = output;
-        }
-        return validate(snapshot, context);
-      } finally {
-        context.active.delete(value);
-      }
-    };
+    return (value, context) => OutboundCompiler.#validateCollection(value, context, validate, kind);
+  }
+
+  static #validateCollection(
+    value: unknown,
+    context: IOutboundContext,
+    validate: IValueValidator,
+    kind: "array" | "set" | "map" | "record",
+  ): IValueOutcome {
+    if (typeof value !== "object" || value === null) return validate(value, context);
+    if (context.active.has(value))
+      return OutboundCompiler.#outcome(JsonProjection.failure("cyclic_value"));
+    context.active.add(value);
+    try {
+      const snapshot = OutboundCompiler.#snapshotCollection(value, kind);
+      if (!snapshot.ok) return OutboundCompiler.#outcome(snapshot);
+      return validate(snapshot.value, context);
+    } finally {
+      context.active.delete(value);
+    }
+  }
+
+  static #snapshotCollection(
+    value: object,
+    kind: "array" | "set" | "map" | "record",
+  ): IResult<unknown> {
+    if (kind === "set" && value instanceof Set) return OutboundCompiler.#snapshotSet(value);
+    if (kind === "map" && value instanceof Map) return OutboundCompiler.#snapshotMap(value);
+    const isArray = kind === "array" && Array.isArray(value);
+    const isRecord =
+      kind === "record" &&
+      (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+    if (isArray || isRecord) return OutboundCompiler.#snapshotProperties(value, isArray);
+    return { ok: true, value };
+  }
+
+  static #snapshotSet(value: Set<unknown>): IResult<unknown> {
+    try {
+      return { ok: true, value: new Set(Set.prototype.values.call(value)) };
+    } catch {
+      return JsonProjection.failure("invalid_type");
+    }
+  }
+
+  static #snapshotMap(value: Map<unknown, unknown>): IResult<unknown> {
+    let entries: readonly (readonly [unknown, unknown])[];
+    try {
+      entries = [...Map.prototype.entries.call(value)];
+    } catch {
+      return JsonProjection.failure("invalid_type");
+    }
+    if (entries.some(([key]) => typeof key !== "string"))
+      return JsonProjection.failure("invalid_json_value");
+    return { ok: true, value: new Map(entries) };
+  }
+
+  static #snapshotProperties(value: object, isArray: boolean): IResult<unknown> {
+    const output: Record<string, unknown> | unknown[] = Array.isArray(value)
+      ? Array.from({ length: value.length })
+      : {};
+    for (const key of Object.keys(value)) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (descriptor !== undefined && !("value" in descriptor))
+        return JsonProjection.failure("unsafe_accessor", [isArray ? Number(key) : key]);
+      Object.defineProperty(output, key, {
+        value: descriptor?.value,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+    }
+    return { ok: true, value: output };
   }
 }

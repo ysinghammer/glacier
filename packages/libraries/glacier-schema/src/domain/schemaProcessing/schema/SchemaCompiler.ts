@@ -5,6 +5,7 @@ import { ClassRefinements } from "./ClassRefinements.js";
 import type { IClassRefinement } from "./ClassRefinements.js";
 import { FieldRegistry } from "./FieldRegistry.js";
 import type { ISchemaIssue } from "../failures/ISchemaIssue.js";
+import type { IValueFailure } from "../validation/types/IValueFailure.js";
 import { ReceivedType } from "../validation/ReceivedType.js";
 import { FieldProcessorFactory } from "../validation/factories/FieldProcessor.factory.js";
 import type { IFieldProcessor } from "../validation/factories/FieldProcessor.factory.js";
@@ -121,36 +122,46 @@ export class SchemaCompiler {
           ],
         };
       }
-      const issues: ISchemaIssue[] = [];
       const instance: T = Object.create(target.prototype);
-      for (const field of fields) {
-        const raw = Object.hasOwn(input, field.inputKey)
-          ? Reflect.get(input, field.inputKey)
-          : undefined;
-        const outcome = field.process(raw, context);
-        if (!outcome.isValid) {
-          for (const failure of outcome.failures) {
-            issues.push({
-              path: [field.inputKey, ...(failure.path ?? [])],
-              code: failure.code,
-              message:
-                failure.hasOwnMessage === true
-                  ? failure.message
-                  : (field.message ?? failure.message),
-              params: failure.params,
-            });
-          }
-        } else if (outcome.value !== undefined) {
-          Object.defineProperty(instance, field.key, {
-            value: outcome.value,
-            enumerable: true,
-            writable: true,
-            configurable: true,
-          });
-        }
-      }
+      const issues = SchemaCompiler.#processFields(input, instance, fields, context);
       if (issues.length === 0) issues.push(...SchemaCompiler.#refine(instance, refinements));
       return issues.length === 0 ? { ok: true, value: instance } : { ok: false, issues };
     };
+  }
+
+  static #processFields<T extends object>(
+    input: object,
+    instance: T,
+    fields: readonly ICompiledField[],
+    context: Parameters<ICompiledSchema<T>>[1],
+  ): ISchemaIssue[] {
+    const issues: ISchemaIssue[] = [];
+    for (const field of fields) {
+      const raw = Object.hasOwn(input, field.inputKey)
+        ? Reflect.get(input, field.inputKey)
+        : undefined;
+      const outcome = field.process(raw, context);
+      if (!outcome.isValid) {
+        issues.push(...SchemaCompiler.#fieldFailures(field, outcome.failures));
+      } else if (outcome.value !== undefined) {
+        Object.defineProperty(instance, field.key, {
+          value: outcome.value,
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    }
+    return issues;
+  }
+
+  static #fieldFailures(field: ICompiledField, failures: readonly IValueFailure[]): ISchemaIssue[] {
+    return failures.map((failure) => ({
+      path: [field.inputKey, ...(failure.path ?? [])],
+      code: failure.code,
+      message:
+        failure.hasOwnMessage === true ? failure.message : (field.message ?? failure.message),
+      params: failure.params,
+    }));
   }
 }

@@ -60,14 +60,35 @@ export class HttpCookie {
 
   /** Builds safe attributes and enforces cookie prefixes before any field is emitted. */
   static #attributes(name: string, value: string, options: IHttpCookieOptions): string[] {
-    if (typeof name !== "string" || !COOKIE_NAME.test(name))
-      throw new TypeError("Invalid cookie name");
-    if (typeof value !== "string" || !COOKIE_VALUE.test(value))
-      throw new TypeError("Invalid cookie value");
+    HttpCookie.#validateNameValue(name, value);
     const path = options.path === undefined ? "/" : options.path;
     const secure = options.secure === undefined ? true : options.secure;
     const httpOnly = options.httpOnly === undefined ? true : options.httpOnly;
     const sameSite = options.sameSite === undefined ? "lax" : options.sameSite;
+    HttpCookie.#validateFlags(name, path, secure, httpOnly, sameSite, options.domain);
+    const attributes = [`${name}=${value}`, `Path=${path}`];
+    HttpCookie.#appendDomain(attributes, options.domain);
+    if (secure) attributes.push("Secure");
+    if (httpOnly) attributes.push("HttpOnly");
+    attributes.push(`SameSite=${sameSite[0]?.toUpperCase()}${sameSite.slice(1)}`);
+    return attributes;
+  }
+
+  static #validateNameValue(name: string, value: string): void {
+    if (typeof name !== "string" || !COOKIE_NAME.test(name))
+      throw new TypeError("Invalid cookie name");
+    if (typeof value !== "string" || !COOKIE_VALUE.test(value))
+      throw new TypeError("Invalid cookie value");
+  }
+
+  static #validateFlags(
+    name: string,
+    path: string,
+    secure: boolean,
+    httpOnly: boolean,
+    sameSite: string,
+    domain: string | undefined,
+  ): void {
     if (typeof path !== "string" || !COOKIE_PATH.test(path))
       throw new TypeError("Invalid cookie path");
     if (typeof secure !== "boolean" || typeof httpOnly !== "boolean")
@@ -77,17 +98,15 @@ export class HttpCookie {
     if (sameSite === "none" && !secure) throw new TypeError("SameSite=None requires Secure");
     if (name.startsWith("__Secure-") && !secure)
       throw new TypeError("Secure prefix requires Secure");
-    if (name.startsWith("__Host-") && (!secure || path !== "/" || options.domain !== undefined))
+    if (name.startsWith("__Host-") && (!secure || path !== "/" || domain !== undefined))
       throw new TypeError("Invalid Host prefix");
-    const attributes = [`${name}=${value}`, `Path=${path}`];
-    if (options.domain !== undefined) {
-      if (typeof options.domain !== "string" || !COOKIE_DOMAIN.test(options.domain))
+  }
+
+  static #appendDomain(attributes: string[], domain: string | undefined): void {
+    if (domain !== undefined) {
+      if (typeof domain !== "string" || !COOKIE_DOMAIN.test(domain))
         throw new TypeError("Invalid cookie domain");
-      attributes.push(`Domain=${options.domain}`);
+      attributes.push(`Domain=${domain}`);
     }
-    if (secure) attributes.push("Secure");
-    if (httpOnly) attributes.push("HttpOnly");
-    attributes.push(`SameSite=${sameSite[0]?.toUpperCase()}${sameSite.slice(1)}`);
-    return attributes;
   }
 }
