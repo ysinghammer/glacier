@@ -10,7 +10,7 @@ describe("framework-owned RFC 9457 privacy and mapping boundaries", () => {
   it("framework response/cookie factory and schema failures thrown inside a controller remain unmappable", async () => {
     /** Framework operations invoked in a controller are not application-owned exception types. */
     class Controller {
-      mode = "json";
+      public mode = "json";
       public value(): unknown {
         if (this.mode === "json")
           return HttpResponse.json({}, { headers: { "Bad Header": "secret" } });
@@ -22,7 +22,7 @@ describe("framework-owned RFC 9457 privacy and mapping boundaries", () => {
           return Schema.parse(BodyDto, { count: "secret", label: "safe" });
         /** Missing schema declarations are exceptional framework definition failures. */
         class UndeclaredDto {
-          field = "secret";
+          public field = "secret";
         }
         Optional()(UndeclaredDto.prototype, "field");
         return Schema.prepare(UndeclaredDto);
@@ -132,7 +132,7 @@ describe("framework-owned RFC 9457 privacy and mapping boundaries", () => {
   it("unmapped Error and non-Error throws are generic correlated 500 without exposing message/cause/stack/properties", async () => {
     /** Untrusted throw values never define public JSON. */
     class Controller {
-      failure: unknown;
+      public failure: unknown;
       public value(): never {
         throw this.failure;
       }

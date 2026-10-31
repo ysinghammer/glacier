@@ -30,6 +30,24 @@ class RequestObservation {
 }
 
 describe("normalized readonly requests through the approved auth hook", () => {
+  it("keeps credential-bearing lookups opaque while preserving authorized lookup and receiver checks", async () => {
+    const request = await RequestObservation.capture("/echo", [
+      "Authorization: Bearer synthetic-header-secret",
+      "Cookie: session=synthetic-cookie-secret",
+    ]);
+    expect(request.headers.get("authorization")).toBe("Bearer synthetic-header-secret");
+    expect(request.cookies.get("session")).toBe("synthetic-cookie-secret");
+    expect(JSON.stringify({ headers: request.headers, cookies: request.cookies })).toBe(
+      '{"headers":{},"cookies":{}}',
+    );
+    expect({ ...request.headers, ...request.cookies }).toEqual({});
+    expect(JSON.stringify(request)).not.toContain("synthetic-");
+    const borrowedHeaders: unknown = Object.create(request.headers);
+    const borrowedCookies: unknown = Object.create(request.cookies);
+    expect(() => request.headers.get.call(borrowedHeaders, "authorization")).toThrow(TypeError);
+    expect(() => request.cookies.get.call(borrowedCookies, "session")).toThrow(TypeError);
+  });
+
   it("rejects untyped direct request construction without a server-owned construction token", () => {
     expect(() => Reflect.construct(HttpRequest, [{}])).toThrow("server-created");
   });

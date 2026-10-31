@@ -3,10 +3,10 @@ import type { BenchmarkOutputDto } from "./BenchmarkOutput.dto.js";
 
 /** Shared deterministic application/authentication/logging work with no external I/O. */
 export class BenchmarkWorkload {
-  #logs = 0;
-  #bytes = 0;
-  #diagnostics = 0;
-  #maxRss = process.memoryUsage().rss;
+  private logs = 0;
+  private bytes = 0;
+  private diagnostics = 0;
+  private maxRss = process.memoryUsage().rss;
 
   /** Fixed authentication stub; intentionally not OIDC/token verification. */
   public static authenticate(authorization: string | undefined): string | undefined {
@@ -27,24 +27,24 @@ export class BenchmarkWorkload {
 
   /** Same synchronous metadata-only logging arithmetic, with periodic sampled RSS. */
   public log(record: IHttpResponseLogRecord): void {
-    this.#logs++;
-    this.#bytes += record.bodyBytes;
-    if (this.#logs % 100 === 0) this.#maxRss = Math.max(this.#maxRss, process.memoryUsage().rss);
+    this.logs++;
+    this.bytes += record.bodyBytes;
+    if (this.logs % 100 === 0) this.maxRss = Math.max(this.maxRss, process.memoryUsage().rss);
   }
 
   /** Unexpected failures remain observable and invalidate the measured run. */
   public diagnose(): void {
-    this.#diagnostics++;
+    this.diagnostics++;
   }
 
   /** IPC snapshot, not an HTTP endpoint or a production API. RSS is sampled, not an OS peak. */
   public snapshot(): object {
     return {
-      logs: this.#logs,
-      bytes: this.#bytes,
-      diagnostics: this.#diagnostics,
+      logs: this.logs,
+      bytes: this.bytes,
+      diagnostics: this.diagnostics,
       memory: process.memoryUsage(),
-      maxSampledRss: this.#maxRss,
+      maxSampledRss: this.maxRss,
     };
   }
 }

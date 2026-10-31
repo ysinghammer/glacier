@@ -20,37 +20,50 @@ const RESERVED_HEADERS = new Set([
 ]);
 const RESPONSE_CREATION = Symbol("validated response creation");
 
+/** Exact generic envelope type, retained outside the response's enumerable state. */
+interface IResponseEnvelope<T> {
+  readonly body: T;
+  readonly status: number;
+  readonly headers: Readonly<Record<string, string | readonly string[]>>;
+}
+
 /** Validated success envelope. DTO contents remain untrusted until declared-schema serialization. */
 export class HttpResponse<T extends object | readonly object[] | void> {
-  readonly #body: T;
-  readonly #status: number;
-  readonly #headers: Readonly<Record<string, string | readonly string[]>>;
+  // Per-owner typing preserves T without casting an erased shared registry value back to T.
+  private readonly envelopes = new WeakMap<HttpResponse<T>, IResponseEnvelope<T>>();
+
+  /** Resolves only a validated owner's envelope, never a fabricated or inherited response. */
+  private get envelope(): IResponseEnvelope<T> {
+    const envelope = this.envelopes.get(this);
+    if (envelope === undefined) throw new TypeError("Invalid response receiver");
+    return envelope;
+  }
 
   /** Snapshots response transport values while retaining the logical DTO for schema processing. */
   private constructor(token: symbol, body: T, status: number, options: IHttpResponseOptions) {
     if (token !== RESPONSE_CREATION) throw new HttpContractError("Use HttpResponse factories");
-    this.#body = body;
-    this.#status = status;
-    const headers = HttpResponse.#copyHeaders(options.headers);
-    HttpResponse.#appendCookies(headers, options.cookies);
-    this.#headers = Object.freeze(headers);
+    const headers = HttpResponse.copyHeaders(options.headers);
+    HttpResponse.appendCookies(headers, options.cookies);
+    this.envelopes.set(this, { body, status, headers: Object.freeze(headers) });
+    // The registry itself is not public output; its values are weakly held outside this instance.
+    Object.defineProperty(this, "envelopes", { enumerable: false });
     Object.freeze(this);
   }
 
-  static #copyHeaders(
+  private static copyHeaders(
     supplied: IHttpResponseOptions["headers"],
   ): Record<string, string | readonly string[]> {
     const headers: Record<string, string | readonly string[]> = Object.create(null);
     for (const [name, value] of Object.entries(supplied === undefined ? {} : supplied)) {
       validateHeaderName(name);
       const normalizedName = name.toLowerCase();
-      HttpResponse.#validateHeaderName(normalizedName, headers);
-      headers[normalizedName] = HttpResponse.#copyHeaderValue(name, value);
+      HttpResponse.validateHeaderName(normalizedName, headers);
+      headers[normalizedName] = HttpResponse.copyHeaderValue(name, value);
     }
     return headers;
   }
 
-  static #validateHeaderName(
+  private static validateHeaderName(
     normalizedName: string,
     headers: Readonly<Record<string, string | readonly string[]>>,
   ): void {
@@ -58,7 +71,7 @@ export class HttpResponse<T extends object | readonly object[] | void> {
       throw new TypeError("Reserved or duplicate response header");
   }
 
-  static #copyHeaderValue(
+  private static copyHeaderValue(
     name: string,
     value: string | readonly string[],
   ): string | readonly string[] {
@@ -76,7 +89,7 @@ export class HttpResponse<T extends object | readonly object[] | void> {
     return Object.freeze(fields);
   }
 
-  static #appendCookies(
+  private static appendCookies(
     headers: Record<string, string | readonly string[]>,
     supplied: IHttpResponseOptions["cookies"],
   ): void {
@@ -132,6 +145,7 @@ export class HttpResponse<T extends object | readonly object[] | void> {
     readonly status: number;
     readonly headers: Readonly<Record<string, string | readonly string[]>>;
   } {
-    return { body: this.#body, status: this.#status, headers: this.#headers };
+    const { body, status, headers } = this.envelope;
+    return { body, status, headers };
   }
 }

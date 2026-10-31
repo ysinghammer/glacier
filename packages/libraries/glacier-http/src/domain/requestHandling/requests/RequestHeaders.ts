@@ -24,13 +24,21 @@ const COMMA_FIELDS = new Set([
   "warning",
 ]);
 
+// Authorization and Cookie fields must not become loggable own properties on request lookups.
+const REQUEST_HEADER_FIELDS = new WeakMap<RequestHeaders, ReadonlyMap<string, readonly string[]>>();
+
 /** Detached header storage preserving occurrences before legal semantic combination. */
 export class RequestHeaders implements IHttpRequestHeaders {
-  readonly #fields: ReadonlyMap<string, readonly string[]>;
+  /** Retains receiver validation while keeping credential-bearing fields outside the instance. */
+  private get fields(): ReadonlyMap<string, readonly string[]> {
+    const fields = REQUEST_HEADER_FIELDS.get(this);
+    if (fields === undefined) throw new TypeError("Invalid request header receiver");
+    return fields;
+  }
 
   /** Retains only validated detached fields; the private map is never exposed or mutated again. */
   private constructor(fields: ReadonlyMap<string, readonly string[]>) {
-    this.#fields = fields;
+    REQUEST_HEADER_FIELDS.set(this, fields);
     Object.freeze(this);
   }
 
@@ -55,7 +63,7 @@ export class RequestHeaders implements IHttpRequestHeaders {
 
   /** Combines known list fields only; unknown/non-list fields retain their first occurrence. */
   public get(name: string): string | undefined {
-    const fields = this.#fields.get(name.toLowerCase());
+    const fields = this.fields.get(name.toLowerCase());
     if (fields === undefined) return undefined;
     const normalizedName = name.toLowerCase();
     if (normalizedName === "cookie") return fields.join("; ");
@@ -65,13 +73,13 @@ export class RequestHeaders implements IHttpRequestHeaders {
 
   /** Returns original occurrences as a readonly frozen list, including an empty list when absent. */
   public getAll(name: string): readonly string[] {
-    return this.#fields.get(name.toLowerCase()) ?? EMPTY_FIELDS;
+    return this.fields.get(name.toLowerCase()) ?? EMPTY_FIELDS;
   }
 
   /** Detached normalized fields for DTO binding; occurrences remain available through request lookups. */
   public toRecord(): Readonly<Record<string, string>> {
     const record: Record<string, string> = Object.create(null);
-    for (const name of this.#fields.keys()) record[name] = String(this.get(name));
+    for (const name of this.fields.keys()) record[name] = String(this.get(name));
     return Object.freeze(record);
   }
 }

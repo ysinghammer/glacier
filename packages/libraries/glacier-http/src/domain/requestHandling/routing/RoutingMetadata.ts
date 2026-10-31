@@ -11,27 +11,31 @@ const FIELD_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 
 /** Cohesive private endpoint definitions; consumers cannot reset or inspect these identities. */
 export class RoutingMetadata {
-  static readonly controller = new ValueMetadataDefinition<{
+  public static readonly controller = new ValueMetadataDefinition<{
     readonly path: string;
     readonly options: IApiControllerOptions;
   }>("http controller");
-  static readonly route = new ValueMetadataDefinition<{
+  public static readonly route = new ValueMetadataDefinition<{
     readonly method: IHttpMethod;
     readonly path: string;
     readonly options: IApiRouteOptions;
   }>("http route");
-  static readonly response = new ValueMetadataDefinition<readonly IApiResponseOptions[]>(
+  public static readonly response = new ValueMetadataDefinition<readonly IApiResponseOptions[]>(
     "http responses",
   );
-  static readonly bindings = new ValueMetadataDefinition<readonly IHttpBindingMetadata[]>(
+  public static readonly bindings = new ValueMetadataDefinition<readonly IHttpBindingMetadata[]>(
     "http bindings",
   );
-  static readonly publicRoute = new ValueMetadataDefinition<boolean>("http public route");
-  static readonly skipLogging = new ValueMetadataDefinition<boolean>("http skip response logging");
-  static readonly errorMappings = new ValueMetadataDefinition<readonly IHttpErrorMapping[]>(
+  public static readonly publicRoute = new ValueMetadataDefinition<boolean>("http public route");
+  public static readonly skipLogging = new ValueMetadataDefinition<boolean>(
+    "http skip response logging",
+  );
+  public static readonly errorMappings = new ValueMetadataDefinition<readonly IHttpErrorMapping[]>(
     "http error mappings",
   );
-  static readonly methods = new ListMetadataDefinition<string>("http declared endpoint names");
+  public static readonly methods = new ListMetadataDefinition<string>(
+    "http declared endpoint names",
+  );
 
   /** Creates an instance-method route decorator, rejecting duplicates irrespective of verb. */
   public static routeDecorator(

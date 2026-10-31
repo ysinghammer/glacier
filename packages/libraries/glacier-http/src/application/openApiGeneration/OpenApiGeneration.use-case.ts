@@ -20,23 +20,23 @@ interface IValidatedOpenApiInfo {
 export class OpenApiGeneration {
   /** Consumes prepared source data and rejects known wire/document contradictions rather than weakening documentation. */
   public static generate(options: IOpenApiGenerationOptions): IOpenApiDocument {
-    const info = OpenApiGeneration.#info(options.info);
-    const authentication = OpenApiGeneration.#security(options.authentication);
-    const endpoints = OpenApiGeneration.#endpoints(
+    const info = OpenApiGeneration.info(options.info);
+    const authentication = OpenApiGeneration.security(options.authentication);
+    const endpoints = OpenApiGeneration.endpoints(
       options.controllers,
       authentication !== undefined,
     );
-    const schemas = OpenApiGeneration.#schemas(endpoints);
-    const paths = OpenApiGeneration.#paths(
+    const schemas = OpenApiGeneration.schemas(endpoints);
+    const paths = OpenApiGeneration.paths(
       endpoints,
       schemas,
       options.errorMappings,
       authentication?.schemeName,
     );
-    return OpenApiGeneration.#document(info, paths, schemas, authentication?.schemes);
+    return OpenApiGeneration.document(info, paths, schemas, authentication?.schemes);
   }
 
-  static #info(value: unknown): IValidatedOpenApiInfo {
+  private static info(value: unknown): IValidatedOpenApiInfo {
     const info = OpenApiJson.object(value);
     const title = info.title;
     const version = info.version;
@@ -49,7 +49,7 @@ export class OpenApiGeneration {
     return { title, version, ...(description === undefined ? {} : { description }) };
   }
 
-  static #security(
+  private static security(
     value: IOpenApiGenerationOptions["authentication"],
   ): { readonly schemes: Record<string, IJsonValue>; readonly schemeName: string } | undefined {
     if (value === undefined) return undefined;
@@ -74,7 +74,7 @@ export class OpenApiGeneration {
     return { schemes, schemeName };
   }
 
-  static #endpoints(
+  private static endpoints(
     controllers: readonly IConstructableClass<object>[],
     hasAuthentication: boolean,
   ): IHttpEndpointMetadata[] {
@@ -83,17 +83,11 @@ export class OpenApiGeneration {
     const templates = new Map<string, string>();
     for (const controller of controllers)
       for (const endpoint of HttpEndpointMetadata.read(controller))
-        OpenApiGeneration.#appendEndpoint(
-          endpoints,
-          routes,
-          templates,
-          endpoint,
-          hasAuthentication,
-        );
+        OpenApiGeneration.appendEndpoint(endpoints, routes, templates, endpoint, hasAuthentication);
     return endpoints;
   }
 
-  static #appendEndpoint(
+  private static appendEndpoint(
     endpoints: IHttpEndpointMetadata[],
     routes: Set<string>,
     templates: Map<string, string>,
@@ -120,19 +114,19 @@ export class OpenApiGeneration {
     endpoints.push(endpoint);
   }
 
-  static #schemas(endpoints: readonly IHttpEndpointMetadata[]): OpenApiSchemas {
+  private static schemas(endpoints: readonly IHttpEndpointMetadata[]): OpenApiSchemas {
     const input: IConstructableClass<object>[] = [];
     const output: IConstructableClass<object>[] = [];
     for (const endpoint of endpoints) {
-      OpenApiGeneration.#addInputSchemas(endpoint, input);
-      OpenApiGeneration.#addOutputSchemas(endpoint, output);
+      OpenApiGeneration.addInputSchemas(endpoint, input);
+      OpenApiGeneration.addOutputSchemas(endpoint, output);
     }
     const schemas = new OpenApiSchemas(input, output);
     if (endpoints.length > 0) OpenApiResponses.prepare(schemas);
     return schemas;
   }
 
-  static #addInputSchemas(
+  private static addInputSchemas(
     endpoint: IHttpEndpointMetadata,
     input: IConstructableClass<object>[],
   ): void {
@@ -147,7 +141,7 @@ export class OpenApiGeneration {
     }
   }
 
-  static #addOutputSchemas(
+  private static addOutputSchemas(
     endpoint: IHttpEndpointMetadata,
     output: IConstructableClass<object>[],
   ): void {
@@ -162,7 +156,7 @@ export class OpenApiGeneration {
     }
   }
 
-  static #paths(
+  private static paths(
     endpoints: IHttpEndpointMetadata[],
     schemas: OpenApiSchemas,
     globals: IOpenApiGenerationOptions["errorMappings"],
@@ -174,14 +168,14 @@ export class OpenApiGeneration {
       `${left.template}:${left.method}`.localeCompare(`${right.template}:${right.method}`),
     );
     for (const endpoint of sorted) {
-      const operation = OpenApiGeneration.#operation(endpoint, schemas, globals, schemeName, ids);
+      const operation = OpenApiGeneration.operation(endpoint, schemas, globals, schemeName, ids);
       const path = endpoint.template.replace(/:([^/]+)/g, "{$1}");
       paths[path] = { ...paths[path], [endpoint.method.toLowerCase()]: operation };
     }
     return paths;
   }
 
-  static #operation(
+  private static operation(
     endpoint: IHttpEndpointMetadata,
     schemas: OpenApiSchemas,
     globals: IOpenApiGenerationOptions["errorMappings"],
@@ -194,7 +188,7 @@ export class OpenApiGeneration {
       route.operationId === undefined
         ? `${endpoint.controllerName}.${endpoint.handlerName}`
         : route.operationId;
-    OpenApiGeneration.#validateOperation(route, operationId, ids);
+    OpenApiGeneration.validateOperation(route, operationId, ids);
     const tags = route.tags ?? controller.tags;
     if (tags !== undefined && (!Array.isArray(tags) || tags.some((tag) => typeof tag !== "string")))
       throw new TypeError("Invalid operation tags");
@@ -212,7 +206,11 @@ export class OpenApiGeneration {
     };
   }
 
-  static #validateOperation(route: IJsonObject, operationId: unknown, ids: Set<string>): void {
+  private static validateOperation(
+    route: IJsonObject,
+    operationId: unknown,
+    ids: Set<string>,
+  ): void {
     if (typeof operationId !== "string" || operationId.trim() === "" || ids.has(operationId))
       throw new TypeError("Invalid or duplicate operationId");
     ids.add(operationId);
@@ -224,7 +222,7 @@ export class OpenApiGeneration {
         throw new TypeError("Invalid operation flag");
   }
 
-  static #document(
+  private static document(
     info: IValidatedOpenApiInfo,
     paths: Record<string, IJsonObject>,
     schemas: OpenApiSchemas,

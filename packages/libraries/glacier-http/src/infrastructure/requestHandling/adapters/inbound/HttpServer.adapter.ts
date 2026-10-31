@@ -43,53 +43,70 @@ const DEFAULT_QUERY_DEPTH = 5;
 const DEFAULT_HEADERS_TIMEOUT_MS = 10_000;
 const MAX_RECEIVE_CHECK_INTERVAL_MS = 1_000;
 
+/** Server-owned controllers, callbacks, transport handles, and requests are not diagnostic fields. */
+interface IHttpServerState {
+  readonly registrationValue: IHttpServerRegistration;
+  readonly logs: ResponseLogs;
+  readonly completions: WeakMap<ServerResponse, ResponseCompletion>;
+  readonly routes: PreparedRoutes;
+  readonly options: IHttpServerOptions;
+  readonly challenge: string | undefined;
+  readonly bodyBytes: number;
+  readonly requestTimeoutMs: number;
+  readonly headerBytes: number;
+  readonly targetBytes: number;
+  readonly queryPairs: number;
+  readonly queryDepth: number;
+  readonly headersTimeoutMs: number;
+  readonly shutdownTimeoutMs: number;
+  readonly sockets: Set<Socket>;
+  readonly active: Map<AbortController, Promise<void>>;
+  readonly chains: WeakMap<Duplex, Promise<void>>;
+  readonly rejectedSockets: WeakSet<Duplex>;
+  readonly listenAbort: AbortController;
+  server: Server | undefined;
+  hasListened: boolean;
+  isClosed: boolean;
+  closePromise: Promise<void> | undefined;
+}
+const HTTP_SERVER_STATES = new WeakMap<HttpServer, IHttpServerState>();
+
 /** Explicit one-use Node HTTP/1.1 lifecycle with no import-time resources or controller ownership. */
 export class HttpServer {
-  readonly #registration: IHttpServerRegistration;
-  readonly #logs: ResponseLogs;
-  readonly #completions = new WeakMap<ServerResponse, ResponseCompletion>();
-  readonly #routes: PreparedRoutes;
-  readonly #options: IHttpServerOptions;
-  readonly #challenge: string | undefined;
-  readonly #bodyBytes: number;
-  readonly #requestTimeoutMs: number;
-  readonly #headerBytes: number;
-  readonly #targetBytes: number;
-  readonly #queryPairs: number;
-  readonly #queryDepth: number;
-  readonly #headersTimeoutMs: number;
-  readonly #shutdownTimeoutMs: number;
-  readonly #sockets = new Set<Socket>();
-  readonly #active = new Map<AbortController, Promise<void>>();
-  readonly #chains = new WeakMap<Duplex, Promise<void>>();
-  readonly #rejectedSockets = new WeakSet<Duplex>();
-  readonly #listenAbort = new AbortController();
-  #server: Server | undefined;
-  #hasListened = false;
-  #isClosed = false;
-  #closePromise: Promise<void> | undefined;
+  /** Preserves opaque public output and validates that methods operate on a constructed server. */
+  private get state(): IHttpServerState {
+    const state = HTTP_SERVER_STATES.get(this);
+    if (state === undefined) throw new TypeError("Invalid HTTP server receiver");
+    return state;
+  }
 
   /** Prepares metadata only; construction never opens a listener. */
   private constructor(options: IHttpServerOptions) {
-    HttpServer.#validateOptions(options);
-    this.#routes = new PreparedRoutes(
+    const completions = new WeakMap<ServerResponse, ResponseCompletion>();
+    const sockets = new Set<Socket>();
+    const active = new Map<AbortController, Promise<void>>();
+    const chains = new WeakMap<Duplex, Promise<void>>();
+    const rejectedSockets = new WeakSet<Duplex>();
+    const listenAbort = new AbortController();
+    HttpServer.validateOptions(options);
+    const routes = new PreparedRoutes(
       [...options.controllers],
       options.authentication !== undefined,
     );
-    this.#bodyBytes = options.limits?.bodyBytes ?? DEFAULT_BODY_BYTES;
-    this.#requestTimeoutMs = options.limits?.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
-    this.#headerBytes = options.limits?.headerBytes ?? DEFAULT_HEADER_BYTES;
-    this.#targetBytes = options.limits?.requestTargetBytes ?? DEFAULT_TARGET_BYTES;
-    this.#queryPairs = options.limits?.queryPairs ?? DEFAULT_QUERY_PAIRS;
-    this.#queryDepth = options.limits?.queryDepth ?? DEFAULT_QUERY_DEPTH;
-    this.#headersTimeoutMs = HttpServer.#headersTimeout(
+    const bodyBytes = options.limits?.bodyBytes ?? DEFAULT_BODY_BYTES;
+    const requestTimeoutMs = options.limits?.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    const headerBytes = options.limits?.headerBytes ?? DEFAULT_HEADER_BYTES;
+    const targetBytes = options.limits?.requestTargetBytes ?? DEFAULT_TARGET_BYTES;
+    const queryPairs = options.limits?.queryPairs ?? DEFAULT_QUERY_PAIRS;
+    const queryDepth = options.limits?.queryDepth ?? DEFAULT_QUERY_DEPTH;
+    const headersTimeoutMs = HttpServer.headersTimeout(
       options.limits?.headersTimeoutMs,
-      this.#requestTimeoutMs,
+      requestTimeoutMs,
     );
     const pendingResponseLogs =
       options.limits?.pendingResponseLogs ?? DEFAULT_PENDING_RESPONSE_LOGS;
-    this.#shutdownTimeoutMs = options.limits?.shutdownTimeoutMs ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
-    this.#registration = Object.freeze({
+    const shutdownTimeoutMs = options.limits?.shutdownTimeoutMs ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
+    const registrationValue = Object.freeze({
       // PreparedRoutes already validates these constructor identities through public reflection.
       controllers: Object.freeze(
         options.controllers.map(
@@ -99,22 +116,47 @@ export class HttpServer {
       errorMappings: ErrorMappings.prepare(options.errorMappings ?? []),
       hasAuthentication: options.authentication !== undefined,
     });
-    this.#logs = new ResponseLogs(options.onResponseLog, pendingResponseLogs, (error, context) => {
-      this.#diagnose(error, context);
+    const logs = new ResponseLogs(options.onResponseLog, pendingResponseLogs, (error, context) => {
+      this.diagnose(error, context);
     });
-    this.#challenge = HttpServer.#createChallenge(options.authentication);
-    this.#options = HttpServer.#snapshotOptions(options);
+    const challenge = HttpServer.createChallenge(options.authentication);
+    const snapshot = HttpServer.snapshotOptions(options);
+    HTTP_SERVER_STATES.set(this, {
+      registrationValue,
+      logs,
+      completions,
+      routes,
+      options: snapshot,
+      challenge,
+      bodyBytes,
+      requestTimeoutMs,
+      headerBytes,
+      targetBytes,
+      queryPairs,
+      queryDepth,
+      headersTimeoutMs,
+      shutdownTimeoutMs,
+      sockets,
+      active,
+      chains,
+      rejectedSockets,
+      listenAbort,
+      server: undefined,
+      hasListened: false,
+      isClosed: false,
+      closePromise: undefined,
+    });
   }
 
-  static #validateOptions(options: IHttpServerOptions): void {
+  private static validateOptions(options: IHttpServerOptions): void {
     if (!Array.isArray(options.controllers) || typeof options.onError !== "function")
       throw new TypeError("Invalid server options");
-    HttpServer.#validateLimits(options.limits);
+    HttpServer.validateLimits(options.limits);
     if (options.onResponseLog !== undefined && typeof options.onResponseLog !== "function")
       throw new TypeError("Invalid response logging hook");
   }
 
-  static #validateLimits(limits: IHttpServerOptions["limits"]): void {
+  private static validateLimits(limits: IHttpServerOptions["limits"]): void {
     if (
       limits !== undefined &&
       (typeof limits !== "object" || limits === null || Array.isArray(limits))
@@ -126,14 +168,14 @@ export class HttpServer {
     }
   }
 
-  static #headersTimeout(supplied: number | undefined, requestTimeoutMs: number): number {
+  private static headersTimeout(supplied: number | undefined, requestTimeoutMs: number): number {
     const timeout = supplied ?? Math.min(DEFAULT_HEADERS_TIMEOUT_MS, requestTimeoutMs);
     if (timeout > requestTimeoutMs)
       throw new TypeError("Header receive limit exceeds request receive limit");
     return timeout;
   }
 
-  static #createChallenge(
+  private static createChallenge(
     authentication: IHttpServerOptions["authentication"],
   ): string | undefined {
     if (authentication === undefined) return undefined;
@@ -151,7 +193,7 @@ export class HttpServer {
     return challenge.scheme + (realm === undefined ? "" : ` realm="${realm}"`);
   }
 
-  static #snapshotOptions(options: IHttpServerOptions): IHttpServerOptions {
+  private static snapshotOptions(options: IHttpServerOptions): IHttpServerOptions {
     const authentication = options.authentication;
     return Object.freeze({
       controllers: Object.freeze([...options.controllers]),
@@ -174,12 +216,12 @@ export class HttpServer {
 
   /** Detached immutable composition for documentation consumers; contains no resources or callbacks. */
   public get registration(): IHttpServerRegistration {
-    return this.#registration;
+    return this.state.registrationValue;
   }
 
   /** Starts once, observes native startup failure and supports ephemeral ports. */
   public async listen(options: IHttpListenOptions): Promise<void> {
-    if (this.#hasListened || this.#isClosed) throw new Error("HTTP server is one-use");
+    if (this.state.hasListened || this.state.isClosed) throw new Error("HTTP server is one-use");
     if (!Number.isInteger(options.port) || options.port < 0 || options.port > 65535)
       throw new TypeError("Invalid listen port");
     if (
@@ -187,40 +229,40 @@ export class HttpServer {
       (typeof options.host !== "string" || options.host.length === 0)
     )
       throw new TypeError("Invalid listen host");
-    this.#hasListened = true;
+    this.state.hasListened = true;
     const server = createServer(
       {
-        maxHeaderSize: this.#headerBytes,
-        headersTimeout: this.#headersTimeoutMs,
-        requestTimeout: this.#requestTimeoutMs,
+        maxHeaderSize: this.state.headerBytes,
+        headersTimeout: this.state.headersTimeoutMs,
+        requestTimeout: this.state.requestTimeoutMs,
         connectionsCheckingInterval: Math.min(
           MAX_RECEIVE_CHECK_INTERVAL_MS,
-          this.#headersTimeoutMs,
-          this.#requestTimeoutMs,
+          this.state.headersTimeoutMs,
+          this.state.requestTimeoutMs,
         ),
       },
       (request, response) => {
-        this.#dispatch(request, response);
+        this.dispatch(request, response);
       },
     );
     // Native's default count cap silently drops headers; byte bounds must reject, never truncate.
     server.maxHeadersCount = 0;
     server.on("connection", (socket) => {
-      this.#sockets.add(socket);
+      this.state.sockets.add(socket);
       socket.once("close", () => {
-        this.#sockets.delete(socket);
+        this.state.sockets.delete(socket);
       });
     });
     server.on("clientError", (error, socket) => {
-      this.#clientError(error, socket);
+      this.clientError(error, socket);
     });
     server.on("checkContinue", (request, response) => {
-      this.#dispatch(request, response, true);
+      this.dispatch(request, response, true);
     });
     server.on("checkExpectation", (request, response) => {
-      this.#dispatch(request, response, false, true);
+      this.dispatch(request, response, false, true);
     });
-    this.#server = server;
+    this.state.server = server;
     let rejectStartup: (error: Error) => void;
     const cancelled = () => {
       rejectStartup(new Error("HTTP startup cancelled"));
@@ -232,62 +274,62 @@ export class HttpServer {
       await new Promise<void>((resolve, reject) => {
         rejectStartup = reject;
         server.once("error", failed);
-        this.#listenAbort.signal.addEventListener("abort", cancelled, { once: true });
+        this.state.listenAbort.signal.addEventListener("abort", cancelled, { once: true });
         server.listen(
           {
             port: options.port,
             ...(options.host === undefined ? {} : { host: options.host }),
-            signal: this.#listenAbort.signal,
+            signal: this.state.listenAbort.signal,
           },
           resolve,
         );
       });
     } catch (error: unknown) {
-      this.#listenAbort.abort();
-      this.#diagnose(error, { phase: "startup" });
+      this.state.listenAbort.abort();
+      this.diagnose(error, { phase: "startup" });
       throw error;
     } finally {
       server.removeListener("error", failed);
-      this.#listenAbort.signal.removeEventListener("abort", cancelled);
+      this.state.listenAbort.signal.removeEventListener("abort", cancelled);
     }
   }
 
   /** Returns a detached actual address only while the native server is listening. */
   public address(): IHttpAddress | undefined {
-    const address = this.#server?.address();
+    const address = this.state.server?.address();
     if (typeof address !== "object" || address === null) return undefined;
     return Object.freeze({ host: address.address, port: address.port });
   }
 
   /** Idempotent stop, including before listen; no controller destruction or process signal handlers. */
   public close(): Promise<void> {
-    this.#isClosed = true;
-    if (this.#closePromise !== undefined) return this.#closePromise;
-    this.#closePromise = this.#shutdown();
-    return this.#closePromise;
+    this.state.isClosed = true;
+    if (this.state.closePromise !== undefined) return this.state.closePromise;
+    this.state.closePromise = this.shutdown();
+    return this.state.closePromise;
   }
 
   /** Stops acceptance immediately and bounds all owned draining; arbitrary hook promises remain cooperative. */
-  async #shutdown(): Promise<void> {
-    const server = this.#server;
+  private async shutdown(): Promise<void> {
+    const server = this.state.server;
     if (server === undefined) return;
-    if (!server.listening) this.#listenAbort.abort();
+    if (!server.listening) this.state.listenAbort.abort();
     const transport = server.listening ? promisify(server.close.bind(server))() : Promise.resolve();
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       await Promise.race([
-        this.#drain(transport),
+        this.drain(transport),
         new Promise<never>((resolve, reject) => {
           void resolve;
           timer = setTimeout(() => {
-            for (const abort of this.#active.keys()) abort.abort();
-            for (const socket of this.#sockets) socket.destroy();
+            for (const abort of this.state.active.keys()) abort.abort();
+            for (const socket of this.state.sockets) socket.destroy();
             reject(new Error("HTTP shutdown request/transport/logging drain timed out"));
-          }, this.#shutdownTimeoutMs);
+          }, this.state.shutdownTimeoutMs);
         }),
       ]);
     } catch (error: unknown) {
-      this.#diagnose(error, { phase: "shutdown" });
+      this.diagnose(error, { phase: "shutdown" });
       throw error;
     } finally {
       clearTimeout(timer);
@@ -295,40 +337,45 @@ export class HttpServer {
   }
 
   /** Drains dependents before logging; response completion callbacks run before native transport closes. */
-  async #drain(transport: Promise<void>): Promise<void> {
+  private async drain(transport: Promise<void>): Promise<void> {
     await transport;
-    await Promise.all(this.#active.values());
-    await this.#logs.drain();
+    await Promise.all(this.state.active.values());
+    await this.state.logs.drain();
   }
 
   /** Tracks handlers even after disconnect so close cannot silently abandon application work. */
-  #dispatch(
+  private dispatch(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     isContinue = false,
     isExpectationRejected = false,
   ): void {
-    if (this.#isClosed) {
+    if (this.state.isClosed) {
       incoming.socket.destroy();
       return;
     }
     const abort = new AbortController();
     // Schedule after registration so even synchronous routing rejections release their tracked entry.
-    const previous = this.#chains.get(incoming.socket) ?? Promise.resolve();
+    const previous = this.state.chains.get(incoming.socket) ?? Promise.resolve();
     const pending = previous
-      .then(() => this.#handle(incoming, outgoing, abort, isContinue, isExpectationRejected))
+      .then(() => this.handle(incoming, outgoing, abort, isContinue, isExpectationRejected))
       .finally(() => {
-        this.#active.delete(abort);
+        this.state.active.delete(abort);
       });
-    this.#chains.set(incoming.socket, pending);
-    this.#active.set(abort, pending);
+    this.state.chains.set(incoming.socket, pending);
+    this.state.active.set(abort, pending);
   }
 
   /** Parser failures have no normalized identity or request hook promise; close without draining hostile input. */
-  #clientError(error: Error & { code?: string }, socket: Duplex): void {
+  private clientError(error: Error & { code?: string }, socket: Duplex): void {
     // An earlier response may still be in flight. Never append a parser status into its body.
-    this.#rejectedSockets.add(socket);
-    if (this.#chains.has(socket) || socket.destroyed || !socket.writable || socket.writableEnded) {
+    this.state.rejectedSockets.add(socket);
+    if (
+      this.state.chains.has(socket) ||
+      socket.destroyed ||
+      !socket.writable ||
+      socket.writableEnded
+    ) {
       socket.destroy();
       return;
     }
@@ -343,14 +390,14 @@ export class HttpServer {
   }
 
   /** Supervises every request failure and commits only normalized, schema-validated responses. */
-  async #handle(
+  private async handle(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     abort: AbortController,
     isContinue: boolean,
     isExpectationRejected: boolean,
   ): Promise<void> {
-    if (this.#rejectedSockets.has(incoming.socket)) {
+    if (this.state.rejectedSockets.has(incoming.socket)) {
       outgoing.destroy();
       return;
     }
@@ -360,10 +407,10 @@ export class HttpServer {
       requestId,
       String(incoming.method),
       (record) => {
-        this.#logs.write(record);
+        this.state.logs.write(record);
       },
     );
-    this.#completions.set(outgoing, completion);
+    this.state.completions.set(outgoing, completion);
     outgoing.once("close", () => {
       if (!outgoing.writableFinished) abort.abort();
     });
@@ -371,7 +418,7 @@ export class HttpServer {
       current: { requestId, method: String(incoming.method), phase: "input" },
     };
     try {
-      await this.#processRequest(
+      await this.processRequest(
         incoming,
         outgoing,
         abort,
@@ -383,12 +430,12 @@ export class HttpServer {
       );
     } catch (error: unknown) {
       completion.fail();
-      this.#diagnose(error, context.current);
-      this.#problem(outgoing, requestId, 500, [], true);
+      this.diagnose(error, context.current);
+      this.problem(outgoing, requestId, 500, [], true);
     }
   }
 
-  async #processRequest(
+  private async processRequest(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     abort: AbortController,
@@ -398,7 +445,7 @@ export class HttpServer {
     isContinue: boolean,
     isExpectationRejected: boolean,
   ): Promise<void> {
-    const prepared = this.#prepareRequest(
+    const prepared = this.prepareRequest(
       incoming,
       outgoing,
       requestId,
@@ -408,13 +455,13 @@ export class HttpServer {
       isExpectationRejected,
     );
     if (prepared === undefined) return;
-    const request = HttpServer.#request(incoming, abort, requestId, prepared);
+    const request = HttpServer.request(incoming, abort, requestId, prepared);
     const endpoint = prepared.selected.route.metadata;
     context.current = { ...context.current, phase: "authentication" };
-    const userId = await this.#authenticate(request, endpoint, outgoing, requestId, completion);
+    const userId = await this.authenticate(request, endpoint, outgoing, requestId, completion);
     if (!userId.ok) return;
     context.current = { ...context.current, phase: "input" };
-    const binding = await this.#bindRequest(
+    const binding = await this.bindRequest(
       incoming,
       outgoing,
       prepared,
@@ -425,7 +472,7 @@ export class HttpServer {
     );
     if (binding === undefined) return;
     context.current = { ...context.current, phase: "controller" };
-    const invocation = await this.#invokeController(
+    const invocation = await this.invokeController(
       prepared.selected,
       endpoint,
       binding.arguments,
@@ -436,7 +483,7 @@ export class HttpServer {
     );
     if (invocation.handled) return;
     context.current = { ...context.current, phase: "output" };
-    this.#writeResponse(
+    this.writeResponse(
       invocation.value,
       prepared,
       request,
@@ -449,7 +496,7 @@ export class HttpServer {
     );
   }
 
-  #prepareRequest(
+  private prepareRequest(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     requestId: string,
@@ -458,9 +505,9 @@ export class HttpServer {
     isContinue: boolean,
     isExpectationRejected: boolean,
   ): IPreparedRequest | undefined {
-    const target = this.#parseTarget(incoming, outgoing, requestId);
+    const target = this.parseTarget(incoming, outgoing, requestId);
     if (target === undefined) return undefined;
-    const match = this.#routes.match(target.pathname, String(incoming.method));
+    const match = this.state.routes.match(target.pathname, String(incoming.method));
     const selected = match?.selected;
     if (selected !== undefined) {
       const metadata = selected.route.metadata;
@@ -468,66 +515,66 @@ export class HttpServer {
       context.current = { ...context.current, route: metadata.template };
     }
     if (isExpectationRejected) {
-      this.#problem(outgoing, requestId, 417, [], true);
+      this.problem(outgoing, requestId, 417, [], true);
       return undefined;
     }
-    const headers = this.#parseHeaders(incoming, outgoing, requestId);
+    const headers = this.parseHeaders(incoming, outgoing, requestId);
     if (headers === undefined) return undefined;
-    const cookies = this.#parseCookies(headers, outgoing, requestId);
+    const cookies = this.parseCookies(headers, outgoing, requestId);
     if (cookies === undefined) return undefined;
     if (match === undefined) {
-      this.#problem(outgoing, requestId, 404, [], true);
+      this.problem(outgoing, requestId, 404, [], true);
       return undefined;
     }
-    if (this.#handleOptions(incoming, outgoing, requestId, match, headers, isContinue))
+    if (this.handleOptions(incoming, outgoing, requestId, match, headers, isContinue))
       return undefined;
     if (selected === undefined) {
       outgoing.setHeader("Allow", match.allow);
-      this.#problem(outgoing, requestId, 405, [], true);
+      this.problem(outgoing, requestId, 405, [], true);
       return undefined;
     }
     return { target, selected, headers, cookies };
   }
 
-  #parseTarget(
+  private parseTarget(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     requestId: string,
   ): Extract<ReturnType<typeof RequestTarget.parse>, { readonly ok: true }>["value"] | undefined {
     const result = RequestTarget.parse(
       String(incoming.url),
-      this.#targetBytes,
-      this.#queryPairs,
-      this.#queryDepth,
+      this.state.targetBytes,
+      this.state.queryPairs,
+      this.state.queryDepth,
     );
     if (result.ok) return result.value;
-    this.#problem(outgoing, requestId, result.status, [], true);
+    this.problem(outgoing, requestId, result.status, [], true);
     return undefined;
   }
 
-  #parseHeaders(
+  private parseHeaders(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     requestId: string,
   ): RequestHeaders | undefined {
     const result = RequestHeaders.parse(incoming.rawHeaders);
     if (result.ok) return result.value;
-    this.#problem(outgoing, requestId, result.status, [], true);
+    this.problem(outgoing, requestId, result.status, [], true);
     return undefined;
   }
 
-  #parseCookies(
+  private parseCookies(
     headers: RequestHeaders,
     outgoing: ServerResponse,
     requestId: string,
   ): RequestCookies | undefined {
     const result = RequestCookies.parse(headers.getAll("cookie"));
     if (result.ok) return result.value;
-    this.#problem(outgoing, requestId, result.status, [], true);
+    this.problem(outgoing, requestId, result.status, [], true);
     return undefined;
   }
 
-  #handleOptions(
+  private handleOptions(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     requestId: string,
@@ -548,7 +595,7 @@ export class HttpServer {
     return true;
   }
 
-  static #request(
+  private static request(
     incoming: IncomingMessage,
     abort: AbortController,
     requestId: string,
@@ -570,7 +617,7 @@ export class HttpServer {
     });
   }
 
-  async #authenticate(
+  private async authenticate(
     request: HttpRequest,
     endpoint: IHttpEndpointMetadata,
     outgoing: ServerResponse,
@@ -578,11 +625,11 @@ export class HttpServer {
     completion: ResponseCompletion,
   ): Promise<{ readonly ok: true; readonly value: string | undefined } | { readonly ok: false }> {
     let userId: string | undefined;
-    if (this.#options.authentication !== undefined && !endpoint.isPublic) {
-      userId = await this.#options.authentication.authenticate(request);
+    if (this.state.options.authentication !== undefined && !endpoint.isPublic) {
+      userId = await this.state.options.authentication.authenticate(request);
       if (userId === undefined) {
-        outgoing.setHeader("WWW-Authenticate", String(this.#challenge));
-        this.#problem(outgoing, requestId, 401, [], true);
+        outgoing.setHeader("WWW-Authenticate", String(this.state.challenge));
+        this.problem(outgoing, requestId, 401, [], true);
         return { ok: false };
       }
       if (typeof userId !== "string" || userId.length === 0)
@@ -592,7 +639,7 @@ export class HttpServer {
     return { ok: true, value: userId };
   }
 
-  async #bindRequest(
+  private async bindRequest(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     prepared: IPreparedRequest,
@@ -605,13 +652,13 @@ export class HttpServer {
   > {
     const endpoint = prepared.selected.route.metadata;
     const hasBodyBinder = endpoint.bindings.some((binding) => binding.location === "body");
-    const preflight = RequestBody.preflight(prepared.headers, hasBodyBinder, this.#bodyBytes);
+    const preflight = RequestBody.preflight(prepared.headers, hasBodyBinder, this.state.bodyBytes);
     if (preflight !== undefined) {
-      this.#problem(outgoing, requestId, preflight, [], true);
+      this.problem(outgoing, requestId, preflight, [], true);
       return undefined;
     }
     const shouldReadBody = hasBodyBinder || prepared.headers.get("transfer-encoding") !== undefined;
-    const body = await this.#readBody(
+    const body = await this.readBody(
       incoming,
       outgoing,
       requestId,
@@ -629,13 +676,13 @@ export class HttpServer {
       userId,
     );
     if (!binding.ok) {
-      this.#problem(outgoing, requestId, 400, binding.issues);
+      this.problem(outgoing, requestId, 400, binding.issues);
       return undefined;
     }
     return { arguments: binding.arguments, shouldReadBody };
   }
 
-  async #readBody(
+  private async readBody(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
     requestId: string,
@@ -647,16 +694,16 @@ export class HttpServer {
     if (isContinue) outgoing.writeContinue();
     const result = await RequestBody.read(
       incoming,
-      this.#bodyBytes,
-      this.#requestTimeoutMs,
+      this.state.bodyBytes,
+      this.state.requestTimeoutMs,
       hasBodyBinder,
     );
     if (result.ok) return { ok: true, value: result.value };
-    this.#problem(outgoing, requestId, result.status, [], true);
+    this.problem(outgoing, requestId, result.status, [], true);
     return { ok: false };
   }
 
-  async #invokeController(
+  private async invokeController(
     selected: IPreparedRequest["selected"],
     endpoint: IHttpEndpointMetadata,
     arguments_: readonly unknown[],
@@ -676,19 +723,19 @@ export class HttpServer {
       const mapping = ErrorMappings.resolve(error, [
         endpoint.endpointErrorMappings,
         endpoint.controllerErrorMappings,
-        this.#registration.errorMappings,
+        this.state.registrationValue.errorMappings,
       ]);
       if (mapping === undefined) throw error;
       if (mapping.status >= 500) {
         completion.fail();
-        this.#diagnose(error, context.current);
+        this.diagnose(error, context.current);
       }
-      this.#problem(outgoing, requestId, mapping.status, [], false, mapping);
+      this.problem(outgoing, requestId, mapping.status, [], false, mapping);
       return { handled: true };
     }
   }
 
-  #writeResponse(
+  private writeResponse(
     result: unknown,
     prepared: IPreparedRequest,
     request: HttpRequest,
@@ -706,7 +753,7 @@ export class HttpServer {
     const endpoint = prepared.selected.route.metadata;
     const declaration = endpoint.responses.find((response) => response.status === value.status);
     if (declaration === undefined) throw new Error("Undeclared response status");
-    const body = this.#serializeResponseBody(
+    const body = this.serializeResponseBody(
       declaration,
       value.body,
       request,
@@ -725,10 +772,10 @@ export class HttpServer {
     }
     outgoing.statusCode = value.status;
     if (isContinue && !shouldReadBody) outgoing.setHeader("Connection", "close");
-    this.#send(outgoing, body);
+    this.send(outgoing, body);
   }
 
-  #serializeResponseBody(
+  private serializeResponseBody(
     declaration: IHttpEndpointMetadata["responses"][number],
     value: unknown,
     request: HttpRequest,
@@ -744,7 +791,7 @@ export class HttpServer {
     for (const item of values) {
       const serialized = Schema.safeSerialize(declaration.type, item);
       if (!serialized.ok) {
-        this.#responseSerializationFailure(
+        this.responseSerializationFailure(
           serialized.issues,
           request,
           requestId,
@@ -759,7 +806,7 @@ export class HttpServer {
     return JSON.stringify(declaration.isArray === true ? projected : projected[0]);
   }
 
-  #responseSerializationFailure(
+  private responseSerializationFailure(
     issues: readonly { readonly path: readonly (string | number)[]; readonly code: string }[],
     request: HttpRequest,
     requestId: string,
@@ -768,7 +815,7 @@ export class HttpServer {
     context: IRequestContextState,
   ): void {
     completion.fail();
-    this.#diagnose(new Error("Invalid response DTO"), {
+    this.diagnose(new Error("Invalid response DTO"), {
       ...context.current,
       method: request.method,
       phase: "output",
@@ -778,11 +825,11 @@ export class HttpServer {
         ),
       ),
     });
-    this.#problem(outgoing, requestId, 500);
+    this.problem(outgoing, requestId, 500);
   }
 
   /** Emits secret-safe RFC 9457 failures without exposing exception messages or raw values. */
-  #problem(
+  private problem(
     outgoing: ServerResponse,
     requestId: string,
     status: number,
@@ -802,28 +849,28 @@ export class HttpServer {
       ...(issues.length === 0 ? {} : { issues }),
     });
     outgoing.statusCode = status;
-    if (status === 401 && this.#challenge !== undefined)
-      outgoing.setHeader("WWW-Authenticate", this.#challenge);
+    if (status === 401 && this.state.challenge !== undefined)
+      outgoing.setHeader("WWW-Authenticate", this.state.challenge);
     outgoing.setHeader("X-Request-Id", requestId);
     outgoing.setHeader("Content-Type", "application/problem+json");
     outgoing.setHeader("Content-Length", Buffer.byteLength(body));
     if (shouldClose) {
-      this.#rejectedSockets.add(outgoing.req.socket);
+      this.state.rejectedSockets.add(outgoing.req.socket);
       outgoing.setHeader("Connection", "close");
     }
-    this.#send(outgoing, body);
+    this.send(outgoing, body);
   }
 
   /** Accounts only final body bytes actually handed to the native transport, never delivery. */
-  #send(outgoing: ServerResponse, body: string): void {
+  private send(outgoing: ServerResponse, body: string): void {
     if (outgoing.destroyed || outgoing.req.socket.destroyed) return;
     const payload = outgoing.req.method === "HEAD" ? "" : body;
     outgoing.end(payload);
-    this.#completions.get(outgoing)?.handOff(Buffer.byteLength(payload));
+    this.state.completions.get(outgoing)?.handOff(Buffer.byteLength(payload));
   }
 
   /** Observes invalid diagnostic callbacks without recursion or credential-bearing fallback output. */
-  #diagnose(error: unknown, context: IHttpErrorContext): void {
+  private diagnose(error: unknown, context: IHttpErrorContext): void {
     // Schema params and native factory causes can carry boundary values; never forward them.
     let diagnostic = error;
     if (error instanceof SchemaError) {
@@ -842,7 +889,7 @@ export class HttpServer {
       diagnostic = new Error("HTTP transport value failure");
     }
     try {
-      const result: unknown = this.#options.onError(
+      const result: unknown = this.state.options.onError(
         diagnostic instanceof Error
           ? diagnostic
           : new Error("Non-Error HTTP failure", { cause: diagnostic }),

@@ -19,11 +19,11 @@ import { UpdateItemUseCase } from "./UpdateItem.use-case.js";
 @ApiController("/consumer/items")
 @ApiMapError(ItemAccessError, { status: 403, title: "Access denied" })
 export class ItemsController {
-  readonly #update: UpdateItemUseCase;
+  private readonly updateItem: UpdateItemUseCase;
 
   /** Composition supplies a technology-independent application operation. */
   public constructor(update: UpdateItemUseCase) {
-    this.#update = update;
+    this.updateItem = update;
   }
 
   /** Translates expected application denial only here, then returns validated logical output. */
@@ -34,7 +34,7 @@ export class ItemsController {
     @ApiUserId() userId: string,
     @ApiBody(ItemDto) input: ItemDto,
   ): HttpResponse<ItemDto> {
-    const result = this.#update.execute(id, userId, input.label);
+    const result = this.updateItem.execute(id, userId, input.label);
     if (!result.ok) throw new ItemAccessError("private rejection reason");
     return HttpResponse.json(result.value, { cookies: [HttpCookie.set("consumer", "opaque")] });
   }

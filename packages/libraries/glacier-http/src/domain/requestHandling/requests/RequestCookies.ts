@@ -5,13 +5,21 @@ const COOKIE_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 const COOKIE_VALUE =
   /^(?:[\x21\x23-\x2b\x2d-\x3a\x3c-\x5b\x5d-\x7e]*|"[\x21\x23-\x2b\x2d-\x3a\x3c-\x5b\x5d-\x7e]*")$/;
 
+// Request cookie credentials are available only through the declared lookup and binding operations.
+const REQUEST_COOKIE_VALUES = new WeakMap<RequestCookies, ReadonlyMap<string, string>>();
+
 /** Strict opaque cookie lookup with duplicate-name rejection across all Cookie fields. */
 export class RequestCookies implements IHttpRequestCookies {
-  readonly #values: ReadonlyMap<string, string>;
+  /** Keeps the validated lookup opaque to serializers and rejects invalid receivers. */
+  private get values(): ReadonlyMap<string, string> {
+    const values = REQUEST_COOKIE_VALUES.get(this);
+    if (values === undefined) throw new TypeError("Invalid request cookie receiver");
+    return values;
+  }
 
   /** Stores only detached validated pairs, with no public mutation operations. */
   private constructor(values: ReadonlyMap<string, string>) {
-    this.#values = values;
+    REQUEST_COOKIE_VALUES.set(this, values);
     Object.freeze(this);
   }
 
@@ -35,11 +43,11 @@ export class RequestCookies implements IHttpRequestCookies {
 
   /** Returns the unmodified value, or undefined for an absent name. */
   public get(name: string): string | undefined {
-    return this.#values.get(name);
+    return this.values.get(name);
   }
 
   /** Detached opaque pairs for DTO binding, never a mutable cookie jar. */
   public toRecord(): Readonly<Record<string, string>> {
-    return Object.freeze(Object.fromEntries(this.#values));
+    return Object.freeze(Object.fromEntries(this.values));
   }
 }

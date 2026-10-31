@@ -24,7 +24,7 @@ export class RequestTarget {
     const query = separator === -1 ? "" : target.slice(separator + 1);
     const segments: string[] = [];
     for (const segment of path.split("/")) {
-      const decoding = RequestTarget.#decode(segment);
+      const decoding = RequestTarget.decode(segment);
       if (!decoding.ok) return decoding;
       const decoded = decoding.value;
       if (
@@ -38,19 +38,19 @@ export class RequestTarget {
         return { ok: false, status: 400 };
       segments.push(decoded);
     }
-    const parsedQuery = RequestTarget.#query(query, queryPairs, queryDepth);
+    const parsedQuery = RequestTarget.query(query, queryPairs, queryDepth);
     if (!parsedQuery.ok) return parsedQuery;
     return { ok: true, value: { pathname: segments.join("/"), query: parsedQuery.value } };
   }
 
   /** Decodes once, promotes repeated scalars and rejects hostile/colliding notation. */
-  static #query(
+  private static query(
     query: string,
     pairLimit: number,
     depthLimit: number,
   ): IRequestNormalizationResult<IHttpQueryObject> {
     const result: IMutableQueryObject = Object.create(null);
-    if (query === "") return { ok: true, value: RequestTarget.#freeze(result) };
+    if (query === "") return { ok: true, value: RequestTarget.freeze(result) };
     // Count before allocating the split array; total query bytes are already target-bounded.
     let count = 1;
     for (const character of query) {
@@ -59,50 +59,54 @@ export class RequestTarget {
     }
     const pairs = query.split("&");
     for (const pair of pairs) {
-      const parsed = RequestTarget.#parsePair(pair, depthLimit);
+      const parsed = RequestTarget.parsePair(pair, depthLimit);
       if (!parsed.ok) return parsed;
-      const inserted = RequestTarget.#insert(result, parsed.value.parts, parsed.value.value);
+      const inserted = RequestTarget.insert(result, parsed.value.parts, parsed.value.value);
       if (!inserted) return { ok: false, status: 400 };
     }
-    return { ok: true, value: RequestTarget.#freeze(result) };
+    return { ok: true, value: RequestTarget.freeze(result) };
   }
 
-  static #parsePair(
+  private static parsePair(
     pair: string,
     depthLimit: number,
   ): IRequestNormalizationResult<{ readonly parts: readonly string[]; readonly value: string }> {
     const separator = pair.indexOf("=");
     const encodedKey = (separator === -1 ? pair : pair.slice(0, separator)).replaceAll("+", " ");
     const encodedValue = (separator === -1 ? "" : pair.slice(separator + 1)).replaceAll("+", " ");
-    const keyResult = RequestTarget.#decode(encodedKey);
+    const keyResult = RequestTarget.decode(encodedKey);
     if (!keyResult.ok) return keyResult;
-    const valueResult = RequestTarget.#decode(encodedValue);
+    const valueResult = RequestTarget.decode(encodedValue);
     if (!valueResult.ok) return valueResult;
     if (!QUERY_KEY.test(keyResult.value)) return { ok: false, status: 400 };
     const parts = keyResult.value.replaceAll("]", "").split("[");
-    if (parts.length > depthLimit || RequestTarget.#hasForbiddenPart(parts))
+    if (parts.length > depthLimit || RequestTarget.hasForbiddenPart(parts))
       return { ok: false, status: 400 };
     return { ok: true, value: { parts, value: valueResult.value } };
   }
 
-  static #hasForbiddenPart(parts: readonly string[]): boolean {
+  private static hasForbiddenPart(parts: readonly string[]): boolean {
     return parts.some(
       (part, index) => FORBIDDEN_KEYS.has(part) || (index > 0 && /^\d+$/.test(part)),
     );
   }
 
-  static #insert(root: IMutableQueryObject, parts: readonly string[], value: string): boolean {
+  private static insert(
+    root: IMutableQueryObject,
+    parts: readonly string[],
+    value: string,
+  ): boolean {
     let record = root;
     for (const part of parts.slice(0, -1)) {
-      const nested = RequestTarget.#nested(record, part);
+      const nested = RequestTarget.nested(record, part);
       if (nested === undefined) return false;
       record = nested;
     }
     // Validated query keys always contain a final scalar name.
-    return RequestTarget.#insertValue(record, String(parts.at(-1)), value);
+    return RequestTarget.insertValue(record, String(parts.at(-1)), value);
   }
 
-  static #insertValue(record: IMutableQueryObject, part: string, value: string): boolean {
+  private static insertValue(record: IMutableQueryObject, part: string, value: string): boolean {
     const existing = record[part];
     if (existing === undefined) record[part] = value;
     else if (typeof existing === "string") record[part] = [existing, value];
@@ -111,7 +115,10 @@ export class RequestTarget {
     return true;
   }
 
-  static #nested(record: IMutableQueryObject, part: string): IMutableQueryObject | undefined {
+  private static nested(
+    record: IMutableQueryObject,
+    part: string,
+  ): IMutableQueryObject | undefined {
     const existing = record[part];
     if (existing === undefined) {
       const nested: IMutableQueryObject = Object.create(null);
@@ -123,7 +130,7 @@ export class RequestTarget {
   }
 
   /** Translates the native decoder's malformed percent/UTF-8 rejection into a typed outcome. */
-  static #decode(value: string): IRequestNormalizationResult<string> {
+  private static decode(value: string): IRequestNormalizationResult<string> {
     try {
       return { ok: true, value: decodeURIComponent(value) };
     } catch {
@@ -132,7 +139,7 @@ export class RequestTarget {
   }
 
   /** Freezes detached records and repeated scalar arrays recursively. */
-  static #freeze(record: IMutableQueryObject): IHttpQueryObject {
+  private static freeze(record: IMutableQueryObject): IHttpQueryObject {
     // Configurable depth must not become a JavaScript call-stack limit.
     const pending = [record];
     for (const current of pending) {

@@ -12,7 +12,7 @@ export class ErrorMappings {
     if (!Array.isArray(mappings)) throw new TypeError("Invalid error mappings");
     const result: IHttpErrorMapping[] = [];
     for (const mapping of mappings) {
-      ErrorMappings.#validateMapping(mapping);
+      ErrorMappings.validateMapping(mapping);
       if (result.some((item) => item.error === mapping.error))
         throw new TypeError("Duplicate error mapping");
       result.push(
@@ -28,31 +28,31 @@ export class ErrorMappings {
     return Object.freeze(result);
   }
 
-  static #validateMapping(mapping: IHttpErrorMapping): void {
-    ErrorMappings.#validateError(mapping.error);
-    ErrorMappings.#validateStatus(mapping.status);
-    ErrorMappings.#validateText(mapping.title, "Invalid error mapping");
+  private static validateMapping(mapping: IHttpErrorMapping): void {
+    ErrorMappings.validateError(mapping.error);
+    ErrorMappings.validateStatus(mapping.status);
+    ErrorMappings.validateText(mapping.title, "Invalid error mapping");
     if (mapping.detail !== undefined)
-      ErrorMappings.#validateText(mapping.detail, "Invalid error mapping", false);
-    if (mapping.type !== undefined) ErrorMappings.#validateType(mapping.type);
+      ErrorMappings.validateText(mapping.detail, "Invalid error mapping", false);
+    if (mapping.type !== undefined) ErrorMappings.validateType(mapping.type);
   }
 
-  static #validateError(error: IHttpErrorMapping["error"]): void {
+  private static validateError(error: IHttpErrorMapping["error"]): void {
     if (typeof error !== "function" || (error !== Error && !(error.prototype instanceof Error)))
       throw new TypeError("Invalid error mapping");
   }
 
-  static #validateStatus(status: number): void {
+  private static validateStatus(status: number): void {
     if (!Number.isInteger(status) || status < 400 || status > 599)
       throw new TypeError("Invalid error mapping");
   }
 
-  static #validateText(value: string, message: string, isRequired = true): void {
+  private static validateText(value: string, message: string, isRequired = true): void {
     if (typeof value !== "string" || (isRequired && value.length === 0) || !PUBLIC_TEXT.test(value))
       throw new TypeError(message);
   }
 
-  static #validateType(type: string): void {
+  private static validateType(type: string): void {
     if (typeof type !== "string" || !PUBLIC_TEXT.test(type) || /\s/.test(type))
       throw new TypeError("Invalid problem type URI");
     // URL rejects relative references; non-HTTP absolute identifiers such as urn: are valid.

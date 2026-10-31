@@ -1,8 +1,39 @@
 import { describe, expect, it } from "vitest";
 import { HttpResponse, HttpCookie } from "../../../index.js";
 import { LoopbackClient } from "../../LoopbackClient.js";
+import { inspect } from "node:util";
 
 describe("success response transport values", () => {
+  it("keeps cookie credentials, unprojected DTO values, and transport fields out of public output", () => {
+    const cookie = HttpCookie.set("session", "synthetic-cookie-secret");
+    const response = HttpResponse.json(
+      { text: "public", credential: "synthetic-dto-secret" },
+      { cookies: [cookie], headers: { "Set-Cookie": "manual=synthetic-header-secret" } },
+    );
+    expect(JSON.stringify({ cookie, response })).toBe('{"cookie":{},"response":{}}');
+    expect({ ...cookie, ...response }).toEqual({});
+    expect(inspect({ cookie, response })).not.toContain("synthetic-");
+    expect(Object.isFrozen(cookie)).toBe(true);
+    expect(Object.isFrozen(response)).toBe(true);
+  });
+
+  it("rejects inherited response envelopes through real HTTP without emitting their DTO or headers", async () => {
+    const fixture = await LoopbackClient.start();
+    try {
+      const response = HttpResponse.json(
+        { text: "synthetic-dto-secret" },
+        { headers: { "X-Private": "synthetic-header-secret" } },
+      );
+      fixture.controller.jsonResponse = Object.create(response);
+      const result = await LoopbackClient.send(fixture.port, "/json");
+      expect(result.status).toBe(500);
+      expect(result.body).not.toContain("synthetic-");
+      expect(result.fields["x-private"]).toBeUndefined();
+    } finally {
+      await fixture.server.close();
+    }
+  });
+
   it("rejects untyped direct construction instead of allowing private-factory bypass", () => {
     expect(() =>
       Reflect.apply(HttpResponse.noContent, HttpResponse, [{ headers: null }]),

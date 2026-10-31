@@ -12,9 +12,9 @@ import {
 
 /** Application DTO with genuine emitted metadata and no constructor execution by HTTP. */
 class MessageDto {
-  static constructions = 0;
+  public static constructions = 0;
   @IsString()
-  declare text: string;
+  declare public text: string;
 
   /** Detects accidental constructor-based processing. */
   public constructor() {
@@ -25,7 +25,7 @@ class MessageDto {
 /** Application-owned controller with real legacy decorated declarations. */
 @ApiController("/compiled")
 class MessageController {
-  static constructions = 0;
+  public static constructions = 0;
   /** Detects HTTP-owned instantiation beyond explicit composition. */
   public constructor() {
     MessageController.constructions++;

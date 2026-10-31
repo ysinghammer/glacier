@@ -12,21 +12,29 @@ const COOKIE_DOMAIN =
 const CLEAR_EXPIRY = "Thu, 01 Jan 1970 00:00:00 GMT";
 const COOKIE_CREATION = Symbol("validated cookie creation");
 
+// Full cookie fields contain opaque credentials and must not enter JSON or diagnostic enumeration.
+const COOKIE_FIELDS = new WeakMap<HttpCookie, string>();
+
 /** Immutable validated cookie field; factories never encode opaque values. */
 export class HttpCookie {
-  readonly #wire: string;
+  /** Retains native receiver validation without exposing credential-bearing cookie fields. */
+  private get wire(): string {
+    const wire = COOKIE_FIELDS.get(this);
+    if (wire === undefined) throw new TypeError("Invalid cookie receiver");
+    return wire;
+  }
 
   /** Stores a validated field; consumers cannot construct arbitrary cookie instances. */
   private constructor(token: symbol, wire: string) {
     if (token !== COOKIE_CREATION) throw new HttpContractError("Use HttpCookie factories");
-    this.#wire = wire;
+    COOKIE_FIELDS.set(this, wire);
     Object.freeze(this);
   }
 
   /** Validates syntax/security attributes and snapshots mutable Date values without retaining them. */
   public static set(name: string, value: string, options: IHttpCookieOptions = {}): HttpCookie {
     try {
-      const attributes = HttpCookie.#attributes(name, value, options);
+      const attributes = HttpCookie.attributes(name, value, options);
       if (options.maxAge !== undefined) {
         if (!Number.isSafeInteger(options.maxAge)) throw new TypeError("Invalid cookie age");
         attributes.push(`Max-Age=${options.maxAge}`);
@@ -45,7 +53,7 @@ export class HttpCookie {
   /** Emits immediate expiry and Max-Age=0 with the caller's matching scope/security attributes. */
   public static clear(name: string, options: IHttpClearCookieOptions = {}): HttpCookie {
     try {
-      const attributes = HttpCookie.#attributes(name, "", options);
+      const attributes = HttpCookie.attributes(name, "", options);
       attributes.push("Max-Age=0", `Expires=${CLEAR_EXPIRY}`);
       return new HttpCookie(COOKIE_CREATION, attributes.join("; "));
     } catch (error: unknown) {
@@ -55,33 +63,33 @@ export class HttpCookie {
 
   /** Internal transport bridge, inaccessible through a public package export. */
   public [COOKIE_WIRE](): string {
-    return this.#wire;
+    return this.wire;
   }
 
   /** Builds safe attributes and enforces cookie prefixes before any field is emitted. */
-  static #attributes(name: string, value: string, options: IHttpCookieOptions): string[] {
-    HttpCookie.#validateNameValue(name, value);
+  private static attributes(name: string, value: string, options: IHttpCookieOptions): string[] {
+    HttpCookie.validateNameValue(name, value);
     const path = options.path === undefined ? "/" : options.path;
     const secure = options.secure === undefined ? true : options.secure;
     const httpOnly = options.httpOnly === undefined ? true : options.httpOnly;
     const sameSite = options.sameSite === undefined ? "lax" : options.sameSite;
-    HttpCookie.#validateFlags(name, path, secure, httpOnly, sameSite, options.domain);
+    HttpCookie.validateFlags(name, path, secure, httpOnly, sameSite, options.domain);
     const attributes = [`${name}=${value}`, `Path=${path}`];
-    HttpCookie.#appendDomain(attributes, options.domain);
+    HttpCookie.appendDomain(attributes, options.domain);
     if (secure) attributes.push("Secure");
     if (httpOnly) attributes.push("HttpOnly");
     attributes.push(`SameSite=${sameSite[0]?.toUpperCase()}${sameSite.slice(1)}`);
     return attributes;
   }
 
-  static #validateNameValue(name: string, value: string): void {
+  private static validateNameValue(name: string, value: string): void {
     if (typeof name !== "string" || !COOKIE_NAME.test(name))
       throw new TypeError("Invalid cookie name");
     if (typeof value !== "string" || !COOKIE_VALUE.test(value))
       throw new TypeError("Invalid cookie value");
   }
 
-  static #validateFlags(
+  private static validateFlags(
     name: string,
     path: string,
     secure: boolean,
@@ -102,7 +110,7 @@ export class HttpCookie {
       throw new TypeError("Invalid Host prefix");
   }
 
-  static #appendDomain(attributes: string[], domain: string | undefined): void {
+  private static appendDomain(attributes: string[], domain: string | undefined): void {
     if (domain !== undefined) {
       if (typeof domain !== "string" || !COOKIE_DOMAIN.test(domain))
         throw new TypeError("Invalid cookie domain");

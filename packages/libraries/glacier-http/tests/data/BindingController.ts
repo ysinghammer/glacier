@@ -32,40 +32,40 @@ import { EndpointDeclarations } from "../EndpointDeclarations.js";
 
 /** Test-owned nested query shape. */
 export class FilterDto {
-  declare active: boolean;
-  declare tags: string[];
+  declare public active: boolean;
+  declare public tags: string[];
 }
 IsBoolean()(FilterDto.prototype, "active");
 IsArray(String)(FilterDto.prototype, "tags");
 /** Test-owned query shape with nested scalar arrays and no constructor work. */
 export class QueryDto {
-  declare filter: FilterDto;
+  declare public filter: FilterDto;
 }
 IsObject(FilterDto)(QueryDto.prototype, "filter");
 /** Text coercion DTO reused across textual locations, not JSON coercion. */
 export class NumberDto {
-  declare id: number;
+  declare public id: number;
 }
 IsInt()(NumberDto.prototype, "id");
 Rename("id")(NumberDto.prototype, "id");
 /** Lower-case normalized header DTO. */
 export class HeaderDto {
-  declare count: number;
+  declare public count: number;
 }
 IsInt()(HeaderDto.prototype, "count");
 Rename("x-count")(HeaderDto.prototype, "count");
 /** Input and output body DTO with a deliberate private refinement reason. */
 export class BodyDto {
-  declare count: number;
-  declare label: string;
+  declare public count: number;
+  declare public label: string;
 }
 IsInt()(BodyDto.prototype, "count");
 IsString()(BodyDto.prototype, "label");
 Refine((value) => value !== "reject", "private-refinement-detail")(BodyDto.prototype, "label");
 /** Observable complete binding result; IsAny still requires JSON-safe outbound data. */
 export class ObservationDto {
-  declare value: unknown;
-  declare optional?: string;
+  declare public value: unknown;
+  declare public optional?: string;
 }
 IsAny()(ObservationDto.prototype, "value");
 IsString()(ObservationDto.prototype, "optional");
@@ -73,7 +73,7 @@ Optional()(ObservationDto.prototype, "optional");
 
 /** Shared application-owned controller; arguments and requests stay local to each call. */
 export class BindingController {
-  calls = 0;
+  public calls = 0;
   /** Returns every textual/direct binder value so assertions need no private inspection. */
   public text(
     id: string,

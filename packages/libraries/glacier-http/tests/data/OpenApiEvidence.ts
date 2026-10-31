@@ -7,13 +7,13 @@ export class OpenApiEvidence {
   public static references(document: IOpenApiDocument): void {
     const components = document.components.schemas;
     expect(typeof components).toBe("object");
-    OpenApiEvidence.#walk(document, components);
+    OpenApiEvidence.walk(document, components);
   }
 
   /** Checks each local schema ref and discriminator mapping against the returned public components. */
-  static #walk(value: unknown, components: unknown, isMapping = false): void {
+  private static walk(value: unknown, components: unknown, isMapping = false): void {
     if (Array.isArray(value)) {
-      for (const item of value) OpenApiEvidence.#walk(item, components);
+      for (const item of value) OpenApiEvidence.walk(item, components);
       return;
     }
     if (typeof value !== "object" || value === null) return;
@@ -30,7 +30,7 @@ export class OpenApiEvidence {
         !key.startsWith("x-") &&
         !["examples", "example", "enum", "const", "default"].includes(key)
       )
-        OpenApiEvidence.#walk(child, components, key === "mapping");
+        OpenApiEvidence.walk(child, components, key === "mapping");
     }
   }
 }

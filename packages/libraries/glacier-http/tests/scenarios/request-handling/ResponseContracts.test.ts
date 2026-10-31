@@ -8,7 +8,7 @@ describe("repeatable explicit output contracts and declared void", () => {
   it("void/undefined means declared 204; undeclared void and plain/invalid values remain safe 500", async () => {
     /** Application-owned return source deliberately permits untrusted results. */
     class Controller {
-      value: unknown;
+      public value: unknown;
       public empty(): void {}
       public json(): unknown {
         return this.value;
@@ -67,7 +67,7 @@ describe("repeatable explicit output contracts and declared void", () => {
   it("non-JSON values, cycles and inspected accessors produce value-free diagnostics and no partial fields", async () => {
     /** An application-owned controller returns deliberately unsafe values through the public envelope. */
     class Controller {
-      value: unknown;
+      public value: unknown;
       public json(): unknown {
         return HttpResponse.json(
           { value: this.value },

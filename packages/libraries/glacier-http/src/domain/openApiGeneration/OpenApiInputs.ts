@@ -18,15 +18,15 @@ export class OpenApiInputs {
       .filter((part) => part.startsWith(":"))
       .map((part) => part.slice(1));
     for (const binding of endpoint.bindings) {
-      const body = OpenApiInputs.#binding(binding, parameters, names, pathNames, schemas);
+      const body = OpenApiInputs.binding(binding, parameters, names, pathNames, schemas);
       if (body !== undefined) requestBody = body;
     }
     for (const name of pathNames) {
       if (!names.has(`path:${name}`))
-        OpenApiInputs.#add(
+        OpenApiInputs.add(
           parameters,
           names,
-          OpenApiInputs.#parameter(name, "path", { type: "string" }, true),
+          OpenApiInputs.parameter(name, "path", { type: "string" }, true),
         );
     }
     return {
@@ -35,7 +35,7 @@ export class OpenApiInputs {
     };
   }
 
-  static #binding(
+  private static binding(
     binding: IHttpEndpointMetadata["bindings"][number],
     parameters: IJsonObject[],
     names: Set<string>,
@@ -57,19 +57,19 @@ export class OpenApiInputs {
         content: {
           "application/json": {
             schema: schemas.reference(binding.dto, "input"),
-            ...OpenApiInputs.#examples(binding.options),
+            ...OpenApiInputs.wrapExamples(binding.options),
           },
         },
       };
     if ("dto" in binding) {
-      OpenApiInputs.#structuredParameters(binding, parameters, names, pathNames, schemas);
+      OpenApiInputs.structuredParameters(binding, parameters, names, pathNames, schemas);
       return undefined;
     }
-    OpenApiInputs.#scalarParameter(binding, parameters, names);
+    OpenApiInputs.scalarParameter(binding, parameters, names);
     return undefined;
   }
 
-  static #structuredParameters(
+  private static structuredParameters(
     binding: Extract<IHttpEndpointMetadata["bindings"][number], { readonly dto: unknown }>,
     parameters: IJsonObject[],
     names: Set<string>,
@@ -82,23 +82,23 @@ export class OpenApiInputs {
     const required = Array.isArray(definition.required) ? definition.required : [];
     const properties = OpenApiJson.object(definition.properties);
     for (const [name, value] of Object.entries(properties)) {
-      const location = OpenApiInputs.#structuredLocation(binding.location);
+      const location = OpenApiInputs.structuredLocation(binding.location);
       if (location === "path" && !pathNames.includes(name))
         throw new TypeError("Path DTO property has no route segment");
       const schema = OpenApiJson.object(value);
-      if (location === "query") OpenApiInputs.#query(schema, schemas, new Set());
-      const parameter = OpenApiInputs.#parameter(
+      if (location === "query") OpenApiInputs.query(schema, schemas, new Set());
+      const parameter = OpenApiInputs.parameter(
         name,
         location,
         schema,
         location === "path" || required.includes(name),
         binding.options.description,
       );
-      OpenApiInputs.#add(parameters, names, parameter);
+      OpenApiInputs.add(parameters, names, parameter);
     }
   }
 
-  static #structuredLocation(location: string): string {
+  private static structuredLocation(location: string): string {
     switch (location) {
       case "params":
         return "path";
@@ -111,7 +111,7 @@ export class OpenApiInputs {
     }
   }
 
-  static #scalarParameter(
+  private static scalarParameter(
     binding: Extract<IHttpEndpointMetadata["bindings"][number], { readonly name: string }>,
     parameters: IJsonObject[],
     names: Set<string>,
@@ -119,15 +119,15 @@ export class OpenApiInputs {
     const location = binding.location === "param" ? "path" : binding.location;
     const scalarLocation =
       location === "header" ? "header" : location === "cookie" ? "cookie" : "path";
-    OpenApiInputs.#add(parameters, names, {
-      ...OpenApiInputs.#parameter(
+    OpenApiInputs.add(parameters, names, {
+      ...OpenApiInputs.parameter(
         binding.name,
         scalarLocation,
         { type: "string" },
         scalarLocation === "path",
         binding.options.description,
       ),
-      ...OpenApiInputs.#examples(binding.options),
+      ...OpenApiInputs.wrapExamples(binding.options),
     });
   }
 
@@ -136,11 +136,11 @@ export class OpenApiInputs {
     readonly description?: string;
     readonly examples?: Readonly<Record<string, IJsonValue>>;
   }): IJsonObject {
-    return OpenApiInputs.#examples(options);
+    return OpenApiInputs.wrapExamples(options);
   }
 
   /** Wraps copied examples; absence is distinct from an explicitly empty examples record. */
-  static #examples(options: {
+  private static wrapExamples(options: {
     readonly description?: string;
     readonly examples?: Readonly<Record<string, IJsonValue>>;
   }): IJsonObject {
@@ -156,7 +156,7 @@ export class OpenApiInputs {
   }
 
   /** Scalar arrays repeat query keys; nested query objects use bounded deepObject documentation. */
-  static #parameter(
+  private static parameter(
     name: string,
     location: string,
     schema: IJsonObject,
@@ -192,7 +192,7 @@ export class OpenApiInputs {
   }
 
   /** Checks nested repeated-array grammar without expanding cyclic DTO references indefinitely. */
-  static #query(schema: IJsonObject, schemas: OpenApiSchemas, visited: Set<string>): void {
+  private static query(schema: IJsonObject, schemas: OpenApiSchemas, visited: Set<string>): void {
     if (typeof schema.$ref === "string") {
       if (visited.has(schema.$ref)) return;
       visited.add(schema.$ref);
@@ -200,13 +200,13 @@ export class OpenApiInputs {
     const resolved = schemas.resolve(schema);
     const types = Array.isArray(resolved.type) ? resolved.type : [resolved.type];
     if (types.includes("array")) {
-      OpenApiInputs.#queryArray(resolved);
+      OpenApiInputs.queryArray(resolved);
       return;
     }
-    OpenApiInputs.#queryChildren(resolved, schemas, visited);
+    OpenApiInputs.queryChildren(resolved, schemas, visited);
   }
 
-  static #queryArray(resolved: IJsonObject): void {
+  private static queryArray(resolved: IJsonObject): void {
     if (Array.isArray(resolved.prefixItems) && resolved.prefixItems.length < 2)
       throw new TypeError(
         "Query tuples need at least two repeated scalar values; singleton promotion applies only to IsArray",
@@ -218,25 +218,25 @@ export class OpenApiInputs {
       throw new TypeError("Query arrays require scalar elements at every depth");
   }
 
-  static #queryChildren(
+  private static queryChildren(
     resolved: IJsonObject,
     schemas: OpenApiSchemas,
     visited: Set<string>,
   ): void {
     for (const child of Object.values(OpenApiJson.object(resolved.properties ?? {})))
-      OpenApiInputs.#query(OpenApiJson.object(child), schemas, visited);
+      OpenApiInputs.query(OpenApiJson.object(child), schemas, visited);
     for (const key of ["anyOf", "oneOf"]) {
       const alternatives = resolved[key];
       if (Array.isArray(alternatives))
         for (const child of alternatives)
-          OpenApiInputs.#query(OpenApiJson.object(child), schemas, visited);
+          OpenApiInputs.query(OpenApiJson.object(child), schemas, visited);
     }
     if (typeof resolved.additionalProperties === "object" && resolved.additionalProperties !== null)
-      OpenApiInputs.#query(OpenApiJson.object(resolved.additionalProperties), schemas, visited);
+      OpenApiInputs.query(OpenApiJson.object(resolved.additionalProperties), schemas, visited);
   }
 
   /** Parameter identity is location plus normalized name; duplicate metadata cannot overwrite documentation. */
-  static #add(parameters: IJsonObject[], names: Set<string>, parameter: IJsonObject): void {
+  private static add(parameters: IJsonObject[], names: Set<string>, parameter: IJsonObject): void {
     const key = `${String(parameter.in)}:${String(parameter.name)}`;
     if (names.has(key)) throw new TypeError("Ambiguous bound parameter documentation");
     names.add(key);

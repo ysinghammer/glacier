@@ -3,17 +3,17 @@ import type { IHttpResponseLogRecord } from "../../../../domain/requestHandling/
 
 /** Native response accounting; finish and close share a single completion gate. */
 export class ResponseCompletion {
-  readonly #started = performance.now();
-  readonly #requestId: string;
-  readonly #method: string;
-  readonly #response: ServerResponse;
-  readonly #write: (record: IHttpResponseLogRecord) => void;
-  #hasCompleted = false;
-  #bodyBytes = 0;
-  #route: string | undefined;
-  #userId: string | undefined;
-  #isSkipped = false;
-  #hasFailed = false;
+  private readonly started = performance.now();
+  private readonly requestId: string;
+  private readonly method: string;
+  private readonly response: ServerResponse;
+  private readonly write: (record: IHttpResponseLogRecord) => void;
+  private hasCompleted = false;
+  private bodyBytes = 0;
+  private route: string | undefined;
+  private userId: string | undefined;
+  private isSkipped = false;
+  private hasFailed = false;
 
   /** Observes native completion without exposing the response to hooks. */
   public constructor(
@@ -22,56 +22,56 @@ export class ResponseCompletion {
     method: string,
     write: (record: IHttpResponseLogRecord) => void,
   ) {
-    this.#response = response;
-    this.#requestId = requestId;
-    this.#method = method;
-    this.#write = write;
+    this.response = response;
+    this.requestId = requestId;
+    this.method = method;
+    this.write = write;
     response.once("finish", () => {
-      this.#complete();
+      this.complete();
     });
     response.once("close", () => {
-      this.#complete();
+      this.complete();
     });
   }
 
   /** Records matched endpoint identity and exclusion before authentication/input work. */
   public match(route: string, isSkipped: boolean): void {
-    this.#route = route;
-    this.#isSkipped = isSkipped;
+    this.route = route;
+    this.isSkipped = isSkipped;
   }
 
   /** Records a validated identity, never credentials. */
   public authenticate(userId: string | undefined): void {
-    this.#userId = userId;
+    this.userId = userId;
   }
 
   /** Records only bytes passed to end after successful validation; HEAD passes zero. */
   public handOff(bytes: number): void {
-    this.#bodyBytes += bytes;
+    this.bodyBytes += bytes;
   }
 
   /** Marks unexpected processing failure; a successful error response still retains its actual status. */
   public fail(): void {
-    this.#hasFailed = true;
+    this.hasFailed = true;
   }
 
   /** Emits exactly once; status is absent if final headers never committed. */
-  #complete(): void {
-    if (this.#hasCompleted) return;
-    this.#hasCompleted = true;
-    if (this.#isSkipped) return;
+  private complete(): void {
+    if (this.hasCompleted) return;
+    this.hasCompleted = true;
+    if (this.isSkipped) return;
     let outcome: IHttpResponseLogRecord["outcome"] = "completed";
-    if (!this.#response.writableFinished) outcome = "disconnected";
-    else if (this.#hasFailed) outcome = "failed";
-    this.#write(
+    if (!this.response.writableFinished) outcome = "disconnected";
+    else if (this.hasFailed) outcome = "failed";
+    this.write(
       Object.freeze({
-        requestId: this.#requestId,
-        method: this.#method,
-        ...(this.#route === undefined ? {} : { route: this.#route }),
-        ...(this.#userId === undefined ? {} : { userId: this.#userId }),
-        ...(this.#response.headersSent ? { status: this.#response.statusCode } : {}),
-        durationMs: performance.now() - this.#started,
-        bodyBytes: this.#bodyBytes,
+        requestId: this.requestId,
+        method: this.method,
+        ...(this.route === undefined ? {} : { route: this.route }),
+        ...(this.userId === undefined ? {} : { userId: this.userId }),
+        ...(this.response.headersSent ? { status: this.response.statusCode } : {}),
+        durationMs: performance.now() - this.started,
+        bodyBytes: this.bodyBytes,
         outcome,
       }),
     );

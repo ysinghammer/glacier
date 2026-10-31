@@ -3,10 +3,10 @@ import { TextDto } from "./TextDto.js";
 
 /** Test-owned public controller methods exercise real transport envelopes. */
 export class PrimitiveController {
-  response: unknown = HttpResponse.noContent();
-  jsonResponse: unknown = HttpResponse.json({ text: "hello" });
-  arrayResponse: unknown = HttpResponse.json([{ text: "hello" }]);
-  jsonFailure: Error | undefined;
+  public response: unknown = HttpResponse.noContent();
+  public jsonResponse: unknown = HttpResponse.json({ text: "hello" });
+  public arrayResponse: unknown = HttpResponse.json([{ text: "hello" }]);
+  public jsonFailure: Error | undefined;
 
   /** Returns the test-selected envelope or deliberate contract violation. */
   public value(): unknown {

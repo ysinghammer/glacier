@@ -17,11 +17,11 @@ export class HttpEndpointMetadata {
     );
     const endpoints: IHttpEndpointMetadata[] = [];
     for (const key of [...keys].sort())
-      endpoints.push(HttpEndpointMetadata.#endpoint(controller, key, prefix));
+      endpoints.push(HttpEndpointMetadata.endpoint(controller, key, prefix));
     return Object.freeze(endpoints);
   }
 
-  static #endpoint(
+  private static endpoint(
     controller: IConstructableClass<object>,
     key: string,
     prefix: {
@@ -29,7 +29,7 @@ export class HttpEndpointMetadata {
       readonly options: IHttpEndpointMetadata["controllerOptions"];
     },
   ): IHttpEndpointMetadata {
-    const { owner, descriptor } = HttpEndpointMetadata.#owner(controller, key);
+    const { owner, descriptor } = HttpEndpointMetadata.owner(controller, key);
     const address = { kind: "member", member: key, inheritance: "own" } as const;
     const declaration = RoutingMetadata.optional(RoutingMetadata.route.readDynamic(owner, address));
     if (declaration === undefined)
@@ -44,7 +44,7 @@ export class HttpEndpointMetadata {
     );
     const parameterCount =
       parameterTypes === undefined ? descriptor.value.length : parameterTypes.length;
-    HttpEndpointMetadata.#validateEndpointBindings(
+    HttpEndpointMetadata.validateEndpointBindings(
       bindings,
       parameterCount,
       parameterTypes,
@@ -55,12 +55,12 @@ export class HttpEndpointMetadata {
     );
     const names = template.split("/").filter((part) => part.startsWith(":"));
     if (new Set(names).size !== names.length) throw new TypeError("Duplicate route parameter");
-    HttpEndpointMetadata.#validatePathBindings(bindings, names);
+    HttpEndpointMetadata.validatePathBindings(bindings, names);
     const isPublic =
       RoutingMetadata.optional(RoutingMetadata.publicRoute.readDynamic(owner, address)) === true;
     if (isPublic && bindings.some((binding) => binding.location === "userId"))
       throw new TypeError("UserId requires a protected route");
-    return HttpEndpointMetadata.#metadata(
+    return HttpEndpointMetadata.metadata(
       controller,
       owner,
       key,
@@ -74,18 +74,18 @@ export class HttpEndpointMetadata {
     );
   }
 
-  static #validateEndpointBindings(
+  private static validateEndpointBindings(
     bindings: readonly IHttpBindingMetadata[],
     parameterCount: number,
     parameterTypes: readonly unknown[] | undefined,
     responses: readonly IApiResponseOptions[],
   ): void {
-    HttpEndpointMetadata.#bindings(bindings, parameterCount, parameterTypes);
+    HttpEndpointMetadata.bindings(bindings, parameterCount, parameterTypes);
     for (const binding of bindings) if ("dto" in binding) Schema.prepare(binding.dto);
     for (const response of responses) if (response.status !== 204) Schema.prepare(response.type);
   }
 
-  static #validatePathBindings(
+  private static validatePathBindings(
     bindings: readonly IHttpBindingMetadata[],
     names: readonly string[],
   ): void {
@@ -95,7 +95,7 @@ export class HttpEndpointMetadata {
     }
   }
 
-  static #metadata(
+  private static metadata(
     controller: IConstructableClass<object>,
     owner: IConstructableClass<object>,
     key: string,
@@ -137,7 +137,7 @@ export class HttpEndpointMetadata {
   }
 
   /** Locates the actual handler declaration, not metadata inherited across an override. */
-  static #owner(
+  private static owner(
     controller: IConstructableClass<object>,
     key: string,
   ): { readonly owner: IConstructableClass<object>; readonly descriptor: PropertyDescriptor } {
@@ -154,7 +154,7 @@ export class HttpEndpointMetadata {
   }
 
   /** Checks positional completeness and only compiler-representable direct binder types, never DTO inference. */
-  static #bindings(
+  private static bindings(
     bindings: readonly IHttpBindingMetadata[],
     count: number,
     types: readonly unknown[] | undefined,

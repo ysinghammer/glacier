@@ -32,7 +32,7 @@ describe("static controller-only business mapping precedence", () => {
   it("endpoint beats controller beats global; nearest class wins in the selected scope", async () => {
     /** A shared controller throws application-owned errors from an explicit test source. */
     class Controller {
-      failure: unknown = new DeepError("secret-message", { cause: "secret-cause" });
+      public failure: unknown = new DeepError("secret-message", { cause: "secret-cause" });
       public local(): never {
         throw this.failure;
       }

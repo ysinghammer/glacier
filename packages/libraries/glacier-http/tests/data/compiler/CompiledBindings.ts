@@ -17,8 +17,8 @@ import { request } from "node:http";
 
 /** Genuine emitted DTO metadata must not cause constructor invocation. */
 class BodyDto {
-  static constructions = 0;
-  @IsInt() count!: number;
+  public static constructions = 0;
+  @IsInt() public count!: number;
   public constructor() {
     BodyDto.constructions++;
   }

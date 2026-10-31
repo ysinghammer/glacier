@@ -67,33 +67,33 @@ export class OpenApiResponses {
     globals: readonly IHttpErrorMapping[],
     hasAuthentication: boolean,
   ): IJsonObject {
-    const responses = OpenApiResponses.#successResponses(endpoint, schemas);
-    const { alternatives, titles } = OpenApiResponses.#failureAlternatives(
+    const responses = OpenApiResponses.successResponses(endpoint, schemas);
+    const { alternatives, titles } = OpenApiResponses.failureAlternatives(
       endpoint,
       globals,
       hasAuthentication,
     );
-    OpenApiResponses.#renderFailures(responses, alternatives, titles, hasAuthentication);
+    OpenApiResponses.renderFailures(responses, alternatives, titles, hasAuthentication);
     return responses;
   }
 
-  static #successResponses(
+  private static successResponses(
     endpoint: IHttpEndpointMetadata,
     schemas: OpenApiSchemas,
   ): Record<string, IJsonValue> {
     const responses: Record<string, IJsonValue> = {};
     for (const response of endpoint.responses)
-      responses[String(response.status)] = OpenApiResponses.#successResponse(response, schemas);
+      responses[String(response.status)] = OpenApiResponses.successResponse(response, schemas);
     return responses;
   }
 
-  static #successResponse(
+  private static successResponse(
     response: IHttpEndpointMetadata["responses"][number],
     schemas: OpenApiSchemas,
   ): IJsonObject {
     if (response.description !== undefined && typeof response.description !== "string")
       throw new TypeError("Invalid response description");
-    const headers = OpenApiResponses.#headers(response.headers);
+    const headers = OpenApiResponses.headers(response.headers);
     if (response.status === 204)
       return {
         description: response.description ?? "No Content",
@@ -104,14 +104,14 @@ export class OpenApiResponses {
       headers,
       content: {
         "application/json": {
-          schema: OpenApiResponses.#responseSchema(response, schemas),
+          schema: OpenApiResponses.responseSchema(response, schemas),
           ...OpenApiInputs.examples(response),
         },
       },
     };
   }
 
-  static #headers(
+  private static headers(
     supplied: IHttpEndpointMetadata["responses"][number]["headers"],
   ): Record<string, IJsonValue> {
     const names = new Set<string>();
@@ -126,21 +126,21 @@ export class OpenApiResponses {
       const normalizedName = name.toLowerCase();
       if (names.has(normalizedName)) throw new TypeError("Ambiguous response header documentation");
       names.add(normalizedName);
-      OpenApiResponses.#validateHeaderName(name, normalizedName);
+      OpenApiResponses.validateHeaderName(name, normalizedName);
       OpenApiJson.object(header.schema);
       Object.defineProperty(headers, name, { value: OpenApiJson.object(header), enumerable: true });
     }
     return headers;
   }
 
-  static #validateHeaderName(name: string, normalizedName: string): void {
+  private static validateHeaderName(name: string, normalizedName: string): void {
     if (RESERVED_HEADERS.has(normalizedName))
       throw new TypeError("Reserved response header documentation");
     if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name))
       throw new TypeError("Invalid response header documentation");
   }
 
-  static #responseSchema(
+  private static responseSchema(
     response: Exclude<IHttpEndpointMetadata["responses"][number], { readonly status: 204 }>,
     schemas: OpenApiSchemas,
   ): IJsonValue {
@@ -148,7 +148,7 @@ export class OpenApiResponses {
     return response.isArray === true ? { type: "array", items: reference } : reference;
   }
 
-  static #failureAlternatives(
+  private static failureAlternatives(
     endpoint: IHttpEndpointMetadata,
     globals: readonly IHttpErrorMapping[],
     hasAuthentication: boolean,
@@ -156,9 +156,9 @@ export class OpenApiResponses {
     const alternatives = new Map<number, IJsonObject[]>();
     const titles = new Map<number, string[]>();
     for (const [status, title] of Object.entries(FRAMEWORK_FAILURES))
-      OpenApiResponses.#problem(alternatives, titles, Number(status), title, "about:blank", title);
+      OpenApiResponses.problem(alternatives, titles, Number(status), title, "about:blank", title);
     if (hasAuthentication && !endpoint.isPublic)
-      OpenApiResponses.#problem(
+      OpenApiResponses.problem(
         alternatives,
         titles,
         401,
@@ -169,22 +169,22 @@ export class OpenApiResponses {
     const earlier: IHttpErrorMapping[] = [];
     const scopes = [endpoint.endpointErrorMappings, endpoint.controllerErrorMappings, globals];
     for (const scope of scopes) {
-      OpenApiResponses.#appendMappings(alternatives, titles, scope, earlier);
+      OpenApiResponses.appendMappings(alternatives, titles, scope, earlier);
       earlier.push(...scope);
     }
     return { alternatives, titles };
   }
 
-  static #appendMappings(
+  private static appendMappings(
     alternatives: Map<number, IJsonObject[]>,
     titles: Map<number, string[]>,
     scope: readonly IHttpErrorMapping[],
     earlier: readonly IHttpErrorMapping[],
   ): void {
     for (const mapping of scope) {
-      if (!OpenApiResponses.#isDocumentable(mapping)) continue;
-      if (earlier.some((prior) => OpenApiResponses.#inherits(mapping.error, prior.error))) continue;
-      OpenApiResponses.#problem(
+      if (!OpenApiResponses.isDocumentable(mapping)) continue;
+      if (earlier.some((prior) => OpenApiResponses.inherits(mapping.error, prior.error))) continue;
+      OpenApiResponses.problem(
         alternatives,
         titles,
         mapping.status,
@@ -195,7 +195,7 @@ export class OpenApiResponses {
     }
   }
 
-  static #isDocumentable(mapping: IHttpErrorMapping): boolean {
+  private static isDocumentable(mapping: IHttpErrorMapping): boolean {
     return !(
       mapping.error === SchemaError ||
       mapping.error === SchemaDefinitionError ||
@@ -204,7 +204,7 @@ export class OpenApiResponses {
     );
   }
 
-  static #renderFailures(
+  private static renderFailures(
     responses: Record<string, IJsonValue>,
     alternatives: Map<number, IJsonObject[]>,
     titles: Map<number, string[]>,
@@ -236,7 +236,10 @@ export class OpenApiResponses {
   }
 
   /** Walks class prototypes without invoking consumer Symbol.hasInstance callbacks or exception constructors. */
-  static #inherits(child: IHttpErrorMapping["error"], parent: IHttpErrorMapping["error"]): boolean {
+  private static inherits(
+    child: IHttpErrorMapping["error"],
+    parent: IHttpErrorMapping["error"],
+  ): boolean {
     let prototype: object | null = child.prototype;
     while (prototype !== null) {
       if (prototype === parent.prototype) return true;
@@ -246,7 +249,7 @@ export class OpenApiResponses {
   }
 
   /** Adds a static safe alternative; status collisions are represented as anyOf, never ambiguous oneOf. */
-  static #problem(
+  private static problem(
     alternatives: Map<number, IJsonObject[]>,
     titles: Map<number, string[]>,
     status: number,

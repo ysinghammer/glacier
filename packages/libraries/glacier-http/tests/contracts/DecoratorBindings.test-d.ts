@@ -39,7 +39,7 @@ class BindingContracts {
   public static declarations(): void {
     /** A DTO reference need not be constructible without consumer dependencies. */
     class Dto {
-      public constructor(readonly value: string) {}
+      public constructor(public readonly value: string) {}
     }
     const input: IApiInputOptions = { description: "Input" };
     const body: IApiBodyOptions = { ...input, examples: { one: { value: "text" } } };

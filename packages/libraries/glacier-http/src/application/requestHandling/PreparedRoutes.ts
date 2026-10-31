@@ -5,7 +5,7 @@ import { RoutingMetadata } from "../../domain/requestHandling/routing/RoutingMet
 
 /** Immutable executable routes prepared once for application-owned controller instances. */
 export class PreparedRoutes {
-  readonly #routes: readonly IPreparedRoute[];
+  private readonly routes: readonly IPreparedRoute[];
 
   /** Validates all contracts and equivalent route/method collisions before listening. */
   public constructor(controllers: readonly object[], hasAuthentication: boolean) {
@@ -13,12 +13,12 @@ export class PreparedRoutes {
     for (const controller of controllers) {
       if (typeof controller !== "object" || controller === null)
         throw new TypeError("Register controller instances, not classes");
-      PreparedRoutes.#appendControllerRoutes(routes, controller, hasAuthentication);
+      PreparedRoutes.appendControllerRoutes(routes, controller, hasAuthentication);
     }
-    this.#routes = Object.freeze(routes.sort(PreparedRoutes.#compare));
+    this.routes = Object.freeze(routes.sort(PreparedRoutes.compare));
   }
 
-  static #appendControllerRoutes(
+  private static appendControllerRoutes(
     routes: IPreparedRoute[],
     controller: object,
     hasAuthentication: boolean,
@@ -26,10 +26,10 @@ export class PreparedRoutes {
     // The public metadata reader validates the constructor through reflection before using it.
     const target = controller.constructor as IConstructableClass<object>;
     for (const metadata of HttpEndpointMetadata.read(target))
-      PreparedRoutes.#appendEndpoint(routes, controller, metadata, hasAuthentication);
+      PreparedRoutes.appendEndpoint(routes, controller, metadata, hasAuthentication);
   }
 
-  static #appendEndpoint(
+  private static appendEndpoint(
     routes: IPreparedRoute[],
     controller: object,
     metadata: IHttpEndpointMetadata,
@@ -59,7 +59,7 @@ export class PreparedRoutes {
   public match(pathname: string, method: string): IRouteMatch | undefined {
     const segments = RoutingMetadata.canonical(pathname).split("/");
     const matches: { route: IPreparedRoute; params: Readonly<Record<string, string>> }[] = [];
-    for (const route of this.#routes) PreparedRoutes.#appendMatch(matches, route, segments);
+    for (const route of this.routes) PreparedRoutes.appendMatch(matches, route, segments);
     const first = matches[0];
     if (first === undefined) return undefined;
     const candidates = matches.filter((match) => match.route.signature === first.route.signature);
@@ -79,16 +79,16 @@ export class PreparedRoutes {
     return { allow, selected };
   }
 
-  static #appendMatch(
+  private static appendMatch(
     matches: { route: IPreparedRoute; params: Readonly<Record<string, string>> }[],
     route: IPreparedRoute,
     segments: readonly string[],
   ): void {
-    const params = PreparedRoutes.#matchSegments(route, segments);
+    const params = PreparedRoutes.matchSegments(route, segments);
     if (params !== undefined) matches.push({ route, params });
   }
 
-  static #matchSegments(
+  private static matchSegments(
     route: IPreparedRoute,
     segments: readonly string[],
   ): Readonly<Record<string, string>> | undefined {
@@ -105,7 +105,7 @@ export class PreparedRoutes {
   }
 
   /** Lexicographic segment precedence makes static routes win even when total static counts tie. */
-  static #compare(left: IPreparedRoute, right: IPreparedRoute): number {
+  private static compare(left: IPreparedRoute, right: IPreparedRoute): number {
     for (const [index, segment] of left.segments.entries()) {
       const other = String(right.segments[index]);
       if (segment.startsWith(":") !== other.startsWith(":"))

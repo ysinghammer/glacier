@@ -5,18 +5,18 @@ import { REQUEST_CREATION } from "./RequestCreation.js";
 
 /** Detached normalized transport data, supplied only by the server to approved hooks/binders. */
 export class HttpRequest {
-  readonly requestId: string;
-  readonly method: string;
-  readonly url: string;
-  readonly pathname: string;
-  readonly route: string | undefined;
-  readonly params: Readonly<Record<string, string>>;
-  readonly query: IHttpQueryObject;
-  readonly remoteAddress: string | undefined;
-  readonly signal: AbortSignal;
-  readonly headers: IHttpRequestHeaders;
-  readonly cookies: IHttpRequestCookies;
-  readonly #brand = true;
+  public readonly requestId: string;
+  public readonly method: string;
+  public readonly url: string;
+  public readonly pathname: string;
+  public readonly route: string | undefined;
+  public readonly params: Readonly<Record<string, string>>;
+  public readonly query: IHttpQueryObject;
+  public readonly remoteAddress: string | undefined;
+  public readonly signal: AbortSignal;
+  public readonly headers: IHttpRequestHeaders;
+  public readonly cookies: IHttpRequestCookies;
+  declare private readonly brand: true;
 
   /** Copies normalized data; private construction prevents caller-supplied raw transport state. */
   private constructor(token: symbol, data: IRequestData) {
@@ -32,7 +32,7 @@ export class HttpRequest {
     this.signal = data.signal;
     this.headers = data.headers;
     this.cookies = data.cookies;
-    void this.#brand;
+    void this.brand;
     Object.freeze(this);
   }
 

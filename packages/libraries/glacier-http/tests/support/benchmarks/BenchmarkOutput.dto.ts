@@ -3,11 +3,11 @@ import { IsInt, IsString } from "@glacier/schema";
 /** Output validation and projection are required work, not an unvalidated hello world. */
 export class BenchmarkOutputDto {
   @IsString()
-  declare id: string;
+  declare public id: string;
   @IsString()
-  declare userId: string;
+  declare public userId: string;
   @IsInt()
-  declare count: number;
+  declare public count: number;
   @IsString()
-  declare label: string;
+  declare public label: string;
 }

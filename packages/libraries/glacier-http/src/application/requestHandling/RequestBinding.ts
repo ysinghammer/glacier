@@ -20,18 +20,18 @@ export class RequestBinding {
     const issues: IHttpInputIssue[] = [];
     for (const binding of bindings) {
       if ("dto" in binding) {
-        const result = RequestBinding.#parse(binding, request, body, headers, cookies);
+        const result = RequestBinding.parse(binding, request, body, headers, cookies);
         if (result.ok) arguments_[binding.index] = result.value;
         else issues.push(...result.issues);
         continue;
       }
-      arguments_[binding.index] = RequestBinding.#value(binding, request, userId);
+      arguments_[binding.index] = RequestBinding.value(binding, request, userId);
     }
     if (issues.length > 0) return { ok: false, issues: Object.freeze(issues) };
     return { ok: true, arguments: arguments_ };
   }
 
-  static #parse(
+  private static parse(
     binding: Extract<IHttpBindingMetadata, { readonly dto: unknown }>,
     request: HttpRequest,
     body: unknown,
@@ -58,7 +58,7 @@ export class RequestBinding {
     };
   }
 
-  static #value(
+  private static value(
     binding: Exclude<IHttpBindingMetadata, { readonly dto: unknown }>,
     request: HttpRequest,
     userId: string | undefined,
