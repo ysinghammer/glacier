@@ -5,7 +5,7 @@ import { RoutingMetadata } from "./RoutingMetadata.js";
 export function ApiController(path: string, options: IApiControllerOptions = {}): ClassDecorator {
   RoutingMetadata.validatePath(path);
   const decorate = RoutingMetadata.controller.decorator(
-    Object.freeze({ path, options: Object.freeze({ ...options }) }),
+    Object.freeze({ path, options: RoutingMetadata.options(options) }),
   );
   return (target): void => {
     if (

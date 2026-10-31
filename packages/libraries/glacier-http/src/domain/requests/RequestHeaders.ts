@@ -65,4 +65,11 @@ export class RequestHeaders implements IHttpRequestHeaders {
   public getAll(name: string): readonly string[] {
     return this.#fields.get(name.toLowerCase()) ?? EMPTY_FIELDS;
   }
+
+  /** Detached normalized fields for DTO binding; occurrences remain available through request lookups. */
+  public toRecord(): Readonly<Record<string, string>> {
+    const record: Record<string, string> = Object.create(null);
+    for (const name of this.#fields.keys()) record[name] = String(this.get(name));
+    return Object.freeze(record);
+  }
 }

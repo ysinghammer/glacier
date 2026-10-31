@@ -37,4 +37,9 @@ export class RequestCookies implements IHttpRequestCookies {
   public get(name: string): string | undefined {
     return this.#values.get(name);
   }
+
+  /** Detached opaque pairs for DTO binding, never a mutable cookie jar. */
+  public toRecord(): Readonly<Record<string, string>> {
+    return Object.freeze(Object.fromEntries(this.#values));
+  }
 }

@@ -99,7 +99,7 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
       expect((await LoopbackClient.send(fixture.port, "/not/a/route")).status).toBe(404);
       const result = await LoopbackClient.send(fixture.port, "/echo", [], "POST");
       expect(result.status).toBe(405);
-      expect(result.fields["allow"]).toEqual(["GET"]);
+      expect(result.fields["allow"]).toEqual(["GET, HEAD, OPTIONS"]);
       expect(calls).toBe(0);
     } finally {
       await fixture.server.close();
@@ -239,7 +239,6 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
     try {
       for (const value of [
         { text: "raw" },
-        undefined,
         Object.create(HttpResponse.prototype),
         HttpResponse.json({ text: "wrong status" }),
       ]) {
@@ -338,7 +337,7 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
       ]),
     ).toThrow();
   });
-  it("rejects missing contracts, duplicate/equivalent routes and unsupported parameterized handlers", () => {
+  it("rejects missing contracts, duplicate/equivalent routes and unbound handler parameters", () => {
     /** Test-owned malformed declarations remain observable through public create. */
     class Controller {
       public value(): unknown {
@@ -375,7 +374,7 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
     expect(() => HttpServer.create({ controllers: [new Repeated()], onError: () => {} })).toThrow(
       "Duplicate route parameter",
     );
-    /** No binders exist in this phase; handlers needing parameters are rejected. */
+    /** Every handler position requires an explicit binder. */
     class NeedsArgument {
       public value(value: string): string {
         return value;
@@ -388,11 +387,11 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
     ApiResponse({ status: 204 })(NeedsArgument.prototype, "value", parameterized);
     expect(() =>
       HttpServer.create({ controllers: [new NeedsArgument()], onError: () => {} }),
-    ).toThrow("zero-argument");
+    ).toThrow("Missing parameter binder");
     Object.defineProperty(NeedsArgument.prototype, "value", { value: 1 });
     expect(() =>
       HttpServer.create({ controllers: [new NeedsArgument()], onError: () => {} }),
-    ).toThrow("zero-argument");
+    ).toThrow("instance method");
     /** A class without declarations is not a valid controller. */
     class Undeclared {}
     expect(() => HttpServer.create({ controllers: [new Undeclared()], onError: () => {} })).toThrow(

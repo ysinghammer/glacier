@@ -1,7 +1,7 @@
 import type { IApiResponseOptions } from "./IApiResponseOptions.js";
 import { RoutingMetadata } from "./RoutingMetadata.js";
 
-/** Minimal explicit response contract; output validation precedes all response bytes. */
+/** Adds one success status/DTO contract; every returned status is enforced before bytes commit. */
 export function ApiResponse(options: IApiResponseOptions): MethodDecorator {
   const status: number = options.status;
   if (
@@ -15,20 +15,21 @@ export function ApiResponse(options: IApiResponseOptions): MethodDecorator {
     throw new TypeError("Response requires a DTO class");
   if (options.status === 204 && (options.type !== undefined || options.isArray !== undefined))
     throw new TypeError("Bodyless response declaration");
-  const decorate = RoutingMetadata.response.decorator(Object.freeze({ ...options }));
+  if (options.isArray !== undefined && typeof options.isArray !== "boolean")
+    throw new TypeError("Invalid array declaration");
+  const value = RoutingMetadata.options(options);
   return (target, key, descriptor): void => {
-    if (typeof target === "function" || typeof descriptor.value !== "function")
-      throw new TypeError("Response requires an instance method");
-    if (
+    RoutingMetadata.methodTarget(target, key, descriptor);
+    const current =
       RoutingMetadata.optional(
         RoutingMetadata.response.readDynamic(target.constructor, {
           kind: "member",
           member: key,
           inheritance: "own",
         }),
-      ) !== undefined
-    )
+      ) ?? [];
+    if (current.some((item) => item.status === options.status))
       throw new TypeError("Duplicate response declaration");
-    decorate(target, key, descriptor);
+    RoutingMetadata.response.decorator(Object.freeze([...current, value]))(target, key, descriptor);
   };
 }
