@@ -4,6 +4,7 @@ import type { IHttpJsonResponseOptions } from "./IHttpJsonResponseOptions.js";
 import { HttpCookie } from "./HttpCookie.js";
 import { COOKIE_WIRE } from "./CookieWire.js";
 import { RESPONSE_WIRE } from "./ResponseWire.js";
+import { HttpContractError } from "./HttpContract.error.js";
 
 const RESERVED_HEADERS = new Set([
   "content-type",
@@ -27,7 +28,7 @@ export class HttpResponse<T extends object | readonly object[] | void> {
 
   /** Snapshots response transport values while retaining the logical DTO for schema processing. */
   private constructor(token: symbol, body: T, status: number, options: IHttpResponseOptions) {
-    if (token !== RESPONSE_CREATION) throw new TypeError("Use HttpResponse factories");
+    if (token !== RESPONSE_CREATION) throw new HttpContractError("Use HttpResponse factories");
     this.#body = body;
     this.#status = status;
     const headers: Record<string, string | readonly string[]> = Object.create(null);
@@ -68,23 +69,31 @@ export class HttpResponse<T extends object | readonly object[] | void> {
     body: T,
     options: IHttpJsonResponseOptions = {},
   ): HttpResponse<T> {
-    const status: number = options.status === undefined ? 200 : options.status;
-    if (
-      !Number.isInteger(status) ||
-      status < 200 ||
-      status > 299 ||
-      status === 204 ||
-      status === 205
-    )
-      throw new TypeError("Invalid JSON success status");
-    if (typeof body !== "object" || body === null)
-      throw new TypeError("JSON response requires DTO objects");
-    return new HttpResponse(RESPONSE_CREATION, body, status, options);
+    try {
+      const status: number = options.status === undefined ? 200 : options.status;
+      if (
+        !Number.isInteger(status) ||
+        status < 200 ||
+        status > 299 ||
+        status === 204 ||
+        status === 205
+      )
+        throw new TypeError("Invalid JSON success status");
+      if (typeof body !== "object" || body === null)
+        throw new TypeError("JSON response requires DTO objects");
+      return new HttpResponse(RESPONSE_CREATION, body, status, options);
+    } catch (error: unknown) {
+      throw new HttpContractError("Invalid HTTP JSON response", { cause: error });
+    }
   }
 
   /** Creates an explicitly bodyless 204 response with validated transport options. */
   public static noContent(options: IHttpResponseOptions = {}): HttpResponse<void> {
-    return new HttpResponse<void>(RESPONSE_CREATION, undefined, 204, options);
+    try {
+      return new HttpResponse<void>(RESPONSE_CREATION, undefined, 204, options);
+    } catch (error: unknown) {
+      throw new HttpContractError("Invalid HTTP bodyless response", { cause: error });
+    }
   }
 
   /** Internal detached envelope view; transport still validates origin and declared body contract. */

@@ -6,7 +6,7 @@ start resources or activate compiler reflection. TypeScript and pnpm are workspa
 
 ## Current implementation boundary
 
-This is the phase-04 request pipeline, **not the completed production-ready v1 framework**.
+This is the phase-05 request pipeline, **not the completed production-ready v1 framework**.
 It provides explicit GET/POST/PUT/PATCH/DELETE handlers, all request binders, external
 authentication with method-level public opt-out, bounded JSON bodies, strict repeatable
 response contracts, HEAD/OPTIONS and Expect handling, alongside immutable cookies/requests.
@@ -17,11 +17,10 @@ silently overwrite. Every parameter has an explicit binder and every success sta
 an explicit `ApiResponse`. `void`/`undefined` means 204 only when declared; JSON endpoints
 cannot silently succeed without a body. Controllers remain shared application-owned instances.
 
-Business error mappings, response logging, complete configurable lifecycle/normalization
-limits, bounded shutdown draining, server-registration snapshots and OpenAPI remain deferred.
-`ApiSkipResponseLogging` records the exclusion for the later logging implementation; no logging
-hook is provided yet. `HttpEndpointMetadata.read(Class)` is the deliberate immutable public
-endpoint contract, with no instances/listeners/callbacks or OpenAPI dependency.
+Static business mappings, metadata-only response logging and bounded log draining are implemented.
+Complete configurable lifecycle/normalization limits, transport shutdown hardening and OpenAPI
+remain deferred. `HttpEndpointMetadata.read(Class)` and `server.registration` are deliberate
+immutable public documentation contracts, with no instances/listeners/callbacks or OpenAPI dependency.
 Use sequential lifecycle calls; concurrent startup/shutdown hardening is not yet provided.
 No Express dependency, benchmark, browser compatibility or deployed-service E2E claim.
 
@@ -155,6 +154,86 @@ Instance-local handler replacements are rejected rather than bypassing the valid
 signature; construction does not invoke instance handler getters. Arbitrary Proxy traps and
 replaced platform intrinsics are not sandboxed.
 
+## Static errors and supervised response logs
+
+```ts
+import { ApiController, ApiGet, ApiMapError, ApiResponse, HttpServer } from "@glacier/http";
+
+/** Application-owned exceptional type, translated by the transport adapter. */
+class UnavailableError extends Error {}
+
+/** Only controllers may translate typed application rejections into mapped exceptions. */
+@ApiController("/availability")
+@ApiMapError(UnavailableError, {
+  status: 503,
+  title: "Service unavailable",
+  detail: "Please try again later",
+  type: "https://example.com/problems/unavailable",
+})
+class AvailabilityController {
+  /** Illustrative unavailable dependency; real application operations retain typed expected outcomes. */
+  @ApiGet("/")
+  @ApiResponse({ status: 204 })
+  public check(): never {
+    throw new UnavailableError("private implementation detail");
+  }
+}
+
+const server = HttpServer.create({
+  controllers: [new AvailabilityController()],
+  onResponseLog: (record) => {
+    console.log(JSON.stringify(record));
+  },
+  // Consumer diagnostics must also avoid writing secrets from private exception objects.
+  onError: (error, context) => {
+    void error;
+    console.error(context.phase);
+  },
+  limits: { pendingResponseLogs: 1000, shutdownTimeoutMs: 10000 },
+});
+await server.listen({ host: "127.0.0.1", port: 0 });
+await server.close();
+```
+
+`ApiMapError(ErrorClass, { status, title, detail?, type? })` is repeatable on classes and
+instance endpoints. Explicit global `errorMappings` records additionally contain `error`.
+Only controller invocation throws qualify: endpoint scope beats controller scope beats global,
+then the nearest matching exception prototype wins. Duplicates within a scope, non-Error
+constructors, non-4xx/5xx statuses, control-bearing static text and nonabsolute/whitespace-bearing
+type URIs fail preparation. A controller scope inherits from the nearest class declaration;
+unchanged handlers retain their own endpoint scope, but overrides must redeclare it.
+Mappings never invoke exception constructors, callbacks or value getters.
+
+Framework errors retain RFC 9457 `application/problem+json`, `about:blank` and standard reason
+phrases. Mappings use declared static details (defaulting to title) and optional absolute type.
+No raw messages, cause, stack, properties or schema diagnostic values enter client payloads.
+Mapped 401 includes the configured static authentication challenge when authentication exists.
+Mapped 4xx is a deliberate rejection without unexpected-failure diagnostics; mapped 5xx and
+unmapped exceptions invoke diagnostics. Auth, input, output, logging and transport remain
+framework-owned and cannot be remapped, even when response/cookie factories or schema operations
+fail inside a controller. Factory causes and schema issue values are redacted from diagnostics;
+schema issues expose only paths/codes. Direct factory callers still receive preserved causes.
+
+`onResponseLog` receives one frozen completion record: requestId, method, optional matched
+route/userId/committed status, durationMs, bodyBytes, and completed/disconnected/failed outcome.
+There are no request handles, raw targets/queries, headers/cookies, bodies or exception objects.
+Status is absent before final headers; HEAD bytes are zero. Bytes count the body handed to
+native transport, **not client delivery**. Unexpected processing failures that finish an error
+response use `failed`; deliberate rejections use `completed`; premature native closure uses
+`disconnected`. Pre-parser failures need not create records. `ApiSkipResponseLogging()` excludes
+all matched endpoint outcomes, including auth/input failure and disconnect, but not diagnostics.
+Unmatched parsed requests remain loggable.
+
+Responses are sent before logging runs. Async logging never delays transmission: pending work
+is capped by `pendingResponseLogs` (default 1000); excess records are not enqueued and overflow
+is diagnosed. Thrown/rejected logging is supervised once. `close()` waits for transport stop,
+then drains logs within `shutdownTimeoutMs` (default 10000); timeout diagnoses and rejects close,
+while late settlements remain supervised. Consumer promises cannot be forcibly cancelled.
+This budget currently bounds **logging drain**, not complete transport shutdown (phase 06).
+Throwing or async diagnostics produce only nonrecursive fixed process warnings; private exception
+values are never included in fallback output. TypeScript cannot enforce synchronous void callbacks,
+so runtime observes invalid async diagnostics too.
+
 ## Value and normalization contracts
 
 - `HttpResponse.json` accepts logical DTO objects/arrays and success statuses (default 200),
@@ -210,3 +289,8 @@ Vitest scenarios, not a claim that erased types are instrumented.
 handler-result, input-issue and endpoint-snapshot types. The genuine
 [`CompiledBindings`](tests/data/compiler/CompiledBindings.ts) consumer additionally proves
 emitted default-parameter positions, incompatible UserId rejection and constructor-free JSON binding.
+
+[`ErrorsAndLogging`](tests/contracts/ErrorsAndLogging.test-d.ts) separately checks finite mapping
+statuses, static options, immutable registration/log/problem types and hook shapes.
+[`CompiledErrors`](tests/data/compiler/CompiledErrors.ts) proves genuine controller/endpoint error
+decorators and logging exclusion through a compiled public-root consumer.

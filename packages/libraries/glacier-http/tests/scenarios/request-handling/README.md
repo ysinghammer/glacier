@@ -1,8 +1,8 @@
 # Request handling
 
 Safe transport values and explicit listener ownership let applications inspect normalized
-credentials without exposing mutable Node handles. The phase-04 request pipeline is described
-in the [package README](../../../README.md); later logging/lifecycle/OpenAPI work is not claimed.
+credentials without exposing mutable Node handles. The phase-05 request pipeline is described
+in the [package README](../../../README.md); hardened transport lifecycle/OpenAPI work is not claimed.
 
 | Contract                 | Preconditions, action and observable outcome                                                                                                                                                                     | Runtime evidence                                                                                                                                                         |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -18,9 +18,15 @@ in the [package README](../../../README.md); later logging/lifecycle/OpenAPI wor
 | Strict output            | Declared void/204 and repeated status alternatives work; mismatches/plain/unsafe JSON/cycles/accessors fail before custom headers commit, diagnostics expose path/code only                                      | [ResponseContracts](ResponseContracts.test.ts), [MinimalServer](MinimalServer.test.ts), [HttpResponses](HttpResponses.test.ts), [RequestBinding](RequestBinding.test.ts) |
 | Concurrent isolation     | Concurrent public socket requests share one registered controller but retain independent credentials, IDs, query/bound values and cancellation signals                                                           | [RequestBinding](RequestBinding.test.ts), [MinimalServer](MinimalServer.test.ts)                                                                                         |
 | Expect preflight         | A real client withholds its body; routing/method/auth/length/media rejections finish without Continue, accepted input receives Continue, unsupported expectations receive 417                                    | [ExpectContinue](ExpectContinue.test.ts)                                                                                                                                 |
+| Business mappings        | Throw test-owned application exceptions; endpoint/controller/global precedence, nearest class, static details, inherited scopes and invalid/duplicate preparation are observable                                 | [ErrorMappings](ErrorMappings.test.ts), [ProblemDetails](ProblemDetails.test.ts)                                                                                         |
+| Problem privacy          | Send controller/auth/output/routing failures; only invocation errors map, 401 retains challenge, RFC 9457 fields correlate IDs without exception or schema values                                                | [ProblemDetails](ProblemDetails.test.ts), [RequestBinding](RequestBinding.test.ts), [ResponseContracts](ResponseContracts.test.ts)                                       |
+| Response accounting      | Consume or disconnect real sockets; exactly-once frozen identity/status/handed-off bytes exclude sensitive fields, route exclusions retain diagnostics and unmatched logging                                     | [ResponseLogging](ResponseLogging.test.ts)                                                                                                                               |
+| Logging supervision      | Inject slow/thrown/rejected hooks; responses finish without awaiting logs, finite capacity/overflow/recovery and bounded draining are observable, diagnostics never recurse or leak warnings                     | [LoggingFailures](LoggingFailures.test.ts), [MinimalServer](MinimalServer.test.ts)                                                                                       |
 
 [ReadonlyRequests](../../contracts/ReadonlyRequests.test-d.ts) and
 [DecoratorBindings](../../contracts/DecoratorBindings.test-d.ts) are type-only checking,
 not runtime coverage. [CompiledBindings](../../data/compiler/CompiledBindings.ts) uses
 genuine legacy compiler emissions and public-root distribution APIs, executed by Authentication.
-Logging/error mappings, hardened lifecycle and OpenAPI remain later-phase work.
+[ErrorsAndLogging](../../contracts/ErrorsAndLogging.test-d.ts) verifies erased error/log/registration
+contracts separately. [CompiledErrors](../../data/compiler/CompiledErrors.ts) proves genuine mapping
+and exclusion decorators, executed by ErrorMappings. Hardened transport lifecycle and OpenAPI remain deferred.

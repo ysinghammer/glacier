@@ -1,6 +1,7 @@
 import type { IHttpCookieOptions } from "./IHttpCookieOptions.js";
 import type { IHttpClearCookieOptions } from "./IHttpClearCookieOptions.js";
 import { COOKIE_WIRE } from "./CookieWire.js";
+import { HttpContractError } from "./HttpContract.error.js";
 
 const COOKIE_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 const COOKIE_VALUE =
@@ -17,31 +18,39 @@ export class HttpCookie {
 
   /** Stores a validated field; consumers cannot construct arbitrary cookie instances. */
   private constructor(token: symbol, wire: string) {
-    if (token !== COOKIE_CREATION) throw new TypeError("Use HttpCookie factories");
+    if (token !== COOKIE_CREATION) throw new HttpContractError("Use HttpCookie factories");
     this.#wire = wire;
     Object.freeze(this);
   }
 
   /** Validates syntax/security attributes and snapshots mutable Date values without retaining them. */
   public static set(name: string, value: string, options: IHttpCookieOptions = {}): HttpCookie {
-    const attributes = HttpCookie.#attributes(name, value, options);
-    if (options.maxAge !== undefined) {
-      if (!Number.isSafeInteger(options.maxAge)) throw new TypeError("Invalid cookie age");
-      attributes.push(`Max-Age=${options.maxAge}`);
+    try {
+      const attributes = HttpCookie.#attributes(name, value, options);
+      if (options.maxAge !== undefined) {
+        if (!Number.isSafeInteger(options.maxAge)) throw new TypeError("Invalid cookie age");
+        attributes.push(`Max-Age=${options.maxAge}`);
+      }
+      if (options.expires !== undefined) {
+        const time = Date.prototype.getTime.call(options.expires);
+        if (!Number.isFinite(time)) throw new TypeError("Invalid cookie expiry");
+        attributes.push(`Expires=${new Date(time).toUTCString()}`);
+      }
+      return new HttpCookie(COOKIE_CREATION, attributes.join("; "));
+    } catch (error: unknown) {
+      throw new HttpContractError("Invalid HTTP cookie", { cause: error });
     }
-    if (options.expires !== undefined) {
-      const time = Date.prototype.getTime.call(options.expires);
-      if (!Number.isFinite(time)) throw new TypeError("Invalid cookie expiry");
-      attributes.push(`Expires=${new Date(time).toUTCString()}`);
-    }
-    return new HttpCookie(COOKIE_CREATION, attributes.join("; "));
   }
 
   /** Emits immediate expiry and Max-Age=0 with the caller's matching scope/security attributes. */
   public static clear(name: string, options: IHttpClearCookieOptions = {}): HttpCookie {
-    const attributes = HttpCookie.#attributes(name, "", options);
-    attributes.push("Max-Age=0", `Expires=${CLEAR_EXPIRY}`);
-    return new HttpCookie(COOKIE_CREATION, attributes.join("; "));
+    try {
+      const attributes = HttpCookie.#attributes(name, "", options);
+      attributes.push("Max-Age=0", `Expires=${CLEAR_EXPIRY}`);
+      return new HttpCookie(COOKIE_CREATION, attributes.join("; "));
+    } catch (error: unknown) {
+      throw new HttpContractError("Invalid HTTP cookie clearing", { cause: error });
+    }
   }
 
   /** Internal transport bridge, inaccessible through a public package export. */

@@ -61,6 +61,12 @@ export class HttpEndpointMetadata {
           template,
           controllerOptions: prefix.options,
           routeOptions: declaration.options,
+          controllerErrorMappings:
+            RoutingMetadata.optional(RoutingMetadata.errorMappings.readDynamic(controller)) ??
+            Object.freeze([]),
+          endpointErrorMappings:
+            RoutingMetadata.optional(RoutingMetadata.errorMappings.readDynamic(owner, address)) ??
+            Object.freeze([]),
           isPublic,
           isResponseLoggingSkipped:
             RoutingMetadata.optional(RoutingMetadata.skipLogging.readDynamic(owner, address)) ===

@@ -5,6 +5,7 @@ import type { IApiRouteOptions } from "./IApiRouteOptions.js";
 import type { IApiResponseOptions } from "./IApiResponseOptions.js";
 import type { IHttpMethod } from "./IHttpMethod.js";
 import type { IHttpBindingMetadata } from "./IHttpBindingMetadata.js";
+import type { IHttpErrorMapping } from "../responses/IHttpErrorMapping.js";
 
 const FIELD_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 
@@ -27,6 +28,9 @@ export class RoutingMetadata {
   );
   static readonly publicRoute = new ValueMetadataDefinition<boolean>("http public route");
   static readonly skipLogging = new ValueMetadataDefinition<boolean>("http skip response logging");
+  static readonly errorMappings = new ValueMetadataDefinition<readonly IHttpErrorMapping[]>(
+    "http error mappings",
+  );
   static readonly methods = new ListMetadataDefinition<string>("http declared endpoint names");
 
   /** Creates an instance-method route decorator, rejecting duplicates irrespective of verb. */
