@@ -30,9 +30,7 @@ export class UnionValidatorFactory {
       if (variant === undefined) {
         return {
           isValid: false,
-          failures: [
-            UnionValidatorFactory.#discriminatorFailure(discriminator, expected, received),
-          ],
+          failures: [UnionValidatorFactory.discriminatorFailure(discriminator, expected, received)],
         };
       }
       return variant(value, context);
@@ -47,22 +45,22 @@ export class UnionValidatorFactory {
    */
   public static oneOf(options: readonly IOneOfOption[]): IValueValidator {
     return (value, context) => {
-      const exact = UnionValidatorFactory.#attempt(options, value, context, false);
+      const exact = UnionValidatorFactory.attempt(options, value, context, false);
       if (
         exact.isValid ||
         context.options.coerce !== true ||
         value === undefined ||
         value === null
       ) {
-        return exact.isValid ? exact : UnionValidatorFactory.#noMatch(exact.attempts);
+        return exact.isValid ? exact : UnionValidatorFactory.noMatch(exact.attempts);
       }
-      const coerced = UnionValidatorFactory.#attempt(options, value, context, true);
-      return coerced.isValid ? coerced : UnionValidatorFactory.#noMatch(coerced.attempts);
+      const coerced = UnionValidatorFactory.attempt(options, value, context, true);
+      return coerced.isValid ? coerced : UnionValidatorFactory.noMatch(coerced.attempts);
     };
   }
 
   /** Tries every option in order and stops at the first accepted one. */
-  static #attempt(
+  private static attempt(
     options: readonly IOneOfOption[],
     value: unknown,
     context: IParseContext,
@@ -78,7 +76,7 @@ export class UnionValidatorFactory {
   }
 
   /** Builds the `invalid_union` rejection carrying the issues of each attempted option. */
-  static #noMatch(attempts: readonly (readonly IValueFailure[])[]): IValueOutcome {
+  private static noMatch(attempts: readonly (readonly IValueFailure[])[]): IValueOutcome {
     return {
       isValid: false,
       failures: [
@@ -101,7 +99,7 @@ export class UnionValidatorFactory {
   }
 
   /** Builds the rejection of a missing or unknown discriminator value. */
-  static #discriminatorFailure(
+  private static discriminatorFailure(
     discriminator: string,
     expected: readonly string[],
     received: unknown,

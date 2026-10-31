@@ -68,7 +68,7 @@ export class Schema {
    * it later throws `SchemaDefinitionError`. Pass `{ coerce: true }` to convert
    * strings and similar input toward the declared types first; coercion is off by default.
    */
-  static safeParse<T extends object>(
+  public static safeParse<T extends object>(
     target: IConstructableClass<T>,
     input: unknown,
     options: ISchemaParseOptions = {},
@@ -80,7 +80,7 @@ export class Schema {
    * Like `safeParse` but returns the instance directly and throws `SchemaError` carrying every issue when
    * the input is invalid. Throws `SchemaDefinitionError` for incorrectly declared classes.
    */
-  static parse<T extends object>(
+  public static parse<T extends object>(
     target: IConstructableClass<T>,
     input: unknown,
     options?: ISchemaParseOptions,
@@ -100,7 +100,7 @@ export class Schema {
    * Pure: it does not freeze or compile the class. Throws `SchemaDefinitionError` for an unknown target, colliding
    * or empty definition names, or fields with modifiers but no type.
    */
-  static toJsonSchema<T extends object>(
+  public static toJsonSchema<T extends object>(
     target: abstract new (...arguments_: never[]) => T,
     options: IJsonSchemaOptions,
   ): IJsonSchema {
@@ -113,7 +113,7 @@ export class Schema {
    * Type guard recognising a `SchemaError` by its registered-symbol brand, so errors created by a duplicate
    * copy of this package are still recognised. Never throws; any non-error value yields `false`.
    */
-  static isError(error: unknown): error is SchemaError {
+  public static isError(error: unknown): error is SchemaError {
     return (
       typeof error === "object" && error !== null && Reflect.get(error, SCHEMA_ERROR_BRAND) === true
     );

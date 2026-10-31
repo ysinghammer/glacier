@@ -343,10 +343,10 @@ describe("SCH-136 refinement failure diagnostics", () => {
     });
     /** Private brands do not exist on constructor-free validation instances. */
     class Branded {
-      #secret = true;
+      private secret = true;
       /** This method intentionally requires a constructor-installed brand. */
       public check(): boolean {
-        return this.#secret;
+        return this.secret;
       }
     }
     Refine<Branded>((value) => value.check(), {})(Branded);

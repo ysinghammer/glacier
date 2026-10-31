@@ -40,12 +40,12 @@ const REFERENCE_PREFIXES: Readonly<Record<IJsonSchemaTarget, string>> = {
  * per call; it holds the definitions collected so far.
  */
 export class JsonSchemaGenerator {
-  readonly #target: IJsonSchemaTarget;
-  readonly #direction: IJsonSchemaDirection;
-  readonly #compatibility: IJsonSchemaCompatibilityOptions | undefined;
-  readonly #owners = new Map<string, IClass>();
-  readonly #definitions = new Map<string, IJsonSchema>();
-  readonly #discriminators: {
+  private readonly target: IJsonSchemaTarget;
+  private readonly direction: IJsonSchemaDirection;
+  private readonly compatibility: IJsonSchemaCompatibilityOptions | undefined;
+  private readonly owners = new Map<string, IClass>();
+  private readonly definitions = new Map<string, IJsonSchema>();
+  private readonly discriminators: {
     readonly name: string;
     readonly value: string;
     readonly reference: string;
@@ -57,17 +57,17 @@ export class JsonSchemaGenerator {
     direction: IJsonSchemaDirection = "input",
     compatibility?: IJsonSchemaCompatibilityOptions,
   ) {
-    this.#compatibility = compatibility;
+    this.compatibility = compatibility;
     if (direction !== "input" && direction !== "output") {
       throw new SchemaDefinitionError('JSON Schema direction must be "input" or "output"');
     }
-    this.#direction = direction;
+    this.direction = direction;
     if (!(target in REFERENCE_PREFIXES)) {
       throw new SchemaDefinitionError(
         `toJsonSchema target must be "draft-2020-12" or "openapi-3.1", received ${JSON.stringify(target)}`,
       );
     }
-    this.#target = target;
+    this.target = target;
   }
 
   /**
@@ -76,17 +76,16 @@ export class JsonSchemaGenerator {
    * classes share a definition name, a class has no name, or a field has modifiers but no type decorator.
    */
   public generate(root: IClass): IJsonSchema {
-    const reference = this.#reference(root);
-    for (const discriminator of this.#discriminators) {
-      for (const [name, schema] of this.#definitions) {
-        const reference =
-          REFERENCE_PREFIXES[this.#target] + JsonSchemaGenerator.#escapePointer(name);
+    const reference = this.reference(root);
+    for (const discriminator of this.discriminators) {
+      for (const [name, schema] of this.definitions) {
+        const reference = REFERENCE_PREFIXES[this.target] + JsonSchemaGenerator.escapePointer(name);
         if (discriminator.reference === reference)
           JsonSchemaCompatibility.discriminator(discriminator.name, discriminator.value, schema);
       }
     }
-    const definitions = Object.fromEntries(this.#definitions);
-    if (this.#target === "openapi-3.1") {
+    const definitions = Object.fromEntries(this.definitions);
+    if (this.target === "openapi-3.1") {
       return { ...reference, components: { schemas: definitions } };
     }
     return {
@@ -97,83 +96,83 @@ export class JsonSchemaGenerator {
   }
 
   /** Registers `target` on first sight and returns the `$ref` to its definition. */
-  #reference(target: IClass): IJsonSchema {
+  private reference(target: IClass): IJsonSchema {
     const name = ClassAnnotations.get(target).describe?.name ?? target.name;
     if (name === "") {
       throw new SchemaDefinitionError(
         "Cannot generate JSON Schema for an anonymous class: name it or use Describe({ name })",
       );
     }
-    const owner = this.#owners.get(name);
+    const owner = this.owners.get(name);
     if (owner !== undefined && owner !== target) {
       throw new SchemaDefinitionError(
         `Two classes share the JSON Schema name ${JSON.stringify(name)}: use Describe({ name }) to tell them apart`,
       );
     }
     if (owner === undefined) {
-      this.#owners.set(name, target);
+      this.owners.set(name, target);
       // Reserve the slot first so a cycle back to this class finds it instead of recursing.
-      this.#definitions.set(name, {});
-      this.#definitions.set(name, this.#define(target));
+      this.definitions.set(name, {});
+      this.definitions.set(name, this.define(target));
     }
     return {
-      $ref: `${REFERENCE_PREFIXES[this.#target]}${JsonSchemaGenerator.#escapePointer(name)}`,
+      $ref: `${REFERENCE_PREFIXES[this.target]}${JsonSchemaGenerator.escapePointer(name)}`,
     };
   }
 
-  static #escapePointer(name: string): string {
+  private static escapePointer(name: string): string {
     return encodeURIComponent(name.replaceAll("~", "~0").replaceAll("/", "~1"));
   }
 
-  #define(target: IClass): IJsonSchema {
+  private define(target: IClass): IJsonSchema {
     const union = UnionRegistry.get(target);
-    const schema = union === undefined ? this.#object(target) : this.#union(union.spec);
+    const schema = union === undefined ? this.object(target) : this.union(union.spec);
     const { describe, fragment } = ClassAnnotations.get(target);
-    return this.#annotate(schema, describe, fragment);
+    return this.annotate(schema, describe, fragment);
   }
 
-  #object(target: IClass): IJsonSchema {
+  private object(target: IClass): IJsonSchema {
     const fields = FieldRegistry.readAll(target);
-    if (this.#direction === "output") {
+    if (this.direction === "output") {
       const keys = new Set<string>();
       for (const field of fields) {
-        const key = JsonSchemaGenerator.#keyOf(field);
+        const key = JsonSchemaGenerator.keyOf(field);
         if (keys.has(key))
           throw new SchemaDefinitionError(`Duplicate projected key ${key} in ${target.name}`);
         keys.add(key);
       }
     }
     const properties = Object.fromEntries(
-      fields.map((field) => [JsonSchemaGenerator.#keyOf(field), this.#field(field)]),
+      fields.map((field) => [JsonSchemaGenerator.keyOf(field), this.field(field)]),
     );
     const required = fields
       .filter(
         ({ modifiers }) =>
           modifiers.optional !== true &&
-          (this.#direction === "output" || modifiers.defaultValue === undefined),
+          (this.direction === "output" || modifiers.defaultValue === undefined),
       )
-      .map((field) => JsonSchemaGenerator.#keyOf(field));
-    return JsonSchemaGenerator.#compact({
+      .map((field) => JsonSchemaGenerator.keyOf(field));
+    return JsonSchemaGenerator.compact({
       type: "object",
       properties,
       required: required.length === 0 ? undefined : required,
-      additionalProperties: this.#direction === "output" ? false : undefined,
+      additionalProperties: this.direction === "output" ? false : undefined,
     });
   }
 
-  static #keyOf(field: IFieldDefinition): string {
+  private static keyOf(field: IFieldDefinition): string {
     return field.modifiers.inputKey ?? field.name;
   }
 
-  #field(field: IFieldDefinition): IJsonSchema {
+  private field(field: IFieldDefinition): IJsonSchema {
     const { modifiers } = field;
-    const schema = this.#spec(field.type);
-    const typed = modifiers.nullable === true ? JsonSchemaGenerator.#nullable(schema) : schema;
-    return this.#annotate(typed, modifiers.describe, modifiers.jsonSchema);
+    const schema = this.spec(field.type);
+    const typed = modifiers.nullable === true ? JsonSchemaGenerator.nullable(schema) : schema;
+    return this.annotate(typed, modifiers.describe, modifiers.jsonSchema);
   }
 
   /** Lets `null` through: scalar types gain a `null` type, enums a `null` member, everything else an `anyOf`. */
-  static #nullable(schema: IJsonSchema): IJsonSchema {
+  private static nullable(schema: IJsonSchema): IJsonSchema {
     const { type } = schema;
     if (type === "null") return schema;
     if (typeof type === "string") return { ...schema, type: [type, "null"] };
@@ -182,13 +181,13 @@ export class JsonSchemaGenerator {
   }
 
   /** Layers documentation and then the manual fragment over the generated keywords. */
-  #annotate(
+  private annotate(
     schema: IJsonSchema,
     describe: IDescribeOptions | undefined,
     fragment: IJsonSchemaFragment | undefined,
   ): IJsonSchema {
-    if (this.#compatibility !== undefined) JsonSchemaCompatibility.annotation(schema, fragment);
-    const documentation = JsonSchemaGenerator.#compact({
+    if (this.compatibility !== undefined) JsonSchemaCompatibility.annotation(schema, fragment);
+    const documentation = JsonSchemaGenerator.compact({
       title: describe?.title,
       description: describe?.description,
       examples: describe !== undefined && "example" in describe ? [describe.example] : undefined,
@@ -197,8 +196,8 @@ export class JsonSchemaGenerator {
     return { ...schema, ...documentation, ...fragment };
   }
 
-  #spec(spec: ITypeSpec): IJsonSchema {
-    if (this.#compatibility !== undefined) JsonSchemaCompatibility.wire(spec, this.#compatibility);
+  private spec(spec: ITypeSpec): IJsonSchema {
+    if (this.compatibility !== undefined) JsonSchemaCompatibility.wire(spec, this.compatibility);
     switch (spec.kind) {
       case "string":
       case "number":
@@ -209,25 +208,25 @@ export class JsonSchemaGenerator {
       case "literal":
       case "enum":
       case "any":
-        return this.#scalar(spec);
+        return this.scalar(spec);
       case "array":
       case "tuple":
       case "set":
       case "map":
       case "record":
-        return this.#collectionSpec(spec);
+        return this.collectionSpec(spec);
       case "object":
-        return this.#reference(spec.target);
+        return this.reference(spec.target);
       case "lazy":
-        return this.#reference(spec.resolve());
+        return this.reference(spec.resolve());
       case "union":
-        return this.#union(spec);
+        return this.union(spec);
       case "oneOf":
-        return { oneOf: spec.options.map((option) => this.#spec(option)) };
+        return { oneOf: spec.options.map((option) => this.spec(option)) };
     }
   }
 
-  #scalar(
+  private scalar(
     spec: Extract<
       ITypeSpec,
       {
@@ -246,27 +245,27 @@ export class JsonSchemaGenerator {
   ): IJsonSchema {
     switch (spec.kind) {
       case "string":
-        return JsonSchemaGenerator.#string(spec.rules);
+        return JsonSchemaGenerator.string(spec.rules);
       case "number":
-        return { type: "number", ...JsonSchemaGenerator.#numeric(spec.rules) };
+        return { type: "number", ...JsonSchemaGenerator.numeric(spec.rules) };
       case "int":
-        return { type: "integer", ...JsonSchemaGenerator.#numeric(spec.rules) };
+        return { type: "integer", ...JsonSchemaGenerator.numeric(spec.rules) };
       case "boolean":
         return { type: "boolean" };
       case "bigint":
-        return this.#direction === "output" ? { not: {} } : { type: "integer" };
+        return this.direction === "output" ? { not: {} } : { type: "integer" };
       case "date":
         return { type: "string", format: "date-time" };
       case "literal":
-        return JsonSchemaGenerator.#literalSpec(spec.value, this.#direction);
+        return JsonSchemaGenerator.literalSpec(spec.value, this.direction);
       case "enum":
-        return JsonSchemaGenerator.#enumSpec(spec.values, this.#direction);
+        return JsonSchemaGenerator.enumSpec(spec.values, this.direction);
       case "any":
         return {};
     }
   }
 
-  static #literalSpec(
+  private static literalSpec(
     value: string | number | boolean | bigint | null,
     direction: "input" | "output",
   ): IJsonSchema {
@@ -274,10 +273,10 @@ export class JsonSchemaGenerator {
       direction === "output" &&
       (typeof value === "bigint" || (typeof value === "number" && !Number.isFinite(value)));
     if (invalidOutput) return { not: {} };
-    return JsonSchemaGenerator.#literal(value);
+    return JsonSchemaGenerator.literal(value);
   }
 
-  static #enumSpec(
+  private static enumSpec(
     values: readonly (string | number)[],
     direction: "input" | "output",
   ): IJsonSchema {
@@ -288,21 +287,21 @@ export class JsonSchemaGenerator {
     return wireValues.length === 0 ? { not: {} } : { enum: wireValues };
   }
 
-  #collectionSpec(
+  private collectionSpec(
     spec: Extract<ITypeSpec, { kind: "array" | "tuple" | "set" | "map" | "record" }>,
   ): IJsonSchema {
     switch (spec.kind) {
       case "array":
-        return JsonSchemaGenerator.#compact({
+        return JsonSchemaGenerator.compact({
           type: "array",
-          items: this.#spec(spec.element),
-          ...JsonSchemaGenerator.#items(spec.rules),
+          items: this.spec(spec.element),
+          ...JsonSchemaGenerator.items(spec.rules),
           uniqueItems: spec.rules.unique === true ? true : undefined,
         });
       case "tuple":
         return {
           type: "array",
-          prefixItems: spec.elements.map((element) => this.#spec(element)),
+          prefixItems: spec.elements.map((element) => this.spec(element)),
           items: false,
           minItems: spec.elements.length,
           maxItems: spec.elements.length,
@@ -310,28 +309,28 @@ export class JsonSchemaGenerator {
       case "set":
         return {
           type: "array",
-          items: this.#spec(spec.element),
-          ...JsonSchemaGenerator.#items(spec.rules),
+          items: this.spec(spec.element),
+          ...JsonSchemaGenerator.items(spec.rules),
           uniqueItems: true,
         };
       case "map":
-        return JsonSchemaGenerator.#compact({
+        return JsonSchemaGenerator.compact({
           type: "object",
-          propertyNames: this.#direction === "output" ? this.#spec(spec.key) : undefined,
-          additionalProperties: this.#spec(spec.value),
-          ...JsonSchemaGenerator.#properties(spec.rules),
+          propertyNames: this.direction === "output" ? this.spec(spec.key) : undefined,
+          additionalProperties: this.spec(spec.value),
+          ...JsonSchemaGenerator.properties(spec.rules),
         });
       case "record":
-        return JsonSchemaGenerator.#compact({
+        return JsonSchemaGenerator.compact({
           type: "object",
-          additionalProperties: this.#spec(spec.value),
-          ...JsonSchemaGenerator.#properties(spec.rules),
+          additionalProperties: this.spec(spec.value),
+          ...JsonSchemaGenerator.properties(spec.rules),
         });
     }
   }
 
-  static #string(rules: IStringRules): IJsonSchema {
-    return JsonSchemaGenerator.#compact({
+  private static string(rules: IStringRules): IJsonSchema {
+    return JsonSchemaGenerator.compact({
       type: "string",
       minLength: rules.length ?? rules.min,
       maxLength: rules.length ?? rules.max,
@@ -340,8 +339,8 @@ export class JsonSchemaGenerator {
     });
   }
 
-  static #numeric(rules: INumberRules): IKeywords {
-    return JsonSchemaGenerator.#compact({
+  private static numeric(rules: INumberRules): IKeywords {
+    return JsonSchemaGenerator.compact({
       minimum: rules.min,
       maximum: rules.max,
       exclusiveMinimum: rules.exclusiveMin,
@@ -350,29 +349,29 @@ export class JsonSchemaGenerator {
     });
   }
 
-  static #items(rules: ISizeRules): IKeywords {
-    return JsonSchemaGenerator.#compact({ minItems: rules.min, maxItems: rules.max });
+  private static items(rules: ISizeRules): IKeywords {
+    return JsonSchemaGenerator.compact({ minItems: rules.min, maxItems: rules.max });
   }
 
-  static #properties(rules: ISizeRules): IKeywords {
-    return JsonSchemaGenerator.#compact({ minProperties: rules.min, maxProperties: rules.max });
+  private static properties(rules: ISizeRules): IKeywords {
+    return JsonSchemaGenerator.compact({ minProperties: rules.min, maxProperties: rules.max });
   }
 
   /** JSON has no bigint, so a bigint literal is emitted as the number it denotes. */
-  static #literal(value: string | number | boolean | bigint | null): IJsonSchema {
+  private static literal(value: string | number | boolean | bigint | null): IJsonSchema {
     if (value === null) return { type: "null" };
     if (typeof value === "bigint") return { type: "integer", const: Number(value) };
     return { type: typeof value, const: value };
   }
 
   /** The `oneOf` of the variant references with a `discriminator` mapping every value to its variant. */
-  #union(spec: IUnionSpec): IJsonSchema {
+  private union(spec: IUnionSpec): IJsonSchema {
     const references = [...spec.variants].map(
-      ([value, variant]) => [value, this.#spec(variant)] as const,
+      ([value, variant]) => [value, this.spec(variant)] as const,
     );
-    if (this.#compatibility !== undefined)
+    if (this.compatibility !== undefined)
       for (const [value, reference] of references)
-        this.#discriminators.push({
+        this.discriminators.push({
           name: spec.discriminator,
           value,
           reference: String(reference.$ref),
@@ -388,7 +387,7 @@ export class JsonSchemaGenerator {
     };
   }
 
-  static #compact(keywords: IKeywords): IKeywords {
+  private static compact(keywords: IKeywords): IKeywords {
     return Object.fromEntries(Object.entries(keywords).filter(([, value]) => value !== undefined));
   }
 }

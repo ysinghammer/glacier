@@ -15,7 +15,7 @@ export class RootUnionSchema {
     const variants = new Map(
       [...union.spec.variants].map(([name, variant]) => [
         name,
-        NestedSchemaValidator.create(() => RootUnionSchema.#resolve(variant), 0),
+        NestedSchemaValidator.create(() => RootUnionSchema.resolve(variant), 0),
       ]),
     );
     const validate = UnionValidatorFactory.discriminated(union.spec.discriminator, variants);
@@ -39,7 +39,7 @@ export class RootUnionSchema {
   }
 
   /** Resolves a variant specification, which is always a class or a reference to one. */
-  static #resolve(variant: ITypeSpec): unknown {
+  private static resolve(variant: ITypeSpec): unknown {
     return variant.kind === "lazy" ? variant.resolve() : Reflect.get(variant, "target");
   }
 }

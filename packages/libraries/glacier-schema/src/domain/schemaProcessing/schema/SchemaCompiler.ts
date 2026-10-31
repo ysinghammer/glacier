@@ -47,14 +47,17 @@ export class SchemaCompiler {
       message: definition.message,
       process: FieldProcessorFactory.create(definition),
     }));
-    SchemaCompiler.#assertDistinctInputKeys(target, fields);
-    const schema = SchemaCompiler.#build<T>(target, fields, ClassRefinements.readAll(target));
+    SchemaCompiler.assertDistinctInputKeys(target, fields);
+    const schema = SchemaCompiler.build<T>(target, fields, ClassRefinements.readAll(target));
     CompiledSchemaCache.set(target, schema);
     return schema;
   }
 
   /** Runs the class-level refinements on a fully validated instance and reports each rejection. */
-  static #refine(instance: object, refinements: readonly IClassRefinement[]): ISchemaIssue[] {
+  private static refine(
+    instance: object,
+    refinements: readonly IClassRefinement[],
+  ): ISchemaIssue[] {
     const issues: ISchemaIssue[] = [];
     for (const { test, options } of refinements) {
       const check = test as (value: object) => boolean;
@@ -74,7 +77,7 @@ export class SchemaCompiler {
   }
 
   /** Rejects classes in which two fields would read the same input key. */
-  static #assertDistinctInputKeys(target: IClass, fields: readonly ICompiledField[]): void {
+  private static assertDistinctInputKeys(target: IClass, fields: readonly ICompiledField[]): void {
     const owners = new Map<string, string>();
     for (const field of fields) {
       const first = owners.get(field.inputKey);
@@ -88,7 +91,7 @@ export class SchemaCompiler {
   }
 
   /** Builds the closure; the instance never runs the constructor and receives only declared fields. */
-  static #build<T extends object>(
+  private static build<T extends object>(
     target: IClass,
     fields: readonly ICompiledField[],
     refinements: readonly IClassRefinement[],
@@ -123,13 +126,13 @@ export class SchemaCompiler {
         };
       }
       const instance: T = Object.create(target.prototype);
-      const issues = SchemaCompiler.#processFields(input, instance, fields, context);
-      if (issues.length === 0) issues.push(...SchemaCompiler.#refine(instance, refinements));
+      const issues = SchemaCompiler.processFields(input, instance, fields, context);
+      if (issues.length === 0) issues.push(...SchemaCompiler.refine(instance, refinements));
       return issues.length === 0 ? { ok: true, value: instance } : { ok: false, issues };
     };
   }
 
-  static #processFields<T extends object>(
+  private static processFields<T extends object>(
     input: object,
     instance: T,
     fields: readonly ICompiledField[],
@@ -142,7 +145,7 @@ export class SchemaCompiler {
         : undefined;
       const outcome = field.process(raw, context);
       if (!outcome.isValid) {
-        issues.push(...SchemaCompiler.#fieldFailures(field, outcome.failures));
+        issues.push(...SchemaCompiler.fieldFailures(field, outcome.failures));
       } else if (outcome.value !== undefined) {
         Object.defineProperty(instance, field.key, {
           value: outcome.value,
@@ -155,7 +158,10 @@ export class SchemaCompiler {
     return issues;
   }
 
-  static #fieldFailures(field: ICompiledField, failures: readonly IValueFailure[]): ISchemaIssue[] {
+  private static fieldFailures(
+    field: ICompiledField,
+    failures: readonly IValueFailure[],
+  ): ISchemaIssue[] {
     return failures.map((failure) => ({
       path: [field.inputKey, ...(failure.path ?? [])],
       code: failure.code,

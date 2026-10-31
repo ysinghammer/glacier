@@ -15,20 +15,20 @@ export class ValueCoercer {
   public static create(type: ITypeSpec): IValueCoercer {
     switch (type.kind) {
       case "string":
-        return ValueCoercer.#toString;
+        return ValueCoercer.toString;
       case "number":
       case "int":
-        return ValueCoercer.#toNumber;
+        return ValueCoercer.toNumber;
       case "boolean":
-        return ValueCoercer.#toBoolean;
+        return ValueCoercer.toBoolean;
       case "bigint":
-        return ValueCoercer.#toBigInt;
+        return ValueCoercer.toBigInt;
       case "date":
-        return ValueCoercer.#toDate;
+        return ValueCoercer.toDate;
       case "literal":
-        return ValueCoercer.#toAllowed(new Set<unknown>([type.value]));
+        return ValueCoercer.toAllowed(new Set<unknown>([type.value]));
       case "enum":
-        return ValueCoercer.#toAllowed(new Set<unknown>(type.values));
+        return ValueCoercer.toAllowed(new Set<unknown>(type.values));
       case "any":
       case "object":
       case "lazy":
@@ -37,70 +37,70 @@ export class ValueCoercer {
         // Nested classes coerce their own fields when they are parsed, and a one-of tries coercion per option.
         return (value) => value;
       case "array":
-        return ValueCoercer.#toArray(ValueCoercer.create(type.element));
+        return ValueCoercer.toArray(ValueCoercer.create(type.element));
       case "tuple":
-        return ValueCoercer.#toTuple(type.elements.map(ValueCoercer.create));
+        return ValueCoercer.toTuple(type.elements.map(ValueCoercer.create));
       case "set":
-        return ValueCoercer.#toSet(ValueCoercer.create(type.element));
+        return ValueCoercer.toSet(ValueCoercer.create(type.element));
       case "map":
-        return ValueCoercer.#toMap(ValueCoercer.create(type.key), ValueCoercer.create(type.value));
+        return ValueCoercer.toMap(ValueCoercer.create(type.key), ValueCoercer.create(type.value));
       case "record":
-        return ValueCoercer.#toRecord(ValueCoercer.create(type.value));
+        return ValueCoercer.toRecord(ValueCoercer.create(type.value));
     }
   }
 
   /** Applies `coerce` to an entry unless it is `null` or `undefined`. */
-  static #coerceEntry(coerce: IValueCoercer, entry: unknown): unknown {
+  private static coerceEntry(coerce: IValueCoercer, entry: unknown): unknown {
     return entry === undefined || entry === null ? entry : coerce(entry);
   }
 
   /** Coerces every element of an array; anything else is left for validation to reject. */
-  static #toArray(element: IValueCoercer): IValueCoercer {
+  private static toArray(element: IValueCoercer): IValueCoercer {
     return (value) =>
       Array.isArray(value)
-        ? Array.from(value as unknown[], (item) => ValueCoercer.#coerceEntry(element, item))
+        ? Array.from(value as unknown[], (item) => ValueCoercer.coerceEntry(element, item))
         : value;
   }
 
   /** Coerces the positions of an array that have an element type; extra positions stay unchanged. */
-  static #toTuple(elements: readonly IValueCoercer[]): IValueCoercer {
+  private static toTuple(elements: readonly IValueCoercer[]): IValueCoercer {
     return (value) =>
       Array.isArray(value)
         ? Array.from(value as unknown[], (item, index) => {
             const coerce = elements[index];
-            return coerce === undefined ? item : ValueCoercer.#coerceEntry(coerce, item);
+            return coerce === undefined ? item : ValueCoercer.coerceEntry(coerce, item);
           })
         : value;
   }
 
   /** Turns arrays and sets of convertible elements into a set of coerced elements. */
-  static #toSet(element: IValueCoercer): IValueCoercer {
+  private static toSet(element: IValueCoercer): IValueCoercer {
     return (value) =>
       Array.isArray(value) || value instanceof Set
         ? new Set(
             Array.from(value as Iterable<unknown>, (item) =>
-              ValueCoercer.#coerceEntry(element, item),
+              ValueCoercer.coerceEntry(element, item),
             ),
           )
         : value;
   }
 
   /** Turns maps, arrays of `[key, value]` pairs and plain objects into a map of coerced keys and values. */
-  static #toMap(key: IValueCoercer, element: IValueCoercer): IValueCoercer {
+  private static toMap(key: IValueCoercer, element: IValueCoercer): IValueCoercer {
     return (value) => {
-      const entries = ValueCoercer.#entriesOf(value);
+      const entries = ValueCoercer.entriesOf(value);
       if (entries === undefined) return value;
       return new Map(
         entries.map(([entryKey, entryValue]) => [
-          ValueCoercer.#coerceEntry(key, entryKey),
-          ValueCoercer.#coerceEntry(element, entryValue),
+          ValueCoercer.coerceEntry(key, entryKey),
+          ValueCoercer.coerceEntry(element, entryValue),
         ]),
       );
     };
   }
 
   /** Lists the entries of a map, an array made only of pairs, or a plain object; otherwise `undefined`. */
-  static #entriesOf(value: unknown): readonly (readonly [unknown, unknown])[] | undefined {
+  private static entriesOf(value: unknown): readonly (readonly [unknown, unknown])[] | undefined {
     if (value instanceof Map) return [...value];
     if (PlainObject.is(value)) return Object.entries(value);
     if (!Array.isArray(value)) return undefined;
@@ -110,30 +110,30 @@ export class ValueCoercer {
   }
 
   /** Coerces the values of a plain object into a new plain object. */
-  static #toRecord(element: IValueCoercer): IValueCoercer {
+  private static toRecord(element: IValueCoercer): IValueCoercer {
     return (value) =>
       PlainObject.is(value)
         ? Object.fromEntries(
             Object.entries(value).map(([key, item]) => [
               key,
-              ValueCoercer.#coerceEntry(element, item),
+              ValueCoercer.coerceEntry(element, item),
             ]),
           )
         : value;
   }
 
   /** Numbers, booleans and bigints become their string form. */
-  static readonly #toString: IValueCoercer = (value) =>
+  private static readonly toString: IValueCoercer = (value) =>
     typeof value === "number" || typeof value === "boolean" || typeof value === "bigint"
       ? String(value)
       : value;
 
   /** Decimal strings become numbers; empty or non-decimal text such as `"0x10"` is left alone. */
-  static readonly #toNumber: IValueCoercer = (value) =>
+  private static readonly toNumber: IValueCoercer = (value) =>
     typeof value === "string" && NUMERIC_TEXT.test(value.trim()) ? Number(value) : value;
 
   /** Only `"true"` and `"false"`, in any case, become booleans. */
-  static readonly #toBoolean: IValueCoercer = (value) => {
+  private static readonly toBoolean: IValueCoercer = (value) => {
     if (typeof value !== "string") return value;
     const text = value.toLowerCase();
     if (text === "true") return true;
@@ -141,24 +141,24 @@ export class ValueCoercer {
   };
 
   /** Integer strings and safe integers become bigints. */
-  static readonly #toBigInt: IValueCoercer = (value) => {
+  private static readonly toBigInt: IValueCoercer = (value) => {
     if (typeof value === "string" && INTEGER_TEXT.test(value)) return BigInt(value);
     return Number.isSafeInteger(value) ? BigInt(value as number) : value;
   };
 
   /** ISO 8601 strings and finite timestamps become dates; an impossible calendar date stays invalid. */
-  static readonly #toDate: IValueCoercer = (value) => {
+  private static readonly toDate: IValueCoercer = (value) => {
     if (typeof value === "string" && ISO_DATE_TEXT.test(value)) return new Date(value);
     return typeof value === "number" && Number.isFinite(value) ? new Date(value) : value;
   };
 
   /** Tries each conversion and keeps the first result that is one of the allowed values. */
-  static #toAllowed(allowed: ReadonlySet<unknown>): IValueCoercer {
+  private static toAllowed(allowed: ReadonlySet<unknown>): IValueCoercer {
     const conversions = [
-      ValueCoercer.#toNumber,
-      ValueCoercer.#toBoolean,
-      ValueCoercer.#toBigInt,
-      ValueCoercer.#toString,
+      ValueCoercer.toNumber,
+      ValueCoercer.toBoolean,
+      ValueCoercer.toBigInt,
+      ValueCoercer.toString,
     ];
     return (value) => {
       if (allowed.has(value)) return value;

@@ -11,27 +11,29 @@ const IPV4 = /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1
 
 /** Syntactic checks for the named string formats; none of them contacts the network or resolves names. */
 export class StringFormats {
-  static readonly #CHECKS: Readonly<Record<IStringFormat, (value: string) => boolean>> = {
+  private static readonly formatChecks: Readonly<
+    Record<IStringFormat, (value: string) => boolean>
+  > = {
     email: (value) => value.length <= 254 && EMAIL.test(value),
     uuid: (value) => UUID.test(value),
     url: (value) => URL_WITH_AUTHORITY.test(value),
-    "date-time": (value) => StringFormats.#isDateTime(value),
-    date: (value) => StringFormats.#isDate(value),
+    "date-time": (value) => StringFormats.isDateTime(value),
+    date: (value) => StringFormats.isDate(value),
     ipv4: (value) => IPV4.test(value),
   };
 
   /** Whether `name` is one of the supported formats. */
   public static isKnown(name: string): name is IStringFormat {
-    return Object.hasOwn(StringFormats.#CHECKS, name);
+    return Object.hasOwn(StringFormats.formatChecks, name);
   }
 
   /** Whether `value` is a well-formed instance of `format`. */
   public static matches(format: IStringFormat, value: string): boolean {
-    return StringFormats.#CHECKS[format](value);
+    return StringFormats.formatChecks[format](value);
   }
 
   /** An RFC 3339 `full-date` naming a real calendar day. */
-  static #isDate(value: string): boolean {
+  private static isDate(value: string): boolean {
     const parts = DATE.exec(value);
     if (parts === null) return false;
     const [year, month, day] = [Number(parts[1]), Number(parts[2]), Number(parts[3])];
@@ -40,9 +42,9 @@ export class StringFormats {
   }
 
   /** An RFC 3339 `date-time`: a real day, `T`, a time with an offset (leap second 60 allowed). */
-  static #isDateTime(value: string): boolean {
+  private static isDateTime(value: string): boolean {
     const separator = value.search(/t/i);
-    if (separator === -1 || !StringFormats.#isDate(value.slice(0, separator))) return false;
+    if (separator === -1 || !StringFormats.isDate(value.slice(0, separator))) return false;
     const time = TIME.exec(value.slice(separator + 1));
     if (time === null) return false;
     const [hour, minute, second] = [Number(time[1]), Number(time[2]), Number(time[3])];

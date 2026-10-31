@@ -19,7 +19,7 @@ export class NestedSchemaValidator {
       if (typeof value !== "object" || value === null || Array.isArray(value)) {
         return { isValid: false, failures: [TypeFailure.invalidType("object", value)] };
       }
-      schema ??= NestedSchemaValidator.#compile(resolve);
+      schema ??= NestedSchemaValidator.compile(resolve);
       const result = schema(value, { options: context.options, depth: context.depth + levelStep });
       if (result.ok) return { isValid: true, value: result.value };
       return {
@@ -30,7 +30,7 @@ export class NestedSchemaValidator {
   }
 
   /** Resolves the reference and compiles the class it names. */
-  static #compile(resolve: () => unknown): ICompiledSchema<object> {
+  private static compile(resolve: () => unknown): ICompiledSchema<object> {
     const target = resolve();
     if (typeof target !== "function" || !Object.hasOwn(target, "prototype")) {
       throw new SchemaDefinitionError("A lazy object reference did not resolve to a class");

@@ -16,17 +16,17 @@ export class JsonProjection {
     active = new Set<object>(),
     path: readonly (string | number)[] = [],
   ): IResult<IJsonValue> {
-    return JsonProjection.#copy(value, names, hasCollections, active, path);
+    return JsonProjection.copyValue(value, names, hasCollections, active, path);
   }
 
-  static #copy(
+  private static copyValue(
     value: unknown,
     names: WeakMap<object, ReadonlyMap<string, string>>,
     hasCollections: boolean,
     active: Set<object>,
     path: readonly (string | number)[],
   ): IResult<IJsonValue> {
-    const primitive = JsonProjection.#primitive(value, path);
+    const primitive = JsonProjection.primitive(value, path);
     if (primitive !== undefined) return primitive;
     if (typeof value !== "object" || value === null)
       return JsonProjection.failure("invalid_json_value", path);
@@ -35,13 +35,13 @@ export class JsonProjection {
       return JsonProjection.failure("max_depth_exceeded", path);
     active.add(value);
     try {
-      return JsonProjection.#copyObject(value, names, hasCollections, active, path);
+      return JsonProjection.copyObject(value, names, hasCollections, active, path);
     } finally {
       active.delete(value);
     }
   }
 
-  static #primitive(
+  private static primitive(
     value: unknown,
     path: readonly (string | number)[],
   ): IResult<IJsonValue> | undefined {
@@ -52,24 +52,24 @@ export class JsonProjection {
     return undefined;
   }
 
-  static #copyObject(
+  private static copyObject(
     value: object,
     names: WeakMap<object, ReadonlyMap<string, string>>,
     hasCollections: boolean,
     active: Set<object>,
     path: readonly (string | number)[],
   ): IResult<IJsonValue> {
-    if (hasCollections && value instanceof Date) return JsonProjection.#date(value, path);
+    if (hasCollections && value instanceof Date) return JsonProjection.date(value, path);
     if (hasCollections && value instanceof Set)
-      return JsonProjection.#set(value, names, active, path);
+      return JsonProjection.set(value, names, active, path);
     if (hasCollections && value instanceof Map)
-      return JsonProjection.#map(value, names, active, path);
+      return JsonProjection.map(value, names, active, path);
     if (Array.isArray(value))
-      return JsonProjection.#array(value, names, hasCollections, active, path);
-    return JsonProjection.#record(value, names, hasCollections, active, path);
+      return JsonProjection.array(value, names, hasCollections, active, path);
+    return JsonProjection.record(value, names, hasCollections, active, path);
   }
 
-  static #date(value: Date, path: readonly (string | number)[]): IResult<IJsonValue> {
+  private static date(value: Date, path: readonly (string | number)[]): IResult<IJsonValue> {
     try {
       if (Number.isNaN(Date.prototype.getTime.call(value)))
         return JsonProjection.failure("invalid_date", path);
@@ -79,7 +79,7 @@ export class JsonProjection {
     }
   }
 
-  static #set(
+  private static set(
     value: Set<unknown>,
     names: WeakMap<object, ReadonlyMap<string, string>>,
     active: Set<object>,
@@ -87,13 +87,13 @@ export class JsonProjection {
   ): IResult<IJsonValue> {
     try {
       const items = [...Set.prototype.values.call(value)];
-      return JsonProjection.#copy(items, names, true, active, path);
+      return JsonProjection.copyValue(items, names, true, active, path);
     } catch {
       return JsonProjection.failure("invalid_type", path);
     }
   }
 
-  static #map(
+  private static map(
     value: Map<unknown, unknown>,
     names: WeakMap<object, ReadonlyMap<string, string>>,
     active: Set<object>,
@@ -110,10 +110,10 @@ export class JsonProjection {
       if (typeof key !== "string") return JsonProjection.failure("invalid_json_value", path);
       Object.defineProperty(record, key, { value: item, enumerable: true });
     }
-    return JsonProjection.#copy(record, names, true, active, path);
+    return JsonProjection.copyValue(record, names, true, active, path);
   }
 
-  static #array(
+  private static array(
     value: unknown[],
     names: WeakMap<object, ReadonlyMap<string, string>>,
     hasCollections: boolean,
@@ -122,7 +122,7 @@ export class JsonProjection {
   ): IResult<IJsonValue> {
     const output: IJsonValue[] = [];
     for (let index = 0; index < value.length; index++) {
-      const result = JsonProjection.#copyArrayItem(
+      const result = JsonProjection.copyArrayItem(
         value,
         index,
         names,
@@ -136,7 +136,7 @@ export class JsonProjection {
     return { ok: true, value: output };
   }
 
-  static #copyArrayItem(
+  private static copyArrayItem(
     value: unknown[],
     index: number,
     names: WeakMap<object, ReadonlyMap<string, string>>,
@@ -147,10 +147,13 @@ export class JsonProjection {
     const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
     if (descriptor !== undefined && !("value" in descriptor))
       return JsonProjection.failure("unsafe_accessor", [...path, index]);
-    return JsonProjection.#copy(descriptor?.value, names, hasCollections, active, [...path, index]);
+    return JsonProjection.copyValue(descriptor?.value, names, hasCollections, active, [
+      ...path,
+      index,
+    ]);
   }
 
-  static #record(
+  private static record(
     value: object,
     names: WeakMap<object, ReadonlyMap<string, string>>,
     hasCollections: boolean,
@@ -164,7 +167,7 @@ export class JsonProjection {
     const output: Record<string, IJsonValue> = {};
     const keys = aliases === undefined ? Object.keys(value) : [...aliases.keys()];
     for (const key of keys) {
-      const result = JsonProjection.#copyRecordProperty(
+      const result = JsonProjection.copyRecordProperty(
         value,
         key,
         aliases,
@@ -180,7 +183,7 @@ export class JsonProjection {
     return { ok: true, value: output };
   }
 
-  static #copyRecordProperty(
+  private static copyRecordProperty(
     value: object,
     key: string,
     aliases: ReadonlyMap<string, string> | undefined,
@@ -194,7 +197,7 @@ export class JsonProjection {
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     if (descriptor === undefined) return { ok: true };
     if (!("value" in descriptor)) return JsonProjection.failure("unsafe_accessor", [...path, key]);
-    const result = JsonProjection.#copy(descriptor.value, names, hasCollections, active, [
+    const result = JsonProjection.copyValue(descriptor.value, names, hasCollections, active, [
       ...path,
       key,
     ]);

@@ -7,12 +7,12 @@ export class ReceivedType {
     if (value instanceof Date) return "date";
     if (value instanceof Map) return "map";
     if (value instanceof Set) return "set";
-    if (typeof value === "number") return ReceivedType.#describeNumber(value);
+    if (typeof value === "number") return ReceivedType.describeNumber(value);
     return typeof value;
   }
 
   /** Separates numbers that are never valid numeric input from ordinary ones. */
-  static #describeNumber(value: number): string {
+  private static describeNumber(value: number): string {
     if (Number.isNaN(value)) return "nan";
     if (!Number.isFinite(value)) return "infinity";
     return "number";

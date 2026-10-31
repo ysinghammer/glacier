@@ -18,7 +18,7 @@ export class StringRuleChecker {
       let value = input;
       if (rules.trim === true) value = value.trim();
       if (rules.lowercase === true) value = value.toLowerCase();
-      const failure = StringRuleChecker.#firstFailure(rules, pattern, value);
+      const failure = StringRuleChecker.firstFailure(rules, pattern, value);
       return failure === undefined
         ? { isValid: true, value }
         : { isValid: false, failures: [failure] };
@@ -26,23 +26,23 @@ export class StringRuleChecker {
   }
 
   /** Returns the first violated rule in the order min, max, length, pattern, format. */
-  static #firstFailure(
+  private static firstFailure(
     rules: IStringRules,
     pattern: RegExp | undefined,
     value: string,
   ): IValueFailure | undefined {
     const { min, max, length, format } = rules;
     if (min !== undefined && value.length < min) {
-      return StringRuleChecker.#tooSmall(min, false, value);
+      return StringRuleChecker.tooSmall(min, false, value);
     }
     if (max !== undefined && value.length > max) {
-      return StringRuleChecker.#tooBig(max, false, value);
+      return StringRuleChecker.tooBig(max, false, value);
     }
     if (length !== undefined && value.length < length) {
-      return StringRuleChecker.#tooSmall(length, true, value);
+      return StringRuleChecker.tooSmall(length, true, value);
     }
     if (length !== undefined && value.length > length) {
-      return StringRuleChecker.#tooBig(length, true, value);
+      return StringRuleChecker.tooBig(length, true, value);
     }
     if (pattern !== undefined && !pattern.test(value)) {
       return {
@@ -62,7 +62,7 @@ export class StringRuleChecker {
   }
 
   /** Builds the failure of a value shorter than `limit`; `isExact` marks a `length` rule. */
-  static #tooSmall(limit: number, isExact: boolean, value: string): IValueFailure {
+  private static tooSmall(limit: number, isExact: boolean, value: string): IValueFailure {
     return {
       code: "too_small",
       message: `String must contain ${isExact ? "exactly" : "at least"} ${limit} character(s)`,
@@ -77,7 +77,7 @@ export class StringRuleChecker {
   }
 
   /** Builds the failure of a value longer than `limit`; `isExact` marks a `length` rule. */
-  static #tooBig(limit: number, isExact: boolean, value: string): IValueFailure {
+  private static tooBig(limit: number, isExact: boolean, value: string): IValueFailure {
     return {
       code: "too_big",
       message: `String must contain ${isExact ? "exactly" : "at most"} ${limit} character(s)`,

@@ -35,7 +35,7 @@ export class DerivedClasses {
     fields: readonly IFieldDefinition[],
     refinementSources: readonly IClass[],
   ): IClass {
-    const derived = DerivedClasses.#declareClass(name);
+    const derived = DerivedClasses.declareClass(name);
     // Writing to a class created a moment ago cannot be rejected.
     FIELDS_METADATA.set(
       derived,
@@ -66,7 +66,7 @@ export class DerivedClasses {
     return derivations.get(target);
   }
 
-  static #declareClass(name: string): IClass {
+  private static declareClass(name: string): IClass {
     const derived = class {};
     Object.defineProperty(derived, "name", { value: name, configurable: true });
     return derived;

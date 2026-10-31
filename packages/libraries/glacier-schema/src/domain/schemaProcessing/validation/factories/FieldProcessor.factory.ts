@@ -20,7 +20,7 @@ export class FieldProcessorFactory {
     const coerce = ValueCoercer.create(definition.type);
     const validate = ValueValidatorFactory.create(definition.type);
     return (raw, context) =>
-      FieldProcessorFactory.#process(
+      FieldProcessorFactory.process(
         raw,
         context,
         { optional, nullable, defaultValue, transform, refine },
@@ -29,7 +29,7 @@ export class FieldProcessorFactory {
       );
   }
 
-  static #process(
+  private static process(
     raw: unknown,
     context: IParseContext,
     modifiers: {
@@ -42,24 +42,24 @@ export class FieldProcessorFactory {
     coerce: (value: unknown) => unknown,
     validate: ReturnType<typeof ValueValidatorFactory.create>,
   ): IValueOutcome {
-    const value = FieldProcessorFactory.#transform(
+    const value = FieldProcessorFactory.transform(
       raw,
       context,
       modifiers.defaultValue,
       modifiers.transform,
       coerce,
     );
-    if (FieldProcessorFactory.#isTransformFailure(value)) return value.outcome;
+    if (FieldProcessorFactory.isTransformFailure(value)) return value.outcome;
     if (value.value === undefined && modifiers.optional === true)
       return { isValid: true, value: value.value };
     if (value.value === null && modifiers.nullable === true)
       return { isValid: true, value: value.value };
     const outcome = validate(value.value, context);
     if (!outcome.isValid || modifiers.refine === undefined) return outcome;
-    return FieldProcessorFactory.#refine(outcome, modifiers.refine);
+    return FieldProcessorFactory.refine(outcome, modifiers.refine);
   }
 
-  static #transform(
+  private static transform(
     raw: unknown,
     context: IParseContext,
     defaultValue: IFieldDefinition["modifiers"]["defaultValue"],
@@ -74,20 +74,20 @@ export class FieldProcessorFactory {
       try {
         value = transform(value);
       } catch (error) {
-        return { outcome: FieldProcessorFactory.#transformFailure(error) };
+        return { outcome: FieldProcessorFactory.transformFailure(error) };
       }
     }
     return { value };
   }
 
-  static #isTransformFailure(
+  private static isTransformFailure(
     result: { readonly value: unknown } | { readonly outcome: IValueOutcome },
   ): result is { readonly outcome: IValueOutcome } {
     return "outcome" in result;
   }
 
   /** Applies the property refinement to a valid outcome. */
-  static #refine(outcome: IValueOutcome, refine: IRefinement): IValueOutcome {
+  private static refine(outcome: IValueOutcome, refine: IRefinement): IValueOutcome {
     if (!outcome.isValid || outcome.value === undefined) return outcome;
     const message = refine.message ?? "Refinement failed";
     try {
@@ -106,7 +106,7 @@ export class FieldProcessorFactory {
   }
 
   /** Reports an exception thrown by a transform function. */
-  static #transformFailure(error: unknown): IValueOutcome {
+  private static transformFailure(error: unknown): IValueOutcome {
     const reason = error instanceof Error ? error.message : String(error);
     return {
       isValid: false,

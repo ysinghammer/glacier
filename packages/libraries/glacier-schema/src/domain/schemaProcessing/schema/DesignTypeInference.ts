@@ -31,7 +31,7 @@ export class DesignTypeInference {
       inheritance: "own",
     });
     if (!result.isValid || !result.isPresent) return undefined;
-    return DesignTypeInference.#describe(result.value);
+    return DesignTypeInference.describe(result.value);
   }
 
   /**
@@ -49,7 +49,7 @@ export class DesignTypeInference {
   }
 
   /** Maps a runtime constructor to the type it denotes. */
-  static #describe(runtimeType: IRuntimeType): IDesignType | undefined {
+  private static describe(runtimeType: IRuntimeType): IDesignType | undefined {
     if (runtimeType === String) return { kind: "string" };
     if (runtimeType === Number) return { kind: "number" };
     if (runtimeType === Boolean) return { kind: "boolean" };

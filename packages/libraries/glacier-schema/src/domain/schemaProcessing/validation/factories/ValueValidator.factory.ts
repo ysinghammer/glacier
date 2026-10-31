@@ -19,30 +19,30 @@ export class ValueValidatorFactory {
   public static create(type: ITypeSpec): IValueValidator {
     switch (type.kind) {
       case "string":
-        return ValueValidatorFactory.#withRules(
-          ValueValidatorFactory.#typeOf("string", "string"),
+        return ValueValidatorFactory.withRules(
+          ValueValidatorFactory.typeOf("string", "string"),
           StringRuleChecker.create(type.rules),
         );
       case "boolean":
-        return ValueValidatorFactory.#typeOf("boolean", "boolean");
+        return ValueValidatorFactory.typeOf("boolean", "boolean");
       case "bigint":
-        return ValueValidatorFactory.#typeOf("bigint", "bigint");
+        return ValueValidatorFactory.typeOf("bigint", "bigint");
       case "number":
-        return ValueValidatorFactory.#withRules(
-          ValueValidatorFactory.#number("number", Number.isFinite),
+        return ValueValidatorFactory.withRules(
+          ValueValidatorFactory.number("number", Number.isFinite),
           NumberRuleChecker.create(type.rules),
         );
       case "int":
-        return ValueValidatorFactory.#withRules(
-          ValueValidatorFactory.#number("integer", Number.isInteger),
+        return ValueValidatorFactory.withRules(
+          ValueValidatorFactory.number("integer", Number.isInteger),
           NumberRuleChecker.create(type.rules),
         );
       case "date":
-        return ValueValidatorFactory.#date();
+        return ValueValidatorFactory.date();
       case "literal":
-        return ValueValidatorFactory.#literal(type.value);
+        return ValueValidatorFactory.literal(type.value);
       case "enum":
-        return ValueValidatorFactory.#enumeration(type.values);
+        return ValueValidatorFactory.enumeration(type.values);
       case "any":
         return (value) => ({ isValid: true, value });
       case "array":
@@ -94,7 +94,7 @@ export class ValueValidatorFactory {
   }
 
   /** Runs `checker` on a value that already passed `typeValidator`. */
-  static #withRules<TValue>(
+  private static withRules<TValue>(
     typeValidator: IValueValidator,
     checker: (value: TValue) => IValueOutcome,
   ): IValueValidator {
@@ -106,37 +106,37 @@ export class ValueValidatorFactory {
   }
 
   /** Wraps one failure as a rejected outcome. */
-  static #reject(failure: IValueFailure): IValueOutcome {
+  private static reject(failure: IValueFailure): IValueOutcome {
     return { isValid: false, failures: [failure] };
   }
 
   /** Builds the standard `invalid_type` rejection. */
-  static #invalidType(expected: string, value: unknown): IValueOutcome {
-    return ValueValidatorFactory.#reject(TypeFailure.invalidType(expected, value));
+  private static invalidType(expected: string, value: unknown): IValueOutcome {
+    return ValueValidatorFactory.reject(TypeFailure.invalidType(expected, value));
   }
 
   /** Accepts values whose `typeof` equals `expected`. */
-  static #typeOf(expected: "string" | "boolean" | "bigint", label: string): IValueValidator {
+  private static typeOf(expected: "string" | "boolean" | "bigint", label: string): IValueValidator {
     return (value) =>
       typeof value === expected
         ? { isValid: true, value }
-        : ValueValidatorFactory.#invalidType(label, value);
+        : ValueValidatorFactory.invalidType(label, value);
   }
 
   /** Accepts finite numbers that also satisfy `isAccepted`; NaN and infinities are never numbers here. */
-  static #number(expected: string, isAccepted: (value: number) => boolean): IValueValidator {
+  private static number(expected: string, isAccepted: (value: number) => boolean): IValueValidator {
     return (value) =>
       typeof value === "number" && isAccepted(value)
         ? { isValid: true, value }
-        : ValueValidatorFactory.#invalidType(expected, value);
+        : ValueValidatorFactory.invalidType(expected, value);
   }
 
   /** Accepts valid `Date` instances; an `Invalid Date` is reported as `invalid_date`. */
-  static #date(): IValueValidator {
+  private static date(): IValueValidator {
     return (value) => {
-      if (!(value instanceof Date)) return ValueValidatorFactory.#invalidType("date", value);
+      if (!(value instanceof Date)) return ValueValidatorFactory.invalidType("date", value);
       if (Number.isNaN(value.getTime())) {
-        return ValueValidatorFactory.#reject({
+        return ValueValidatorFactory.reject({
           code: "invalid_date",
           message: "Invalid date",
           params: {},
@@ -147,32 +147,32 @@ export class ValueValidatorFactory {
   }
 
   /** Accepts only the literal, compared with strict equality. */
-  static #literal(expected: string | number | boolean | bigint | null): IValueValidator {
+  private static literal(expected: string | number | boolean | bigint | null): IValueValidator {
     return (value) =>
       value === expected
         ? { isValid: true, value }
-        : ValueValidatorFactory.#reject({
+        : ValueValidatorFactory.reject({
             code: "invalid_literal",
-            message: `Invalid literal value, expected ${ValueValidatorFactory.#show(expected)}`,
+            message: `Invalid literal value, expected ${ValueValidatorFactory.show(expected)}`,
             params: { expected, received: value },
           });
   }
 
   /** Accepts only the enum's values. */
-  static #enumeration(values: readonly (string | number)[]): IValueValidator {
+  private static enumeration(values: readonly (string | number)[]): IValueValidator {
     const allowed = new Set<unknown>(values);
     return (value) =>
       allowed.has(value)
         ? { isValid: true, value }
-        : ValueValidatorFactory.#reject({
+        : ValueValidatorFactory.reject({
             code: "invalid_enum_value",
-            message: `Invalid enum value, expected one of: ${values.map((entry) => ValueValidatorFactory.#show(entry)).join(", ")}`,
+            message: `Invalid enum value, expected one of: ${values.map((entry) => ValueValidatorFactory.show(entry)).join(", ")}`,
             params: { expected: values, received: value },
           });
   }
 
   /** Renders a literal the way a developer would write it. */
-  static #show(value: string | number | boolean | bigint | null): string {
+  private static show(value: string | number | boolean | bigint | null): string {
     if (typeof value === "string") return JSON.stringify(value);
     if (typeof value === "bigint") return `${value}n`;
     return String(value);

@@ -23,8 +23,8 @@ export class FieldRegistry {
     type: ITypeSpec,
     options: ISchemaDecoratorOptions | undefined,
   ): void {
-    const { owner, member, label } = FieldRegistry.#locate(target, key);
-    const own = FieldRegistry.#readOwn(owner);
+    const { owner, member, label } = FieldRegistry.locate(target, key);
+    const own = FieldRegistry.readOwn(owner);
     const existing = own.find((field) => field.name === member);
     if (existing?.type !== undefined) {
       throw new SchemaDefinitionError(`Cannot decorate ${label}: it already has a type decorator`);
@@ -36,7 +36,7 @@ export class FieldRegistry {
       options?.message === undefined
         ? { name: member, type, modifiers }
         : { name: member, type, message: options.message, modifiers };
-    FieldRegistry.#write(owner, label, own, declaration);
+    FieldRegistry.write(owner, label, own, declaration);
   }
 
   /**
@@ -50,14 +50,14 @@ export class FieldRegistry {
     decorator: string,
     modifiers: IFieldModifiers,
   ): void {
-    const { owner, member, label } = FieldRegistry.#locate(target, key);
-    const own = FieldRegistry.#readOwn(owner);
+    const { owner, member, label } = FieldRegistry.locate(target, key);
+    const own = FieldRegistry.readOwn(owner);
     const existing = own.find((field) => field.name === member) ?? { name: member, modifiers: {} };
     const repeated = Object.keys(modifiers).some((name) => Reflect.has(existing.modifiers, name));
     if (repeated) {
       throw new SchemaDefinitionError(`Cannot decorate ${label}: it already has ${decorator}`);
     }
-    FieldRegistry.#write(owner, label, own, {
+    FieldRegistry.write(owner, label, own, {
       ...existing,
       modifiers: { ...existing.modifiers, ...modifiers },
     });
@@ -94,13 +94,13 @@ export class FieldRegistry {
   }
 
   /** Reads the fields declared directly on `owner`. */
-  static #readOwn(owner: IClass): readonly IFieldDeclaration[] {
+  private static readOwn(owner: IClass): readonly IFieldDeclaration[] {
     const own = FIELDS_METADATA.read(owner, { kind: "class", inheritance: "own" });
     return own.isValid && own.isPresent ? own.value : [];
   }
 
   /** Stores `declaration`, replacing the class's earlier entry for the property or appending a new one. */
-  static #write(
+  private static write(
     owner: IClass,
     label: string,
     own: readonly IFieldDeclaration[],
@@ -117,11 +117,11 @@ export class FieldRegistry {
   }
 
   /** Resolves the owning class and rejects classes frozen by a parse. */
-  static #locate(
+  private static locate(
     target: object,
     key: string | symbol,
   ): { readonly owner: IClass; readonly member: string; readonly label: string } {
-    const owner = FieldRegistry.#resolveOwner(target, key);
+    const owner = FieldRegistry.resolveOwner(target, key);
     const member = String(key);
     const label = `${owner.name}.${member}`;
     if (CompiledSchemaCache.isFrozen(owner)) {
@@ -133,7 +133,7 @@ export class FieldRegistry {
   }
 
   /** Narrows the decorator target to the owning class of an instance member. */
-  static #resolveOwner(target: object, key: string | symbol): IClass {
+  private static resolveOwner(target: object, key: string | symbol): IClass {
     if (typeof key === "symbol") {
       throw new SchemaDefinitionError("Schema fields must use string property names");
     }

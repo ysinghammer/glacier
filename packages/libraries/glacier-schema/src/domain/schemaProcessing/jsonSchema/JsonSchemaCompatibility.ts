@@ -57,24 +57,24 @@ export class JsonSchemaCompatibility {
   /** Rejects known input types unavailable in JSON/text data; callbacks are deliberately not inspected or invoked. */
   public static wire(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
     if (options.direction === "output") return;
-    JsonSchemaCompatibility.#wireInput(spec, options);
+    JsonSchemaCompatibility.wireInput(spec, options);
   }
 
-  static #wireInput(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
+  private static wireInput(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
     if (spec.kind === "map" || spec.kind === "set")
       throw new SchemaDefinitionError("Map and Set inputs require non-wire instances");
     if (!options.coerce && (spec.kind === "date" || spec.kind === "bigint"))
       throw new SchemaDefinitionError("Strict wire input cannot supply Date or bigint instances");
-    if (spec.kind === "literal") JsonSchemaCompatibility.#literalWire(spec.value, options);
+    if (spec.kind === "literal") JsonSchemaCompatibility.literalWire(spec.value, options);
     if (
       spec.kind === "enum" &&
       spec.values.some((value) => typeof value === "number" && !Number.isFinite(value))
     )
       throw new SchemaDefinitionError("Enum includes non-wire numeric values");
-    JsonSchemaCompatibility.#textWire(spec, options);
+    JsonSchemaCompatibility.textWire(spec, options);
   }
 
-  static #literalWire(
+  private static literalWire(
     value: string | number | boolean | bigint | null,
     options: IJsonSchemaCompatibilityOptions,
   ): void {
@@ -90,18 +90,18 @@ export class JsonSchemaCompatibility {
       throw new SchemaDefinitionError("Literal has no supported wire representation");
   }
 
-  static #textWire(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
+  private static textWire(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
     if (options.wire !== "text" || options.coerce) return;
     const unsupportedScalar =
       spec.kind === "number" ||
       spec.kind === "int" ||
       spec.kind === "boolean" ||
-      JsonSchemaCompatibility.#hasNonStringValues(spec);
+      JsonSchemaCompatibility.hasNonStringValues(spec);
     if (unsupportedScalar)
       throw new SchemaDefinitionError("Text input needs coercion for non-string scalars");
   }
 
-  static #hasNonStringValues(spec: ITypeSpec): boolean {
+  private static hasNonStringValues(spec: ITypeSpec): boolean {
     if (spec.kind === "literal") return typeof spec.value !== "string";
     return spec.kind === "enum" && spec.values.some((value) => typeof value !== "string");
   }
@@ -133,31 +133,31 @@ export class JsonSchemaCompatibility {
       const original = JsonProjection.copy(schema[key], new WeakMap(), false);
       if (
         !original.ok ||
-        !JsonSchemaCompatibility.#equal(
-          original.value,
-          value,
-          JsonSchemaCompatibility.#context(key),
-        )
+        !JsonSchemaCompatibility.equal(original.value, value, JsonSchemaCompatibility.context(key))
       )
         throw new SchemaDefinitionError(`Schema annotation contradicts generated keyword ${key}`);
     }
   }
 
   /** Chooses whether a nested value is a schema, a name-to-schema map or ordinary literal data. */
-  static #context(key: string): "schema" | "map" | "value" {
+  private static context(key: string): "schema" | "map" | "value" {
     if (SCHEMA_MAP_KEYWORDS.has(key)) return "map";
     return SCHEMA_VALUE_KEYWORDS.has(key) ? "schema" : "value";
   }
 
   /** Compares safe JSON structurally; property names and literal objects are never treated as annotation keywords. */
-  static #equal(left: unknown, right: unknown, context: "schema" | "map" | "value"): boolean {
+  private static equal(
+    left: unknown,
+    right: unknown,
+    context: "schema" | "map" | "value",
+  ): boolean {
     if (left === right) return true;
     if (Array.isArray(left) && Array.isArray(right))
       return (
         left.length === right.length &&
         left.every((value: unknown, index) => {
           const other = right[index];
-          return JsonSchemaCompatibility.#equal(value, other, context);
+          return JsonSchemaCompatibility.equal(value, other, context);
         })
       );
     if (
@@ -183,9 +183,9 @@ export class JsonSchemaCompatibility {
         context === "map"
           ? "schema"
           : context === "schema"
-            ? JsonSchemaCompatibility.#context(key)
+            ? JsonSchemaCompatibility.context(key)
             : "value";
-      return other !== undefined && JsonSchemaCompatibility.#equal(value, other, nested);
+      return other !== undefined && JsonSchemaCompatibility.equal(value, other, nested);
     });
   }
 }
