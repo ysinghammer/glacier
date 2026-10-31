@@ -42,12 +42,27 @@ describe("one-use native resource lifecycle", () => {
     const diagnostics: IHttpErrorContext[] = [];
     /** HTTP must not call application-owned startup or disposal conventions. */
     class Controller extends PrimitiveController {
+      /**
+       * Rejects accidental application-controller startup invocation.
+       * @returns No value; this method always throws.
+       * @throws {Error} Always, to expose an invalid lifecycle call.
+       */
       public listen(): never {
         throw new Error("controller startup forbidden");
       }
+      /**
+       * Rejects accidental application-controller close invocation.
+       * @returns No value; this method always throws.
+       * @throws {Error} Always, to expose an invalid lifecycle call.
+       */
       public close(): never {
         throw new Error("controller close forbidden");
       }
+      /**
+       * Rejects accidental application-controller destruction invocation.
+       * @returns No value; this method always throws.
+       * @throws {Error} Always, to expose an invalid lifecycle call.
+       */
       public destroy(): never {
         throw new Error("controller destruction forbidden");
       }

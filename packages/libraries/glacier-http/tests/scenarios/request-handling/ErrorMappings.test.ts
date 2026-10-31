@@ -8,9 +8,9 @@ import { LoopbackClient } from "../../LoopbackClient.js";
 
 /** Application exceptions are class identities, not public payload sources. */
 class BusinessError extends Error {}
-/** More specific application rejection. */
+/** More specific application rejection used to check nearest-class mapping. */
 class SpecificError extends BusinessError {}
-/** Deep inheritance makes specificity independent of declaration order. */
+/** Deep application rejection used to check inherited mapping resolution. */
 class DeepError extends SpecificError {}
 
 describe("static controller-only business mapping precedence", () => {
@@ -32,19 +32,43 @@ describe("static controller-only business mapping precedence", () => {
   it("endpoint beats controller beats global; nearest class wins in the selected scope", async () => {
     /** A shared controller throws application-owned errors from an explicit test source. */
     class Controller {
+      /**
+       * Current application error thrown by the fixture endpoints.
+       * @default DeepError with synthetic private message and cause
+       */
       public failure: unknown = new DeepError("secret-message", { cause: "secret-cause" });
+      /**
+       * Throws the configured failure for endpoint-level mapping.
+       * @returns No value; invocation always throws the configured failure.
+       * @throws {unknown} When called, throws the value stored in `failure`.
+       */
       public local(): never {
         throw this.failure;
       }
+      /**
+       * Throws the configured failure for controller-scope mapping.
+       * @returns No value; invocation always throws the configured failure.
+       * @throws {unknown} When called, throws the value stored in `failure`.
+       */
       public scoped(): never {
         throw this.failure;
       }
+      /**
+       * Throws the configured failure for global-scope mapping.
+       * @returns No value; invocation always throws the configured failure.
+       * @throws {unknown} When called, throws the value stored in `failure`.
+       */
       public global(): never {
         throw this.failure;
       }
     }
     /** Separate controller has only global mappings. */
     class GlobalController {
+      /**
+       * Throws a deep application error for global mapping selection.
+       * @returns No value; invocation always throws.
+       * @throws {DeepError} Always, with a private message.
+       */
       public value(): never {
         throw new DeepError("secret");
       }
@@ -130,6 +154,11 @@ describe("static controller-only business mapping precedence", () => {
   it("inherits controller scope and actual handler scope, without leaking parent endpoint mappings across overrides", async () => {
     /** Base declaration is inherited without controller construction by metadata reads. */
     class Base {
+      /**
+       * Throws a specific application error from the inherited handler.
+       * @returns No value; invocation always throws.
+       * @throws {SpecificError} Always, with a private message.
+       */
       public value(): never {
         throw new SpecificError("secret");
       }
@@ -138,6 +167,11 @@ describe("static controller-only business mapping precedence", () => {
     class Inherited extends Base {}
     /** Override must redeclare contracts and does not inherit endpoint mappings. */
     class Override extends Base {
+      /**
+       * Throws a specific error from the replacement handler.
+       * @returns No value; invocation always throws.
+       * @throws {SpecificError} Always, with a private message.
+       */
       public override value(): never {
         throw new SpecificError("secret");
       }
@@ -166,7 +200,7 @@ describe("static controller-only business mapping precedence", () => {
     const valid = { error: BusinessError, status: 400, title: "Safe" };
     for (const change of [
       { error: {} },
-      { error: class NotError {} },
+      { error: /** Non-error constructor used to test mapping validation. */ class NotError {} },
       { status: 399 },
       { status: 600 },
       { status: 400.5 },
@@ -202,7 +236,15 @@ describe("static controller-only business mapping precedence", () => {
     ).toThrow("Duplicate error mapping");
     /** Only public decorator target validation is observed. */
     class Controller {
+      /**
+       * Declares an instance method as an error-mapping target.
+       * @returns No value; this handler is not invoked.
+       */
       public value(): void {}
+      /**
+       * Declares a static method to reject as a decorator target.
+       * @returns No value; this method is not a valid instance endpoint.
+       */
       public static value(): void {}
     }
     const mapping = ApiMapError(BusinessError, { status: 400, title: "Safe" });

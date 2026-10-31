@@ -3,7 +3,14 @@ import type { BenchmarkWorkload } from "./BenchmarkWorkload.js";
 
 /** Test-owned IPC lifecycle shared by the Glacier and temporary Express server processes. */
 export class BenchmarkServerProcess {
-  /** Publishes a ready port only after listen; supervises stats/stop and observable cleanup. */
+  /**
+   * Serves benchmark IPC commands after binding and closes the server on every exit path.
+   * @param server Constructed server exposing only lifecycle operations.
+   * @param workload Shared deterministic counters for stats responses.
+   * @returns Promise fulfilled after stop/disconnect and server cleanup complete.
+   * @throws {Error} Promise rejects when IPC is unavailable or binding has no address.
+   * @throws {Error} Promise rejects when an unknown benchmark command arrives.
+   */
   public static async serve(
     server: Pick<HttpServer, "listen" | "address" | "close">,
     workload: BenchmarkWorkload,

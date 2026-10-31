@@ -8,8 +8,17 @@ describe("repeatable explicit output contracts and declared void", () => {
   it("void/undefined means declared 204; undeclared void and plain/invalid values remain safe 500", async () => {
     /** Application-owned return source deliberately permits untrusted results. */
     class Controller {
+      /** Current untrusted value returned by the JSON fixture handler. */
       public value: unknown;
+      /**
+       * Represents a declared bodyless controller operation.
+       * @returns No value; the route is expected to produce HTTP 204.
+       */
       public empty(): void {}
+      /**
+       * Returns the current fixture value without claiming it is a valid response.
+       * @returns Current untrusted value for boundary validation.
+       */
       public json(): unknown {
         return this.value;
       }
@@ -67,7 +76,12 @@ describe("repeatable explicit output contracts and declared void", () => {
   it("non-JSON values, cycles and inspected accessors produce value-free diagnostics and no partial fields", async () => {
     /** An application-owned controller returns deliberately unsafe values through the public envelope. */
     class Controller {
+      /** Current value inserted into a public response envelope. */
       public value: unknown;
+      /**
+       * Wraps the current fixture value in a JSON response with a private header.
+       * @returns Response envelope for serialization and output validation tests.
+       */
       public json(): unknown {
         return HttpResponse.json(
           { value: this.value },

@@ -3,14 +3,24 @@ import type { IOpenApiDocument } from "../../index.js";
 
 /** Public document assertions distinguish reference resolution from external specification validation. */
 export class OpenApiEvidence {
-  /** Walks schema/reference-bearing document records, preserving literal example/enum/const values. */
+  /**
+   * Verifies local schema references against the public document's returned components.
+   * @param document Generated OpenAPI document under assertion.
+   * @returns No value; fails the test when a local reference is unresolved.
+   */
   public static references(document: IOpenApiDocument): void {
     const components = document.components.schemas;
     expect(typeof components).toBe("object");
     OpenApiEvidence.walk(document, components);
   }
 
-  /** Checks each local schema ref and discriminator mapping against the returned public components. */
+  /**
+   * Recursively checks local refs while leaving literal schema examples unchanged.
+   * @param value Document value or nested array being inspected.
+   * @param components Schema component collection used to resolve references.
+   * @param isMapping Whether strings are mapping refs; defaults to false.
+   * @returns No value; asserts each encountered local reference exists.
+   */
   private static walk(value: unknown, components: unknown, isMapping = false): void {
     if (Array.isArray(value)) {
       for (const item of value) OpenApiEvidence.walk(item, components);

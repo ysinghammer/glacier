@@ -35,11 +35,22 @@ import type {
 
 /** Type-only root contract for explicit legacy decorator inputs and immutable endpoint records. */
 class BindingContracts {
-  /** Required DTO constructor arguments remain application-owned and are never invoked by HTTP. */
+  /**
+   * Checks public decorator inputs accept explicit classes and immutable options.
+   * @returns No value; assignments exercise type-only public contracts.
+   */
   public static declarations(): void {
-    /** A DTO reference need not be constructible without consumer dependencies. */
+    /** DTO class identity remains usable even with required consumer constructor input. */
     class Dto {
-      public constructor(public readonly value: string) {}
+      /**
+       * Retains a consumer-required value to prove decorators need only class identity.
+       * @param value Consumer-owned dependency value.
+       * @returns No value; initializes the fixture instance.
+       */
+      public constructor(
+        /** Consumer-owned dependency retained by the fixture DTO. */
+        public readonly value: string,
+      ) {}
     }
     const input: IApiInputOptions = { description: "Input" };
     const body: IApiBodyOptions = { ...input, examples: { one: { value: "text" } } };
@@ -110,7 +121,11 @@ class BindingContracts {
     void [head, unsafe];
   }
 
-  /** Metadata is a public documentation contract, not an executable private registry. */
+  /**
+   * Checks metadata exposes immutable endpoint descriptions without handlers or instances.
+   * @param controller Controller class whose public endpoint metadata is read.
+   * @returns No value; invalid mutation and private-state access must fail type checking.
+   */
   public static metadata(controller: abstract new (...arguments_: never[]) => object): void {
     const endpoints: readonly IHttpEndpointMetadata[] = HttpEndpointMetadata.read(controller);
     const endpoint = endpoints[0];

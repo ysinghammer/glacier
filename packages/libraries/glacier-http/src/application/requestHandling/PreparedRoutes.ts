@@ -3,11 +3,16 @@ import type { IHttpEndpointMetadata } from "../../domain/requestHandling/routing
 import type { IConstructableClass } from "@glacier/reflection";
 import { RoutingMetadata } from "../../domain/requestHandling/routing/RoutingMetadata.js";
 
-/** Immutable executable routes prepared once for application-owned controller instances. */
+/** Validates and orders executable routes prepared from application-owned controller instances. */
 export class PreparedRoutes {
+  /** Frozen route table in matching precedence order; initialized once during construction. */
   private readonly routes: readonly IPreparedRoute[];
 
-  /** Validates all contracts and equivalent route/method collisions before listening. */
+  /** Prepares controller routes and rejects invalid registrations before the server listens.
+   * @param controllers - Controller instances to inspect; classes are not accepted as instances.
+   * @param hasAuthentication - Whether user-ID route bindings have an authentication scheme.
+   * @throws {TypeError} If an entry is not an object controller instance.
+   */
   public constructor(controllers: readonly object[], hasAuthentication: boolean) {
     const routes: IPreparedRoute[] = [];
     for (const controller of controllers) {
@@ -18,6 +23,12 @@ export class PreparedRoutes {
     this.routes = Object.freeze(routes.sort(PreparedRoutes.compare));
   }
 
+  /** Adds routes declared by one controller after reading its constructor metadata.
+   * @param routes - Mutable preparation output receiving the controller's valid routes.
+   * @param controller - Controller instance whose declared routes are inspected.
+   * @param hasAuthentication - Whether user-ID bindings are supported by configuration.
+   * @returns No value; appends the controller's routes to the preparation output.
+   */
   private static appendControllerRoutes(
     routes: IPreparedRoute[],
     controller: object,
@@ -29,6 +40,16 @@ export class PreparedRoutes {
       PreparedRoutes.appendEndpoint(routes, controller, metadata, hasAuthentication);
   }
 
+  /** Validates route authentication, uniqueness, and handler shape before appending a route.
+   * @param routes - Mutable route table receiving this endpoint when valid.
+   * @param controller - Instance that owns the endpoint handler.
+   * @param metadata - Endpoint declaration supplying method, template, and handler name.
+   * @param hasAuthentication - Whether user-ID bindings have an authentication scheme.
+   * @returns No value; appends the prepared endpoint after all checks pass.
+   * @throws {TypeError} For user-ID bindings without authentication.
+   * @throws {TypeError} For a duplicate method and normalized route signature.
+   * @throws {TypeError} For an own handler override or a non-function handler.
+   */
   private static appendEndpoint(
     routes: IPreparedRoute[],
     controller: object,
@@ -55,7 +76,11 @@ export class PreparedRoutes {
     });
   }
 
-  /** Matches the most-specific path before choosing a method; Allow is stable across registration order. */
+  /** Matches path precedence first, then selects the requested method; HEAD selects GET.
+   * @param pathname - Request path to canonicalize and compare with prepared route segments.
+   * @param method - Requested HTTP method; HEAD is matched against GET.
+   * @returns Undefined for no path; otherwise allowed methods and an optional selected route.
+   */
   public match(pathname: string, method: string): IRouteMatch | undefined {
     const segments = RoutingMetadata.canonical(pathname).split("/");
     const matches: { route: IPreparedRoute; params: Readonly<Record<string, string>> }[] = [];
@@ -79,6 +104,12 @@ export class PreparedRoutes {
     return { allow, selected };
   }
 
+  /** Adds a route match only when every path segment satisfies its route pattern.
+   * @param matches - Mutable matches for the current candidate set.
+   * @param route - Prepared route whose segments are compared.
+   * @param segments - Canonical request path segments.
+   * @returns No value; appends a match only when the route has matching parameters.
+   */
   private static appendMatch(
     matches: { route: IPreparedRoute; params: Readonly<Record<string, string>> }[],
     route: IPreparedRoute,
@@ -88,6 +119,11 @@ export class PreparedRoutes {
     if (params !== undefined) matches.push({ route, params });
   }
 
+  /** Compares segment counts and values, capturing nonempty parameter segments.
+   * @param route - Prepared route pattern with static and named segments.
+   * @param segments - Canonical request path segments to test.
+   * @returns Frozen parameter values on a full match, or undefined when it does not match.
+   */
   private static matchSegments(
     route: IPreparedRoute,
     segments: readonly string[],
@@ -104,7 +140,11 @@ export class PreparedRoutes {
     return Object.freeze(params);
   }
 
-  /** Lexicographic segment precedence makes static routes win even when total static counts tie. */
+  /** Orders static segments before parameters, then uses template order as a stable tie-break.
+   * @param left - First prepared route in the comparison.
+   * @param right - Second prepared route in the comparison.
+   * @returns Negative, zero, or positive according to route precedence.
+   */
   private static compare(left: IPreparedRoute, right: IPreparedRoute): number {
     for (const [index, segment] of left.segments.entries()) {
       const other = String(right.segments[index]);
@@ -115,18 +155,25 @@ export class PreparedRoutes {
   }
 }
 
-/** Internal executable endpoint; public metadata deliberately omits instances and callbacks. */
+/** Internal route execution data kept separate from public metadata contracts. */
 interface IPreparedRoute {
+  /** Readonly endpoint declaration used for routing and response behavior. */
   readonly metadata: IHttpEndpointMetadata;
+  /** Readonly path signature with parameter names normalized for collision/method grouping. */
   readonly signature: string;
+  /** Readonly template segments used for matching; initialized from endpoint metadata. */
   readonly segments: readonly string[];
+  /** Readonly owning controller instance used as the handler receiver. */
   readonly controller: object;
+  /** Readonly declared instance method captured for dispatch. */
   readonly handler: Function;
 }
 
-/** Internal method selection and stable path-wide protocol response information. */
+/** Internal result containing path-wide protocol information and optional method selection. */
 interface IRouteMatch {
+  /** Readonly stable Allow header value, including implicit OPTIONS and applicable HEAD. */
   readonly allow: string;
+  /** Readonly selected route and path parameters, or undefined when the method is unsupported. */
   readonly selected:
     | { readonly route: IPreparedRoute; readonly params: Readonly<Record<string, string>> }
     | undefined;

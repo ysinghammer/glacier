@@ -5,9 +5,17 @@ import type { IOpenApiOptions } from "./IOpenApiOptions.js";
 import type { IOpenApiDocument } from "../../../../domain/openApiGeneration/types/IOpenApiDocument.js";
 import { OpenApiGeneration } from "../../../../application/openApiGeneration/OpenApiGeneration.use-case.js";
 
-/** Public integration boundary selects exactly one class/created-server source, never starting resources or invoking hooks. */
+/** Generates an OpenAPI document from controllers or a server's public registration snapshot. */
 export class OpenApi {
-  /** Reads only the server's curated registration snapshot, checks authentication agreement and delegates pure generation. */
+  /**
+   * Reads only public server metadata and delegates document generation without starting resources.
+   * @param options Document information, authentication, and exactly one controller source.
+   * @returns Generated OpenAPI document for the selected controllers and configuration.
+   * @throws {TypeError} If options is not an object or does not select exactly one source.
+   * @throws {TypeError} If server source is not a created HttpServer instance.
+   * @throws {TypeError} If authentication disagrees with server registration.
+   * @throws {TypeError} If controller source is not an array of functions.
+   */
   public static generate(options: IOpenApiOptions): IOpenApiDocument {
     if (
       options === null ||

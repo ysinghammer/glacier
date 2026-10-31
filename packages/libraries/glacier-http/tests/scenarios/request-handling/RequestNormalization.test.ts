@@ -4,7 +4,13 @@ import { LoopbackClient } from "../../LoopbackClient.js";
 
 /** Test-owned observer using only the approved authentication hook and real HTTP. */
 class RequestObservation {
-  /** Captures a normalized request after routing without constructing one through a test API. */
+  /**
+   * Captures a normalized server-created request through the public authentication hook.
+   * @param target Request target sent by the loopback client.
+   * @param headers Raw request headers; defaults to none.
+   * @returns Promise fulfilled with the observed request after HTTP 204.
+   * @throws {Error} Promise rejects when authentication observes no request.
+   */
   public static async capture(
     target: string,
     headers: readonly string[] = [],

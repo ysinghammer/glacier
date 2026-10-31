@@ -7,9 +7,15 @@ import type { IHttpBindingMetadata } from "./types/IHttpBindingMetadata.js";
 import type { IApiResponseOptions } from "./types/IApiResponseOptions.js";
 import type { IApiRouteOptions } from "./types/IApiRouteOptions.js";
 
-/** Prepares the shared endpoint invariants without instances, listeners or OpenAPI dependencies. */
+/**
+ * Prepares immutable endpoint contracts and validates shared route/binder invariants.
+ */
 export class HttpEndpointMetadata {
-  /** Reads detached metadata. Inherited handlers retain their own contracts; overrides must redeclare all contracts. */
+  /**
+   * Reads and sorts endpoint metadata without constructing controllers or starting resources.
+   * @param controller Registered controller class identity whose endpoints are prepared.
+   * @returns Frozen endpoint contracts ordered by declared handler name.
+   */
   public static read(controller: IConstructableClass<object>): readonly IHttpEndpointMetadata[] {
     const prefix = RoutingMetadata.require(RoutingMetadata.controller.readDynamic(controller));
     const keys = new Set(
@@ -21,6 +27,14 @@ export class HttpEndpointMetadata {
     return Object.freeze(endpoints);
   }
 
+  /**
+   * Validates and assembles one controller method's complete endpoint contract.
+   * @param controller Registered controller class identity.
+   * @param key Declared instance method name.
+   * @param prefix Controller path prefix and static documentation options.
+   * @returns Frozen metadata for the resolved endpoint.
+   * @throws {TypeError} When route metadata, method shape, path names, or visibility conflict.
+   */
   private static endpoint(
     controller: IConstructableClass<object>,
     key: string,
@@ -74,6 +88,14 @@ export class HttpEndpointMetadata {
     );
   }
 
+  /**
+   * Checks binder positions and prepares explicitly declared input/output DTO schemas.
+   * @param bindings Ordered explicit parameter binders.
+   * @param parameterCount Handler parameter count from compiler metadata or function length.
+   * @param parameterTypes Compiler-representable direct parameter types when available.
+   * @param responses Declared response contracts whose DTO schemas are prepared.
+   * @returns No value; validates schema and binder compatibility before serving.
+   */
   private static validateEndpointBindings(
     bindings: readonly IHttpBindingMetadata[],
     parameterCount: number,
@@ -85,6 +107,13 @@ export class HttpEndpointMetadata {
     for (const response of responses) if (response.status !== 204) Schema.prepare(response.type);
   }
 
+  /**
+   * Confirms every named path binder appears in the combined route template.
+   * @param bindings Explicit endpoint parameter bindings.
+   * @param names Named route segments available for binding.
+   * @returns No value; validates path binder references.
+   * @throws {TypeError} When a path binder references an undeclared route segment.
+   */
   private static validatePathBindings(
     bindings: readonly IHttpBindingMetadata[],
     names: readonly string[],
@@ -95,6 +124,20 @@ export class HttpEndpointMetadata {
     }
   }
 
+  /**
+   * Creates the detached immutable endpoint record from validated declarations.
+   * @param controller Registered controller identity exposed in the endpoint record.
+   * @param owner Class that declares the concrete handler implementation.
+   * @param key Handler method name.
+   * @param address Own-member metadata address for the declaring class.
+   * @param prefix Controller route prefix and documentation options.
+   * @param declaration Route method, path, and documentation options.
+   * @param bindings Explicit parameter binders to sort and retain.
+   * @param responses Explicit success response declarations to sort and retain.
+   * @param template Canonical combined route template.
+   * @param isPublic Whether external authentication is skipped for this route.
+   * @returns Frozen detached metadata with sorted binders and response contracts.
+   */
   private static metadata(
     controller: IConstructableClass<object>,
     owner: IConstructableClass<object>,
@@ -136,11 +179,22 @@ export class HttpEndpointMetadata {
     });
   }
 
-  /** Locates the actual handler declaration, not metadata inherited across an override. */
+  /**
+   * Finds the class that owns a handler implementation, not inherited metadata on an override.
+   * @param controller Registered class whose prototype chain is searched.
+   * @param key Declared handler name to locate.
+   * @returns Owning class identity and its own method descriptor.
+   * @throws {TypeError} When no class in the chain declares the handler.
+   */
   private static owner(
     controller: IConstructableClass<object>,
     key: string,
-  ): { readonly owner: IConstructableClass<object>; readonly descriptor: PropertyDescriptor } {
+  ): {
+    /** Class identity that owns the concrete handler declaration. */
+    readonly owner: IConstructableClass<object>;
+    /** Own property descriptor for the declared handler. */
+    readonly descriptor: PropertyDescriptor;
+  } {
     let owner = controller;
     while (true) {
       const descriptor = Object.getOwnPropertyDescriptor(owner.prototype, key);
@@ -153,7 +207,14 @@ export class HttpEndpointMetadata {
     }
   }
 
-  /** Checks positional completeness and only compiler-representable direct binder types, never DTO inference. */
+  /**
+   * Checks positional completeness and direct compiler-representable binder types.
+   * @param bindings Declared binders with zero-based parameter positions.
+   * @param count Handler parameter count.
+   * @param types Optional compiler-emitted parameter type representations.
+   * @returns No value; validates binder completeness and supported direct types.
+   * @throws {TypeError} When a binder is missing or a user ID parameter is not string-typed.
+   */
   private static bindings(
     bindings: readonly IHttpBindingMetadata[],
     count: number,

@@ -10,20 +10,31 @@ const REQUEST_COOKIE_VALUES = new WeakMap<RequestCookies, ReadonlyMap<string, st
 
 /** Strict opaque cookie lookup with duplicate-name rejection across all Cookie fields. */
 export class RequestCookies implements IHttpRequestCookies {
-  /** Keeps the validated lookup opaque to serializers and rejects invalid receivers. */
+  /**
+   * Retrieves the receiver's private cookie map without exposing credential fields.
+   * @returns The validated detached cookie name/value map.
+   * @throws {TypeError} When the receiver has no entry in the private field registry.
+   */
   private get values(): ReadonlyMap<string, string> {
     const values = REQUEST_COOKIE_VALUES.get(this);
     if (values === undefined) throw new TypeError("Invalid request cookie receiver");
     return values;
   }
 
-  /** Stores only detached validated pairs, with no public mutation operations. */
+  /**
+   * Stores validated detached cookie pairs and freezes this lookup object.
+   * @param values Validated case-sensitive cookie names and opaque values.
+   */
   private constructor(values: ReadonlyMap<string, string>) {
     REQUEST_COOKIE_VALUES.set(this, values);
     Object.freeze(this);
   }
 
-  /** Splits on the first equals, retaining empty and opaque values without decoding. */
+  /**
+   * Parses cookie fields, rejecting malformed syntax and duplicate names across fields.
+   * @param fields Raw Cookie field values from the request.
+   * @returns A detached lookup, or status 400 when any pair is invalid.
+   */
   public static parse(fields: readonly string[]): IRequestNormalizationResult<RequestCookies> {
     const values = new Map<string, string>();
     for (const field of fields) {
@@ -41,12 +52,19 @@ export class RequestCookies implements IHttpRequestCookies {
     return { ok: true, value: new RequestCookies(values) };
   }
 
-  /** Returns the unmodified value, or undefined for an absent name. */
+  /**
+   * Looks up a cookie by its case-sensitive name without decoding its value.
+   * @param name Exact cookie name to retrieve.
+   * @returns The original value, including empty strings, or undefined when absent.
+   */
   public get(name: string): string | undefined {
     return this.values.get(name);
   }
 
-  /** Detached opaque pairs for DTO binding, never a mutable cookie jar. */
+  /**
+   * Copies opaque cookie pairs to a frozen record for explicit DTO binding.
+   * @returns Detached cookie values without decoding or mutation operations.
+   */
   public toRecord(): Readonly<Record<string, string>> {
     return Object.freeze(Object.fromEntries(this.values));
   }

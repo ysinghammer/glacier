@@ -15,6 +15,11 @@ describe("whole-resource shutdown deadline", () => {
     const logged = new Deferred<IHttpResponseLogRecord>();
     /** Application-owned controller explicitly cooperates; HTTP does not forcibly settle its promise. */
     class Controller {
+      /**
+       * Waits for request cancellation before returning a late response.
+       * @param request Server-created request whose abort signal coordinates shutdown.
+       * @returns Promise fulfilled with the late response after abort acknowledgment.
+       */
       public async value(request: HttpRequest): Promise<HttpResponse<TextDto>> {
         entered.resolve(request);
         await once(request.signal, "abort");

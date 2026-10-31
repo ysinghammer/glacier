@@ -43,44 +43,128 @@ const DEFAULT_QUERY_DEPTH = 5;
 const DEFAULT_HEADERS_TIMEOUT_MS = 10_000;
 const MAX_RECEIVE_CHECK_INTERVAL_MS = 1_000;
 
-/** Server-owned controllers, callbacks, transport handles, and requests are not diagnostic fields. */
+/** Holds the server's immutable configuration and private transport lifecycle state. */
 interface IHttpServerState {
+  /** Detached controller and error-mapping metadata exposed by registration. */
   readonly registrationValue: IHttpServerRegistration;
+  /** Bounded response-log queue (default capacity 1,000) and its synchronous diagnostic callback. */
   readonly logs: ResponseLogs;
+  /** Associates each native response with its one-shot completion accounting. */
   readonly completions: WeakMap<ServerResponse, ResponseCompletion>;
+  /** Compiled routes used to match incoming request targets. */
   readonly routes: PreparedRoutes;
+  /** Frozen copy of callbacks and controller references supplied at creation. */
   readonly options: IHttpServerOptions;
+  /**
+   * Precomputed authentication challenge, absent when authentication is disabled.
+   * @default undefined when authentication is disabled.
+   */
   readonly challenge: string | undefined;
+  /**
+   * Maximum accepted request-body size in bytes.
+   * @default 1_048_576 bytes when no body limit is configured.
+   */
   readonly bodyBytes: number;
+  /**
+   * Maximum time allowed for receiving a complete request in milliseconds.
+   * @default 30_000 ms when no request timeout is configured.
+   */
   readonly requestTimeoutMs: number;
+  /**
+   * Maximum header section size in bytes.
+   * @default 16_384 bytes when no header limit is configured.
+   */
   readonly headerBytes: number;
+  /**
+   * Maximum request-target size in bytes.
+   * @default 8_192 bytes when no target limit is configured.
+   */
   readonly targetBytes: number;
+  /**
+   * Maximum number of parsed query pairs.
+   * @default 100 pairs when no query-pair limit is configured.
+   */
   readonly queryPairs: number;
+  /**
+   * Maximum nested query-value depth.
+   * @default Depth 5 when no query-depth limit is configured.
+   */
   readonly queryDepth: number;
+  /**
+   * Maximum time allowed to receive request headers in milliseconds.
+   * @default Lesser of 10_000 ms and the request timeout when unset.
+   */
   readonly headersTimeoutMs: number;
+  /**
+   * Maximum graceful shutdown drain duration in milliseconds.
+   * @default 10_000 ms when no shutdown timeout is configured.
+   */
   readonly shutdownTimeoutMs: number;
+  /**
+   * Native sockets owned by this server until their close events.
+   * @default Empty set at construction.
+   */
   readonly sockets: Set<Socket>;
+  /**
+   * Request handlers currently being supervised during shutdown.
+   * @default Empty map at construction.
+   */
   readonly active: Map<AbortController, Promise<void>>;
+  /**
+   * Per-socket request chains preserving request processing order.
+   * @default Empty weak map at construction.
+   */
   readonly chains: WeakMap<Duplex, Promise<void>>;
+  /**
+   * Sockets rejected by parser or response handling and not reused.
+   * @default Empty weak set at construction.
+   */
   readonly rejectedSockets: WeakSet<Duplex>;
+  /**
+   * Cancels an in-progress native listen operation when shutdown begins.
+   * @default New, non-aborted controller.
+   */
   readonly listenAbort: AbortController;
+  /**
+   * Native listener after listen begins; absent before startup.
+   * @default undefined
+   */
   server: Server | undefined;
+  /**
+   * Whether the one allowed listen attempt has started.
+   * @default false
+   */
   hasListened: boolean;
+  /**
+   * Whether close has been requested.
+   * @default false
+   */
   isClosed: boolean;
+  /**
+   * Shared shutdown result returned to every close caller.
+   * @default undefined
+   */
   closePromise: Promise<void> | undefined;
 }
 const HTTP_SERVER_STATES = new WeakMap<HttpServer, IHttpServerState>();
 
-/** Explicit one-use Node HTTP/1.1 lifecycle with no import-time resources or controller ownership. */
+/** Configures one-use Node HTTP/1.1 serving; construction opens no listener, and explicit methods own lifecycle. */
 export class HttpServer {
-  /** Preserves opaque public output and validates that methods operate on a constructed server. */
+  /**
+   * Retrieves private state and rejects receivers that were not constructed by this class.
+   * @returns Private lifecycle and configuration state for this server.
+   * @throws {TypeError} If the receiver was not created by HttpServer.
+   */
   private get state(): IHttpServerState {
     const state = HTTP_SERVER_STATES.get(this);
     if (state === undefined) throw new TypeError("Invalid HTTP server receiver");
     return state;
   }
 
-  /** Prepares metadata only; construction never opens a listener. */
+  /**
+   * Validates and snapshots configuration without opening a listener or constructing controllers.
+   * @param options IHttpServerOptions with instances, callbacks, and optional configuration to own.
+   */
   private constructor(options: IHttpServerOptions) {
     const completions = new WeakMap<ServerResponse, ResponseCompletion>();
     const sockets = new Set<Socket>();
@@ -148,6 +232,12 @@ export class HttpServer {
     });
   }
 
+  /**
+   * Validates required callbacks and optional limits before state is assembled.
+   * @param options Server settings to validate.
+   * @returns No value; throws when required callbacks or limits are invalid.
+   * @throws {TypeError} If the controller list or a required or supplied callback is invalid.
+   */
   private static validateOptions(options: IHttpServerOptions): void {
     if (!Array.isArray(options.controllers) || typeof options.onError !== "function")
       throw new TypeError("Invalid server options");
@@ -156,6 +246,12 @@ export class HttpServer {
       throw new TypeError("Invalid response logging hook");
   }
 
+  /**
+   * Requires every supplied receive limit to be a positive safe Node-compatible integer.
+   * @param limits Optional configured positive receive and lifecycle limits.
+   * @returns No value; throws if limits is not a record of supported positive integers.
+   * @throws {TypeError} If limits is not a record or any value is out of range.
+   */
   private static validateLimits(limits: IHttpServerOptions["limits"]): void {
     if (
       limits !== undefined &&
@@ -168,6 +264,13 @@ export class HttpServer {
     }
   }
 
+  /**
+   * Selects a header timeout no greater than the overall request receive timeout.
+   * @param supplied Optional explicit header timeout in milliseconds.
+   * @param requestTimeoutMs Overall request receive timeout in milliseconds.
+   * @returns Explicit timeout or the lesser of the default and request timeout.
+   * @throws {TypeError} If the selected header timeout exceeds requestTimeoutMs.
+   */
   private static headersTimeout(supplied: number | undefined, requestTimeoutMs: number): number {
     const timeout = supplied ?? Math.min(DEFAULT_HEADERS_TIMEOUT_MS, requestTimeoutMs);
     if (timeout > requestTimeoutMs)
@@ -175,6 +278,12 @@ export class HttpServer {
     return timeout;
   }
 
+  /**
+   * Validates the authentication callback and creates its HTTP challenge header value.
+   * @param authentication Optional authentication contract and challenge configuration.
+   * @returns Challenge header value, or undefined when authentication is disabled.
+   * @throws {TypeError} If the callback, scheme, or supplied realm is invalid.
+   */
   private static createChallenge(
     authentication: IHttpServerOptions["authentication"],
   ): string | undefined {
@@ -193,6 +302,11 @@ export class HttpServer {
     return challenge.scheme + (realm === undefined ? "" : ` realm="${realm}"`);
   }
 
+  /**
+   * Copies mutable caller-owned option records while retaining callback and controller identities.
+   * @param options Validated options whose mutable records must be detached.
+   * @returns Frozen option snapshot preserving controller and callback identities.
+   */
   private static snapshotOptions(options: IHttpServerOptions): IHttpServerOptions {
     const authentication = options.authentication;
     return Object.freeze({
@@ -209,17 +323,31 @@ export class HttpServer {
     });
   }
 
-  /** Synchronous validated composition without consumer construction or resource startup. */
+  /**
+   * Creates a configured server without constructing controllers or starting a listener.
+   * @param options IHttpServerOptions with controller instances, hooks, and optional limits.
+   * @returns Configured one-use HTTP server with no listener started.
+   */
   public static create(options: IHttpServerOptions): HttpServer {
     return new HttpServer(options);
   }
 
-  /** Detached immutable composition for documentation consumers; contains no resources or callbacks. */
+  /**
+   * Returns frozen registration metadata without exposing callbacks, instances, or transport state.
+   * @returns Immutable controller identities, error mappings, and authentication presence.
+   */
   public get registration(): IHttpServerRegistration {
     return this.state.registrationValue;
   }
 
-  /** Starts once, observes native startup failure and supports ephemeral ports. */
+  /**
+   * Starts the listener once; port zero requests an OS-assigned ephemeral port.
+   * @param options IHttpListenOptions; omitted host uses Node semantics, and port zero is ephemeral.
+   * @returns Promise fulfilled with no value when listening, or rejected if startup fails.
+   * @throws {Error} If listen was already attempted or the server was closed.
+   * @throws {TypeError} If port is not an integer in 0-65535 or host is empty or non-string.
+   * @throws {unknown} If native listener startup fails or is cancelled.
+   */
   public async listen(options: IHttpListenOptions): Promise<void> {
     if (this.state.hasListened || this.state.isClosed) throw new Error("HTTP server is one-use");
     if (!Number.isInteger(options.port) || options.port < 0 || options.port > 65535)
@@ -294,14 +422,20 @@ export class HttpServer {
     }
   }
 
-  /** Returns a detached actual address only while the native server is listening. */
+  /**
+   * Returns a frozen bound address while listening, or undefined before a TCP address exists.
+   * @returns Detached host and port while bound; otherwise undefined.
+   */
   public address(): IHttpAddress | undefined {
     const address = this.state.server?.address();
     if (typeof address !== "object" || address === null) return undefined;
     return Object.freeze({ host: address.address, port: address.port });
   }
 
-  /** Idempotent stop, including before listen; no controller destruction or process signal handlers. */
+  /**
+   * Closes idempotently, including before listen, and shares the single shutdown promise.
+   * @returns Shared promise for shutdown; it rejects if owned transport, work, or logs fail to drain.
+   */
   public close(): Promise<void> {
     this.state.isClosed = true;
     if (this.state.closePromise !== undefined) return this.state.closePromise;
@@ -309,7 +443,12 @@ export class HttpServer {
     return this.state.closePromise;
   }
 
-  /** Stops acceptance immediately and bounds all owned draining; arbitrary hook promises remain cooperative. */
+  /**
+   * Stops acceptance and bounds draining; timed-out handlers are aborted and sockets destroyed.
+   * @returns Promise fulfilled after shutdown or rejected when draining fails or times out.
+   * @throws {Error} If request, transport, or logging drain exceeds the shutdown timeout.
+   * @throws {unknown} If the underlying transport, request, or log drain rejects.
+   */
   private async shutdown(): Promise<void> {
     const server = this.state.server;
     if (server === undefined) return;
@@ -336,14 +475,25 @@ export class HttpServer {
     }
   }
 
-  /** Drains dependents before logging; response completion callbacks run before native transport closes. */
+  /**
+   * Waits for transport closure, active request work, and queued response logs in dependency order.
+   * @param transport Promise tracking native listener closure.
+   * @returns Promise fulfilled after transport, handlers, and logs drain; rejects if any drain rejects.
+   */
   private async drain(transport: Promise<void>): Promise<void> {
     await transport;
     await Promise.all(this.state.active.values());
     await this.state.logs.drain();
   }
 
-  /** Tracks handlers even after disconnect so close cannot silently abandon application work. */
+  /**
+   * Queues each request per socket and tracks its handler until processing settles.
+   * @param incoming Native parsed request to process.
+   * @param outgoing Native response to complete or destroy.
+   * @param isContinue Whether request has Expect: 100-continue; defaults to false.
+   * @param isExpectationRejected Whether expectation is unsupported; defaults to false.
+   * @returns No value; schedules request handling or destroys requests after close.
+   */
   private dispatch(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -366,7 +516,12 @@ export class HttpServer {
     this.state.active.set(abort, pending);
   }
 
-  /** Parser failures have no normalized identity or request hook promise; close without draining hostile input. */
+  /**
+   * Ends malformed parser input with a bounded status response or destroys an unsafe socket.
+   * @param error Native HTTP parser error and optional parser code.
+   * @param socket Duplex connection on which parsing failed.
+   * @returns No value; ends or destroys the affected socket.
+   */
   private clientError(error: Error & { code?: string }, socket: Duplex): void {
     // An earlier response may still be in flight. Never append a parser status into its body.
     this.state.rejectedSockets.add(socket);
@@ -389,7 +544,15 @@ export class HttpServer {
     );
   }
 
-  /** Supervises every request failure and commits only normalized, schema-validated responses. */
+  /**
+   * Runs request processing, converts unexpected failures to a secret-safe 500 response, and logs them.
+   * @param incoming Parsed native request.
+   * @param outgoing Native response for this request.
+   * @param abort Request cancellation controller.
+   * @param isContinue Whether the client requested 100-continue.
+   * @param isExpectationRejected Whether the client's expectation was rejected.
+   * @returns Promise settled after request processing and failure handling finish.
+   */
   private async handle(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -435,6 +598,18 @@ export class HttpServer {
     }
   }
 
+  /**
+   * Executes normalization, authentication, binding, controller invocation, and response writing.
+   * @param incoming Parsed native request.
+   * @param outgoing Native response for this request.
+   * @param abort Signal passed to the domain request.
+   * @param requestId Stable identifier used in response and diagnostics.
+   * @param completion Response accounting for this request.
+   * @param context Mutable diagnostic phase and route state.
+   * @param isContinue Whether the client requested 100-continue.
+   * @param isExpectationRejected Whether the client's expectation was rejected.
+   * @returns Promise settling after response processing or an early handled rejection.
+   */
   private async processRequest(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -496,6 +671,17 @@ export class HttpServer {
     );
   }
 
+  /**
+   * Selects a route and rejects invalid targets, headers, cookies, expectations, and methods.
+   * @param incoming Parsed native request.
+   * @param outgoing Native response for this request.
+   * @param requestId Stable request identifier for generated responses.
+   * @param completion Response accounting updated when a route matches.
+   * @param context Mutable diagnostic phase and route state.
+   * @param isContinue Whether the client requested 100-continue.
+   * @param isExpectationRejected Whether the client's expectation was rejected.
+   * @returns Validated request parts, or undefined when a response was already sent.
+   */
   private prepareRequest(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -536,6 +722,13 @@ export class HttpServer {
     return { target, selected, headers, cookies };
   }
 
+  /**
+   * Parses the raw target under byte, pair-count, and nesting-depth limits.
+   * @param incoming Parsed native request containing the raw URL.
+   * @param outgoing Native response used for target rejection.
+   * @param requestId Stable identifier for a rejection response.
+   * @returns Parsed target or undefined after sending its rejection response.
+   */
   private parseTarget(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -552,6 +745,13 @@ export class HttpServer {
     return undefined;
   }
 
+  /**
+   * Parses Node's raw header pairs into the validated request-header value.
+   * @param incoming Parsed native request containing raw header pairs.
+   * @param outgoing Native response used for header rejection.
+   * @param requestId Stable identifier for a rejection response.
+   * @returns Validated headers or undefined after sending a rejection response.
+   */
   private parseHeaders(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -563,6 +763,13 @@ export class HttpServer {
     return undefined;
   }
 
+  /**
+   * Parses all Cookie header values into a validated cookie value.
+   * @param headers Validated headers containing zero or more Cookie values.
+   * @param outgoing Native response used for cookie rejection.
+   * @param requestId Stable identifier for a rejection response.
+   * @returns Validated cookies or undefined after sending a rejection response.
+   */
   private parseCookies(
     headers: RequestHeaders,
     outgoing: ServerResponse,
@@ -574,6 +781,16 @@ export class HttpServer {
     return undefined;
   }
 
+  /**
+   * Completes a matching OPTIONS request and indicates whether it was handled.
+   * @param incoming Parsed native request to inspect.
+   * @param outgoing Native response to complete when method is OPTIONS.
+   * @param requestId Stable identifier included in a handled response.
+   * @param match Matched route group and its allowed methods.
+   * @param headers Validated headers used to detect a request body.
+   * @param isContinue Whether the client requested 100-continue.
+   * @returns True when an OPTIONS response was sent; otherwise false.
+   */
   private handleOptions(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -595,6 +812,14 @@ export class HttpServer {
     return true;
   }
 
+  /**
+   * Creates the domain request from validated transport values and the request abort signal.
+   * @param incoming Parsed native request providing method, URL, and peer address.
+   * @param abort Request cancellation controller.
+   * @param requestId Stable identifier assigned to this request.
+   * @param prepared Validated target, route, headers, and cookies.
+   * @returns Domain request containing normalized transport data and cancellation signal.
+   */
   private static request(
     incoming: IncomingMessage,
     abort: AbortController,
@@ -617,6 +842,16 @@ export class HttpServer {
     });
   }
 
+  /**
+   * Authenticates protected endpoints and records only the resulting user identity.
+   * @param request Normalized request passed to the configured authenticator.
+   * @param endpoint Matched endpoint metadata, including its public-access flag.
+   * @param outgoing Native response used for authentication rejection.
+   * @param requestId Stable identifier included in rejection responses.
+   * @param completion Response accounting that receives the authenticated identity.
+   * @returns Promise resolving to identity (undefined if inapplicable) or a handled rejection.
+   * @throws {Error} If authentication returns a value that is not a nonempty string.
+   */
   private async authenticate(
     request: HttpRequest,
     endpoint: IHttpEndpointMetadata,
@@ -639,6 +874,17 @@ export class HttpServer {
     return { ok: true, value: userId };
   }
 
+  /**
+   * Reads and binds request input, returning controller arguments or an already-sent rejection.
+   * @param incoming Parsed native request whose body may be read.
+   * @param outgoing Native response used for input rejection.
+   * @param prepared Validated request target, route, headers, and cookies.
+   * @param request Normalized request supplied to parameter binding.
+   * @param userId Authenticated identity, when authentication produced one.
+   * @param requestId Stable identifier included in rejection responses.
+   * @param isContinue Whether the client requested 100-continue.
+   * @returns Promise resolving to bound arguments/body-read flag or undefined after rejection.
+   */
   private async bindRequest(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -682,6 +928,16 @@ export class HttpServer {
     return { arguments: binding.arguments, shouldReadBody };
   }
 
+  /**
+   * Reads a bounded body when required and writes the corresponding input rejection on failure.
+   * @param incoming Parsed native request body stream.
+   * @param outgoing Native response used for body rejection.
+   * @param requestId Stable identifier included in rejection responses.
+   * @param hasBodyBinder Whether the endpoint declares a body parameter.
+   * @param shouldReadBody Whether framing requires consuming body bytes.
+   * @param isContinue Whether the client requested 100-continue.
+   * @returns Promise resolving to parsed JSON, unbound undefined, or a rejection marker.
+   */
   private async readBody(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
@@ -703,6 +959,18 @@ export class HttpServer {
     return { ok: false };
   }
 
+  /**
+   * Invokes the matched controller and translates configured controller errors into HTTP responses.
+   * @param selected Matched route and controller instance.
+   * @param endpoint Metadata defining response declarations and error mappings.
+   * @param arguments_ Validated arguments supplied to the controller method.
+   * @param outgoing Native response used for mapped errors.
+   * @param requestId Stable identifier included in error responses.
+   * @param completion Response accounting marked on server-side errors.
+   * @param context Current phase and route for diagnostics.
+   * @returns Promise resolving to handled marker or controller value; rejects for unmapped errors.
+   * @throws {unknown} If controller failure has no configured error mapping.
+   */
   private async invokeController(
     selected: IPreparedRequest["selected"],
     endpoint: IHttpEndpointMetadata,
@@ -735,6 +1003,21 @@ export class HttpServer {
     }
   }
 
+  /**
+   * Validates the controller result against declared statuses and commits its serialized response.
+   * @param result Value returned by the controller.
+   * @param prepared Matched request and endpoint metadata.
+   * @param request Normalized request used for diagnostics.
+   * @param outgoing Native response to commit.
+   * @param requestId Stable identifier included in the response.
+   * @param completion Response accounting for this request.
+   * @param context Current phase and route for diagnostics.
+   * @param isContinue Whether the client requested 100-continue.
+   * @param shouldReadBody Whether this request consumed its body.
+   * @returns No value; writes the normalized response to the native transport.
+   * @throws {Error} If a non-HttpResponse value is returned.
+   * @throws {Error} If the response status is absent from endpoint declarations.
+   */
   private writeResponse(
     result: unknown,
     prepared: IPreparedRequest,
@@ -775,6 +1058,18 @@ export class HttpServer {
     this.send(outgoing, body);
   }
 
+  /**
+   * Projects response values through the declared DTO schema and serializes JSON.
+   * @param declaration Endpoint declaration for the response status and DTO type.
+   * @param value Controller response body to project.
+   * @param request Normalized request used for diagnostics.
+   * @param requestId Stable identifier included in fallback responses.
+   * @param outgoing Native response used after serialization failure.
+   * @param completion Response accounting marked on serialization failure.
+   * @param context Current phase and route for diagnostics.
+   * @returns JSON text, empty text for status 204, or undefined after fallback response.
+   * @throws {Error} If an array response declaration receives a non-array value.
+   */
   private serializeResponseBody(
     declaration: IHttpEndpointMetadata["responses"][number],
     value: unknown,
@@ -806,6 +1101,16 @@ export class HttpServer {
     return JSON.stringify(declaration.isArray === true ? projected : projected[0]);
   }
 
+  /**
+   * Marks output failure, reports schema issues without values, and sends an internal problem response.
+   * @param issues Safe schema paths and codes; raw invalid values are excluded.
+   * @param request Normalized request supplying method and request identity.
+   * @param requestId Stable identifier included in the fallback response.
+   * @param outgoing Native response to complete with an internal error.
+   * @param completion Response accounting marked as failed.
+   * @param context Current phase and route for diagnostics.
+   * @returns No value; reports the failure and writes a 500 problem response.
+   */
   private responseSerializationFailure(
     issues: readonly { readonly path: readonly (string | number)[]; readonly code: string }[],
     request: HttpRequest,
@@ -828,7 +1133,16 @@ export class HttpServer {
     this.problem(outgoing, requestId, 500);
   }
 
-  /** Emits secret-safe RFC 9457 failures without exposing exception messages or raw values. */
+  /**
+   * Emits an RFC 9457 problem response without exposing exception messages or raw input values.
+   * @param outgoing Native response to complete if its socket remains writable.
+   * @param requestId Stable identifier included in the problem document.
+   * @param status HTTP status code for this problem.
+   * @param issues Safe validation issues to include; defaults to an empty list.
+   * @param shouldClose Whether to reject socket reuse; defaults to false.
+   * @param mapping Optional declared error mapping for type, title, and detail.
+   * @returns No value; commits a problem response unless the socket is already unusable.
+   */
   private problem(
     outgoing: ServerResponse,
     requestId: string,
@@ -861,7 +1175,12 @@ export class HttpServer {
     this.send(outgoing, body);
   }
 
-  /** Accounts only final body bytes actually handed to the native transport, never delivery. */
+  /**
+   * Ends the response and accounts only payload bytes handed to Node, not delivery confirmation.
+   * @param outgoing Native response to end unless the response or socket is destroyed.
+   * @param body Serialized response text before HEAD suppression.
+   * @returns No value; ends the response and records handed-off payload bytes.
+   */
   private send(outgoing: ServerResponse, body: string): void {
     if (outgoing.destroyed || outgoing.req.socket.destroyed) return;
     const payload = outgoing.req.method === "HEAD" ? "" : body;
@@ -869,7 +1188,12 @@ export class HttpServer {
     this.state.completions.get(outgoing)?.handOff(Buffer.byteLength(payload));
   }
 
-  /** Observes invalid diagnostic callbacks without recursion or credential-bearing fallback output. */
+  /**
+   * Calls the synchronous diagnostic hook with sanitized errors and observes invalid hook behavior.
+   * @param error Unknown failure to sanitize before notification.
+   * @param context Secret-safe request phase and route context.
+   * @returns No value; invokes the hook and warns if it throws or returns a promise.
+   */
   private diagnose(error: unknown, context: IHttpErrorContext): void {
     // Schema params and native factory causes can carry boundary values; never forward them.
     let diagnostic = error;
@@ -906,13 +1230,20 @@ export class HttpServer {
   }
 }
 
+/** Tracks the current request phase and route for secret-safe diagnostics. */
 interface IRequestContextState {
+  /** Context updated as request processing advances through its phases. */
   current: IHttpErrorContext;
 }
 
+/** Contains the validated target, matched route, and normalized headers and cookies. */
 interface IPreparedRequest {
+  /** Parsed path and query values for this request. */
   readonly target: Extract<ReturnType<typeof RequestTarget.parse>, { readonly ok: true }>["value"];
+  /** Unique route and controller selected for the parsed path and method. */
   readonly selected: NonNullable<NonNullable<ReturnType<PreparedRoutes["match"]>>["selected"]>;
+  /** Validated headers supplied to request binding. */
   readonly headers: RequestHeaders;
+  /** Validated cookies supplied to request binding. */
   readonly cookies: RequestCookies;
 }

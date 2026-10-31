@@ -6,7 +6,16 @@ import { cpus, totalmem, platform, release, arch } from "node:os";
 
 /** Orchestrates isolated servers and clients; no cached output or timing acceptance thresholds. */
 export class BenchmarkHarness {
-  /** A fresh server is warmed with a separate client; each repeated sample has another fresh client. */
+  /**
+   * Runs an isolated server, untimed verification, warmup, and repeated fresh-client samples.
+   * @param serverFile Compiled server entry launched in a child process.
+   * @param concurrency Requests in flight for each client process.
+   * @param requests Measured requests per sample.
+   * @param warmupRequests Requests used to warm the server outside measurements.
+   * @param samples Number of fresh client samples to collect.
+   * @returns Promise fulfilled with machine, configuration, verification, and sample results.
+   * @throws {Error} Promise rejects when readiness, verification, sample, or exit checks fail.
+   */
   public static async run(
     serverFile: URL,
     concurrency: number,
@@ -88,7 +97,12 @@ export class BenchmarkHarness {
     }
   }
 
-  /** Untimed real-wire rejection probes establish equivalent auth/query/body/media semantics. */
+  /**
+   * Verifies equivalent authentication, query, body, and media rejection over HTTP.
+   * @param port Listening benchmark server port.
+   * @returns Promise fulfilled with rejection statuses in probe order.
+   * @throws {Error} Promise rejects when a rejection response is invalid or leaks input.
+   */
   private static async verify(port: number): Promise<readonly number[]> {
     const base = `http://127.0.0.1:${port}/bench/items/item`;
     const statuses: number[] = [];
@@ -135,7 +149,15 @@ export class BenchmarkHarness {
     return statuses;
   }
 
-  /** Uses Node's child process API, consumes stdout and rejects incomplete/incorrect samples. */
+  /**
+   * Runs one fresh client process and validates its completed sample output.
+   * @param clientFile Compiled client entry launched by Node.
+   * @param port Listening benchmark server port.
+   * @param concurrency Concurrent workers passed to the client.
+   * @param requests Expected completed request count.
+   * @returns Promise fulfilled with the parsed sample after correctness checks.
+   * @throws {Error} Promise rejects when sample counts are wrong or diagnostics are written.
+   */
   private static async client(
     clientFile: URL,
     port: number,
@@ -163,7 +185,13 @@ export class BenchmarkHarness {
     return sample;
   }
 
-  /** Requests cumulative logs/memory only between completed-body samples. */
+  /**
+   * Requests cumulative server statistics and checks diagnostics and completed log counts.
+   * @param server Connected benchmark server child process.
+   * @param expectedLogs Expected cumulative response-log count.
+   * @returns Promise fulfilled with the child process statistics snapshot.
+   * @throws {Error} Promise rejects when diagnostics occur or logs mismatch completed work.
+   */
   private static async stats(server: ChildProcess, expectedLogs: number): Promise<unknown> {
     const result = BenchmarkHarness.message(server);
     server.send("stats");
@@ -180,7 +208,11 @@ export class BenchmarkHarness {
     return value;
   }
 
-  /** Readiness/stats are bounded and reject child exit instead of hanging. */
+  /**
+   * Waits for one child IPC message, bounded by timeout and child exit.
+   * @param server Connected benchmark server child process.
+   * @returns Promise fulfilled with the first payload; child exit and timeout reject it.
+   */
   private static async message(server: ChildProcess): Promise<unknown> {
     const cancellation = new AbortController();
     const signal = AbortSignal.any([cancellation.signal, AbortSignal.timeout(30_000)]);

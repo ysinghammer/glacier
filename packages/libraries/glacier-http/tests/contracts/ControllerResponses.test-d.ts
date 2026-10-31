@@ -3,7 +3,10 @@ import type { IHttpHandlerResult } from "../../index.js";
 
 /** Erased consumer response relationships, separate from runtime decorator enforcement. */
 class ControllerResponses {
-  /** Success envelopes/void and awaited results retain DTO types; plain values do not. */
+  /**
+   * Checks that success envelopes, empty results, and promises preserve DTO contracts.
+   * @returns No value; compile-time assignments prove the accepted and rejected shapes.
+   */
   public static contracts(): void {
     const single: IHttpHandlerResult<{ readonly label: string }> = HttpResponse.json({
       label: "one",

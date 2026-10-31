@@ -56,6 +56,10 @@ describe("automatic HEAD and OPTIONS protocol contracts", () => {
   it("HEAD errors (401/404/405/400/417) contain no body bytes and unknown methods expose stable Allow", async () => {
     /** Known path without GET deliberately has no automatic HEAD success route. */
     class Controller {
+      /**
+       * Declares a bodyless POST route for automatic HEAD and OPTIONS assertions.
+       * @returns No value; the response contract is empty.
+       */
       public post(): void {}
     }
     EndpointDeclarations.controller(Controller);

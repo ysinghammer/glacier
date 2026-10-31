@@ -340,9 +340,17 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
   it("rejects missing contracts, duplicate/equivalent routes and unbound handler parameters", () => {
     /** Test-owned malformed declarations remain observable through public create. */
     class Controller {
+      /**
+       * Returns an undefined result for a declared response contract.
+       * @returns Undefined value for bodyless response enforcement.
+       */
       public value(): unknown {
         return undefined;
       }
+      /**
+       * Returns an undefined result for a duplicate-route declaration.
+       * @returns Undefined value for bodyless response enforcement.
+       */
       public other(): unknown {
         return undefined;
       }
@@ -364,6 +372,10 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
     );
     /** Parameter names must be unique within a route. */
     class Repeated {
+      /**
+       * Declares a bodyless method on a route with duplicate parameter names.
+       * @returns No value; the route declaration is rejected before invocation.
+       */
       public value(): void {}
     }
     const repeated = Object.getOwnPropertyDescriptor(Repeated.prototype, "value");
@@ -376,6 +388,11 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
     );
     /** Every handler position requires an explicit binder. */
     class NeedsArgument {
+      /**
+       * Returns the supplied argument for an intentionally unbound handler.
+       * @param value Required argument that has no declared binder.
+       * @returns The same string value.
+       */
       public value(value: string): string {
         return value;
       }
@@ -392,7 +409,7 @@ describe("explicit minimal lifecycle and necessary controller response slice", (
     expect(() =>
       HttpServer.create({ controllers: [new NeedsArgument()], onError: () => {} }),
     ).toThrow("instance method");
-    /** A class without declarations is not a valid controller. */
+    /** Controller fixture intentionally has no routes and is rejected as undeclared. */
     class Undeclared {}
     expect(() => HttpServer.create({ controllers: [new Undeclared()], onError: () => {} })).toThrow(
       "Missing",

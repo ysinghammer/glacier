@@ -32,6 +32,11 @@ describe("receive deadlines, cooperative cancellation and safe keep-alive framin
     const release = new Deferred<void>();
     /** Consumer work cooperates with request cancellation and remains application-owned. */
     class Controller {
+      /**
+       * Waits for application release after the request is invoked.
+       * @param request Server-created request whose abort signal is observed by the scenario.
+       * @returns Promise fulfilled with no value after release resolves.
+       */
       public async value(request: HttpRequest): Promise<void> {
         entered.resolve(request);
         await release.promise;
@@ -75,6 +80,11 @@ describe("receive deadlines, cooperative cancellation and safe keep-alive framin
     const logged = new Deferred<IHttpResponseLogRecord>();
     /** A body route must not be invoked for an incomplete framed object. */
     class Controller {
+      /**
+       * Echoes a fully parsed text DTO as a JSON response.
+       * @param body Validated request body DTO.
+       * @returns JSON response carrying the body DTO.
+       */
       public value(body: TextDto): HttpResponse<TextDto> {
         return HttpResponse.json(body);
       }
@@ -156,6 +166,11 @@ describe("receive deadlines, cooperative cancellation and safe keep-alive framin
   it("consumed schema-invalid bodies preserve valid next-request framing on the same socket", async () => {
     /** Fully consumed schema rejections may safely keep the connection alive. */
     class Controller {
+      /**
+       * Echoes a fully parsed text DTO as a JSON response.
+       * @param body Validated request body DTO.
+       * @returns JSON response carrying the body DTO.
+       */
       public value(body: TextDto): HttpResponse<TextDto> {
         return HttpResponse.json(body);
       }

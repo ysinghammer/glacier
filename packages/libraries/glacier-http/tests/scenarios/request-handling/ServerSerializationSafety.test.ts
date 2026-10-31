@@ -6,8 +6,17 @@ import { LoopbackClient } from "../../LoopbackClient.js";
 
 describe("server-owned state serialization", () => {
   it("keeps controller credentials and native handles out of output before and after listening", async () => {
+    /** Controller fixture with a secret value and one serializable route. */
     class Controller {
+      /**
+       * Synthetic private value that must not appear in server inspection.
+       * @default `synthetic-controller-secret`
+       */
       public readonly credential = "synthetic-controller-secret";
+      /**
+       * Serves the empty test route.
+       * @returns No value; exercises declared void response handling.
+       */
       public empty(): void {}
     }
     EndpointDeclarations.controller(Controller);

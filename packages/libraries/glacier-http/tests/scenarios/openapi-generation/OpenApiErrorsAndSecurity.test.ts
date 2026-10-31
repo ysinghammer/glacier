@@ -26,12 +26,22 @@ describe("OpenAPI errors and security", () => {
   it("matches real registered authentication and public routes before listen, while listening and after close without calling the hook", async () => {
     let calls = 0;
     @ApiController("/security")
+    /** Declares protected and public routes for authentication documentation checks. */
     class Controller {
+      /**
+       * Declares a protected empty route requiring an authenticated user id.
+       * @param userId Authenticated user identifier supplied by the binder.
+       * @returns No value; exercises protected route metadata and transport behavior.
+       */
       @ApiGet("/protected") @ApiResponse({ status: 204 }) public protected(
         @ApiUserId() userId: string,
       ): void {
         void userId;
       }
+      /**
+       * Declares an empty route that bypasses authentication.
+       * @returns No value; exercises public route metadata and transport behavior.
+       */
       @ApiGet("/public") @ApiPublic() @ApiResponse({ status: 204 }) public public(): void {}
     }
     const server = HttpServer.create({
@@ -111,7 +121,12 @@ describe("OpenAPI errors and security", () => {
 
   it("rejects authentication added to an unprotected server and permits explicit class-only documentation including special JSON scheme names", async () => {
     @ApiController("/plain")
+    /** Declares one unprotected empty route for authentication mismatch checks. */
     class Controller {
+      /**
+       * Declares an empty route without authentication metadata.
+       * @returns No value; used for documentation and live route checks.
+       */
       @ApiGet("/") @ApiResponse({ status: 204 }) public get(): void {}
     }
     const server = HttpServer.create({ controllers: [new Controller()], onError: () => {} });
@@ -137,17 +152,17 @@ describe("OpenAPI errors and security", () => {
   });
 
   it("preserves framework and same-status mapped alternatives while honoring endpoint/controller/global class precedence", async () => {
-    /** Static transport mapping identities. */
+    /** Endpoint-level application failure identity for mapping precedence checks. */
     class EndpointError extends Error {}
-    /** Independent controller rejection. */
+    /** Controller-level application failure identity. */
     class ControllerError extends Error {}
-    /** Global rejection with public static detail. */
+    /** Globally mapped application failure identity. */
     class GlobalError extends Error {}
-    /** Second global error shares a framework status. */
+    /** Separate global failure sharing a status code with another mapping. */
     class OtherError extends Error {}
-    /** Framework schema subclasses remain excluded from business mappings. */
+    /** Framework schema failure subtype that must remain unmapped as business error. */
     class SchemaChild extends SchemaError {}
-    /** Definition subclasses remain framework-owned. */
+    /** Framework schema-definition subtype that must remain unmapped as business error. */
     class DefinitionChild extends SchemaDefinitionError {}
     @ApiController("/errors")
     @ApiMapError(EndpointError, { status: 403, title: "Shadowed controller" })
@@ -156,7 +171,13 @@ describe("OpenAPI errors and security", () => {
     @ApiMapError(SchemaDefinitionError, { status: 498, title: "Cannot override definition" })
     @ApiMapError(SchemaChild, { status: 497, title: "Cannot override schema child" })
     @ApiMapError(DefinitionChild, { status: 496, title: "Cannot override definition child" })
+    /** Maps an endpoint error while retaining controller/global mapping precedence. */
     class Controller {
+      /**
+       * Throws the endpoint error used to generate a mapped problem alternative.
+       * @returns No value; invocation always throws the endpoint failure.
+       * @throws {EndpointError} Always, with a private message excluded from output.
+       */
       @ApiGet("/")
       @ApiResponse({ status: 204 })
       @ApiMapError(EndpointError, {
@@ -243,9 +264,9 @@ describe("OpenAPI errors and security", () => {
 
   it("does not advertise a lower-scope subclass mapping shadowed by an earlier base-class rule", () => {
     let hasInstanceCalls = 0;
-    /** Controller base rejection shadows global subclass mapping. */
+    /** Base error identity selected by the controller mapping scope. */
     class Base extends Error {}
-    /** Subclass remains selected by the earlier controller scope. */
+    /** Child error identity whose global mapping is shadowed. */
     class Child extends Base {}
     Object.defineProperty(Base, Symbol.hasInstance, {
       value: () => {
@@ -256,7 +277,12 @@ describe("OpenAPI errors and security", () => {
     @ApiController("/precedence")
     @ApiMapError(Base, { status: 400, title: "Base rejection" })
     @ApiMapError(Child, { status: 422, title: "Same-scope child rejection" })
+    /** Exposes error mapping metadata without invoking class identity hooks. */
     class Controller {
+      /**
+       * Declares the empty endpoint whose error alternatives are inspected.
+       * @returns No value; this handler is not invoked by generation.
+       */
       @ApiGet("/") @ApiResponse({ status: 204 }) public get(): void {}
     }
     const server = HttpServer.create({

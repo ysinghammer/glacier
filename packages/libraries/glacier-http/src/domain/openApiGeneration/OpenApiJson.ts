@@ -1,8 +1,16 @@
 import type { IJsonObject, IJsonValue } from "@glacier/schema";
 
-/** Detaches untrusted documentation data without invoking getters, toJSON, or other consumer callbacks. */
+/**
+ * Detaches documentation JSON without invoking accessors or consumer serialization callbacks.
+ */
 export class OpenApiJson {
-  /** Copies only finite, acyclic JSON data; unsafe values throw TypeError before a document is returned. */
+  /**
+   * Copies finite acyclic JSON-compatible data without invoking getters or toJSON methods.
+   * @param value Untrusted documentation value to copy.
+   * @param active Current recursion path used to reject cyclic references; defaults to a new set.
+   * @returns A detached JSON-compatible value.
+   * @throws {TypeError} When input is undefined, a function, a symbol, or a bigint.
+   */
   public static copy(value: unknown, active: Set<object> = new Set()): IJsonValue {
     const primitive = OpenApiJson.primitive(value);
     if (primitive !== undefined) return primitive;
@@ -11,6 +19,12 @@ export class OpenApiJson {
     return OpenApiJson.copyObject(value, active);
   }
 
+  /**
+   * Recognizes JSON primitives and finite numbers without allocating containers.
+   * @param value Candidate primitive value.
+   * @returns The JSON primitive, or undefined when a container must be copied.
+   * @throws {TypeError} When a numeric value is not finite.
+   */
   private static primitive(value: unknown): IJsonValue | undefined {
     if (value === null || typeof value === "string" || typeof value === "boolean") return value;
     if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -18,6 +32,13 @@ export class OpenApiJson {
     return undefined;
   }
 
+  /**
+   * Validates a container prototype and copies its enumerable own data fields.
+   * @param value Array or plain object to detach.
+   * @param active Current recursion path used for cycle detection.
+   * @returns A detached JSON object or array.
+   * @throws {TypeError} When the value is cyclic or has a non-plain object prototype.
+   */
   private static copyObject(value: object, active: Set<object>): IJsonValue {
     if (active.has(value)) throw new TypeError("Documentation must be safe acyclic JSON");
     const prototype: unknown = Object.getPrototypeOf(value);
@@ -33,6 +54,13 @@ export class OpenApiJson {
     }
   }
 
+  /**
+   * Reads enumerable own data descriptors and recursively copies their values.
+   * @param value Container whose enumerable properties are copied.
+   * @param active Current recursion path used for cycle detection.
+   * @returns Key/value entries detached from the source container.
+   * @throws {TypeError} When an enumerable property is an accessor rather than data.
+   */
   private static entries(value: object, active: Set<object>): [string, IJsonValue][] {
     const descriptors = Object.getOwnPropertyDescriptors(value);
     const entries: [string, IJsonValue][] = [];
@@ -45,6 +73,13 @@ export class OpenApiJson {
     return entries;
   }
 
+  /**
+   * Confirms copied array entries are dense and ordered before returning their values.
+   * @param value Source array used to verify the expected length.
+   * @param entries Enumerable copied entries for that array.
+   * @returns Dense ordered array values.
+   * @throws {TypeError} When the source array is sparse or has extra enumerable keys.
+   */
   private static array(value: readonly unknown[], entries: [string, IJsonValue][]): IJsonValue[] {
     const isDense =
       entries.length === value.length && entries.every(([key], index) => key === String(index));
@@ -52,7 +87,12 @@ export class OpenApiJson {
     return entries.map(([, item]) => item);
   }
 
-  /** Narrows a detached object contract; arrays/scalars cannot describe OpenAPI object records. */
+  /**
+   * Copies a value and narrows it to a detached OpenAPI object record.
+   * @param value Untrusted documentation value to copy as an object.
+   * @returns A detached object with JSON-compatible entries.
+   * @throws {TypeError} When the copied value is not a non-array object.
+   */
   public static object(value: unknown): IJsonObject {
     const copy = OpenApiJson.copy(value);
     if (typeof copy !== "object" || copy === null || Array.isArray(copy))
@@ -60,7 +100,11 @@ export class OpenApiJson {
     return Object.fromEntries(Object.entries(copy));
   }
 
-  /** Encodes a component key as an escaped URI-fragment JSON pointer token. */
+  /**
+   * Escapes a schema component name for use as one JSON Pointer token.
+   * @param name Component key to encode.
+   * @returns URI-encoded JSON Pointer token text.
+   */
   public static pointer(name: string): string {
     return encodeURIComponent(name.replaceAll("~", "~0").replaceAll("/", "~1"));
   }

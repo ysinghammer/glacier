@@ -9,7 +9,7 @@ import type {
   IHttpServerOptions,
 } from "../../index.js";
 
-/** Public mapping classes are constructor identities and never instantiated by HTTP. */
+/** Error constructor identity used to type-check public problem mapping declarations. */
 class RejectedError extends Error {}
 const options: IHttpErrorMappingOptions = {
   status: 403,
@@ -64,8 +64,11 @@ const invalidStatus: IHttpErrorStatus = 200;
 const invalidOptions: IHttpErrorMappingOptions = { status: 600, title: "Invalid" };
 // @ts-expect-error instances are not Error class identities
 ApiMapError(new RejectedError(), options);
-// @ts-expect-error non-Error constructors cannot be mapped
-ApiMapError(class NotError {}, options);
+ApiMapError(
+  // @ts-expect-error non-Error constructors cannot be mapped
+  /** Non-error class expression rejected by the public mapping type. */ class NotError {},
+  options,
+);
 ApiMapError(RejectedError, {
   status: 400,
   title: "Rejected",

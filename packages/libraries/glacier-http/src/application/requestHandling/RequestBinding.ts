@@ -3,9 +3,17 @@ import type { HttpRequest } from "../../domain/requestHandling/requests/HttpRequ
 import type { IHttpBindingMetadata } from "../../domain/requestHandling/routing/types/IHttpBindingMetadata.js";
 import type { IHttpInputIssue } from "../../domain/requestHandling/requests/types/IHttpInputIssue.js";
 
-/** Request-local explicit binding; no values or options are cached across controller invocations. */
+/** Resolves declared controller arguments from one request without retaining invocation data. */
 export class RequestBinding {
-  /** Coerces only textual DTO locations; malformed input returns value-free typed issues. */
+  /** Binds DTO and framework values by declared argument index; text DTO sources may be coerced.
+   * @param bindings - Ordered metadata declarations; each index selects its output argument slot.
+   * @param request - Current request supplying query, route, header, cookie, or request values.
+   * @param body - Untrusted body input; parsed without text coercion for body DTOs.
+   * @param headers - Header values used as a DTO source; keys follow the binding contract.
+   * @param cookies - Cookie values used as a DTO source; keys follow the binding contract.
+   * @param userId - Authenticated user identifier, or undefined when unavailable.
+   * @returns Success with a new indexed array, or failure with frozen value-free issues.
+   */
   public static bind(
     bindings: readonly IHttpBindingMetadata[],
     request: HttpRequest,
@@ -31,6 +39,14 @@ export class RequestBinding {
     return { ok: true, arguments: arguments_ };
   }
 
+  /** Parses one DTO binding and converts validation failures to location-aware safe issues.
+   * @param binding - DTO declaration identifying the input location and argument index.
+   * @param request - Current request used for query and route-parameter sources.
+   * @param body - Untrusted body value; body parsing does not coerce text.
+   * @param headers - Header source for this request, without additional normalization.
+   * @param cookies - Cookie source for this request, without additional normalization.
+   * @returns Parsed value, or issues containing location, path, and code but no input values.
+   */
   private static parse(
     binding: Extract<IHttpBindingMetadata, { readonly dto: unknown }>,
     request: HttpRequest,
@@ -58,6 +74,12 @@ export class RequestBinding {
     };
   }
 
+  /** Selects a non-DTO framework value from the current request context.
+   * @param binding - Non-DTO declaration specifying the value to resolve.
+   * @param request - Current request for request, route, header, and cookie values.
+   * @param userId - Authenticated identifier, or undefined when not supplied.
+   * @returns The selected value; request-derived values may be undefined when absent.
+   */
   private static value(
     binding: Exclude<IHttpBindingMetadata, { readonly dto: unknown }>,
     request: HttpRequest,

@@ -29,20 +29,31 @@ const REQUEST_HEADER_FIELDS = new WeakMap<RequestHeaders, ReadonlyMap<string, re
 
 /** Detached header storage preserving occurrences before legal semantic combination. */
 export class RequestHeaders implements IHttpRequestHeaders {
-  /** Retains receiver validation while keeping credential-bearing fields outside the instance. */
+  /**
+   * Retrieves the receiver's detached fields without exposing them as enumerable properties.
+   * @returns The immutable normalized header map owned by this instance.
+   * @throws {TypeError} When the receiver has no entry in the private field registry.
+   */
   private get fields(): ReadonlyMap<string, readonly string[]> {
     const fields = REQUEST_HEADER_FIELDS.get(this);
     if (fields === undefined) throw new TypeError("Invalid request header receiver");
     return fields;
   }
 
-  /** Retains only validated detached fields; the private map is never exposed or mutated again. */
+  /**
+   * Stores the validated detached field map and freezes this lookup object.
+   * @param fields Validated header names mapped to their original occurrences.
+   */
   private constructor(fields: ReadonlyMap<string, readonly string[]>) {
     REQUEST_HEADER_FIELDS.set(this, fields);
     Object.freeze(this);
   }
 
-  /** Snapshots Node rawHeaders and rejects sensitive duplicates, even if Node would deduplicate. */
+  /**
+   * Snapshots raw name/value pairs and rejects duplicate singleton or unsupported transfer fields.
+   * @param rawHeaders Alternating header names and values from the Node request.
+   * @returns The detached lookup, or status 400 when the field sequence is invalid.
+   */
   public static parse(rawHeaders: readonly string[]): IRequestNormalizationResult<RequestHeaders> {
     const fields = new Map<string, readonly string[]>();
     let normalizedName = "";
@@ -61,7 +72,11 @@ export class RequestHeaders implements IHttpRequestHeaders {
     return { ok: true, value: new RequestHeaders(fields) };
   }
 
-  /** Combines known list fields only; unknown/non-list fields retain their first occurrence. */
+  /**
+   * Looks up a field case-insensitively and combines only known list-valued fields.
+   * @param name Header field name to retrieve.
+   * @returns The cookie/list combination or first occurrence, or undefined when absent.
+   */
   public get(name: string): string | undefined {
     const fields = this.fields.get(name.toLowerCase());
     if (fields === undefined) return undefined;
@@ -71,12 +86,19 @@ export class RequestHeaders implements IHttpRequestHeaders {
     return fields[0];
   }
 
-  /** Returns original occurrences as a readonly frozen list, including an empty list when absent. */
+  /**
+   * Retrieves original occurrences without singleton-field deduplication.
+   * @param name Header field name to retrieve.
+   * @returns A frozen occurrence list, or a shared empty list when absent.
+   */
   public getAll(name: string): readonly string[] {
     return this.fields.get(name.toLowerCase()) ?? EMPTY_FIELDS;
   }
 
-  /** Detached normalized fields for DTO binding; occurrences remain available through request lookups. */
+  /**
+   * Copies normalized header values to a frozen record for explicit DTO binding.
+   * @returns A detached record containing the semantic value of each header field.
+   */
   public toRecord(): Readonly<Record<string, string>> {
     const record: Record<string, string> = Object.create(null);
     for (const name of this.fields.keys()) record[name] = String(this.get(name));

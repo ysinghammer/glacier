@@ -14,6 +14,10 @@ describe("exactly-once native response metadata accounting", () => {
     const text = "x".repeat(16 * 1024 * 1024);
     /** A large validated response exceeds native buffering so a client can disconnect after headers. */
     class Controller {
+      /**
+       * Returns a large validated body for disconnect accounting.
+       * @returns JSON response containing the shared large text payload.
+       */
       public value(): HttpResponse<TextDto> {
         return HttpResponse.json({ text });
       }
@@ -187,6 +191,11 @@ describe("exactly-once native response metadata accounting", () => {
   it("excluded endpoints skip success, input/auth rejection and disconnect while diagnostics and unmatched logs stay active", async () => {
     /** An application-owned excluded endpoint can deliberately throw a mapped server failure. */
     class Controller {
+      /**
+       * Throws a private application failure for the mapped route.
+       * @returns No value; invocation always throws.
+       * @throws {Error} Always, with a private message excluded from output.
+       */
       public value(): never {
         throw new Error("secret");
       }
@@ -256,6 +265,10 @@ describe("exactly-once native response metadata accounting", () => {
     const records: IHttpResponseLogRecord[] = [];
     /** A simple declared void route can succeed or fail independently of logging exclusion. */
     class Controller {
+      /**
+       * Declares a bodyless route used to verify logging exclusion.
+       * @returns No value; the response contract is empty.
+       */
       public value(): void {}
     }
     EndpointDeclarations.controller(Controller);

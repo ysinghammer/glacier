@@ -12,11 +12,16 @@ import {
 
 /** Application DTO with genuine emitted metadata and no constructor execution by HTTP. */
 class MessageDto {
+  /** Counts explicit constructions for the compiled DTO assertion. @default 0 */
   public static constructions = 0;
   @IsString()
+  /** Required text in the compiled JSON DTO contract. */
   declare public text: string;
 
-  /** Detects accidental constructor-based processing. */
+  /**
+   * Counts explicit DTO construction by application composition.
+   * @returns No value; increments the construction counter.
+   */
   public constructor() {
     MessageDto.constructions++;
   }
@@ -25,13 +30,20 @@ class MessageDto {
 /** Application-owned controller with real legacy decorated declarations. */
 @ApiController("/compiled")
 class MessageController {
+  /** Counts explicit controller construction performed by composition. @default 0 */
   public static constructions = 0;
-  /** Detects HTTP-owned instantiation beyond explicit composition. */
+  /**
+   * Records explicit composition of this controller.
+   * @returns No value; increments the static construction count.
+   */
   public constructor() {
     MessageController.constructions++;
   }
 
-  /** Returns a schema-validated JSON success with an independent cookie field. */
+  /**
+   * Returns a schema-validated JSON success with a compiled cookie field.
+   * @returns Successful response containing the compiled text and cookie.
+   */
   @ApiGet("/value")
   @ApiResponse({ status: 200, type: MessageDto })
   public get(): HttpResponse<MessageDto> {
@@ -44,7 +56,11 @@ class MessageController {
 
 /** Executable consumer smoke evidence using only public roots and actual loopback HTTP. */
 class CompiledConsumer {
-  /** Starts explicitly, consumes the actual response, records emissions and closes owned resources. */
+  /**
+   * Starts explicitly, consumes a real response, records emissions, and closes the server.
+   * @returns Promise fulfilled after printing the response and compiler metadata state.
+   * @throws {Error} Promise rejects when the listener exposes no bound address.
+   */
   public static async run(): Promise<void> {
     const controller = new MessageController();
     const diagnostics: Error[] = [];

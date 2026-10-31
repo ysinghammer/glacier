@@ -29,7 +29,11 @@ import type {
 
 /** Public compile-time contract checks; this file is type-checked, never runtime-discovered. */
 class PublicContracts {
-  /** Valid configurations consume curated readonly root types without internal aliases. */
+  /**
+   * Checks public request, server, auth, and lifecycle types are readonly and curated.
+   * @param request Publicly constructed request received by the contract check.
+   * @returns No value; invalid access and configuration must fail type checking.
+   */
   public static configuration(request: HttpRequest): void {
     const headers: IHttpRequestHeaders = request.headers;
     const cookies: IHttpRequestCookies = request.cookies;
@@ -91,7 +95,10 @@ class PublicContracts {
     void [missingChallenge, invalidAuth];
   }
 
-  /** Generic response state prevents structural fabrication and preserves DTO/array identity. */
+  /**
+   * Checks response, cookie, status, and immutable generic body contracts.
+   * @returns No value; invalid response construction must fail type checking.
+   */
   public static responses(): void {
     const cookieOptions: IHttpCookieOptions = {
       path: "/",
@@ -146,7 +153,10 @@ class PublicContracts {
     void [wrongDto, fabricated];
   }
 
-  /** The small prerequisite decorator slice uses explicit class references and success declarations. */
+  /**
+   * Checks decorator options accept explicit class references and success responses.
+   * @returns No value; invalid DTO references and response statuses must fail type checking.
+   */
   public static declarations(): void {
     const controllerOptions: IApiControllerOptions = { tags: ["example"], exclude: false };
     const routeOptions: IApiRouteOptions = {

@@ -9,14 +9,18 @@ import {
 } from "@glacier/http";
 import type { IHttpResponseLogRecord } from "@glacier/http";
 
-/** Test-owned application error translated only by controller mapping. */
+/** Test-owned application failure mapped to a safe HTTP problem by its controller. */
 class BusinessError extends Error {}
 
 /** Genuine legacy emissions exercise endpoint/controller mappings and logging exclusion. */
 @ApiController("/errors")
 @ApiMapError(BusinessError, { status: 503, title: "Static controller" })
 class ErrorsController {
-  /** Expected endpoint rejection overrides the broader controller scope. */
+  /**
+   * Throws a mapped expected rejection to test endpoint-over-controller precedence.
+   * @returns No value; this handler always rejects by throwing.
+   * @throws {BusinessError} Always, to exercise endpoint-level mapping.
+   */
   @ApiGet("/local")
   @ApiResponse({ status: 204 })
   @ApiMapError(Error, { status: 409, title: "Static endpoint" })
@@ -24,7 +28,11 @@ class ErrorsController {
     throw new BusinessError("private");
   }
 
-  /** Exclusion leaves mapped server diagnostics active. */
+  /**
+   * Throws a mapped failure while excluding only response-log records.
+   * @returns No value; this handler always rejects by throwing.
+   * @throws {BusinessError} Always, to exercise diagnostics despite log exclusion.
+   */
   @ApiGet("/excluded")
   @ApiResponse({ status: 204 })
   @ApiSkipResponseLogging()

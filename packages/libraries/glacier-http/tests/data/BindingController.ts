@@ -32,31 +32,38 @@ import { EndpointDeclarations } from "../EndpointDeclarations.js";
 
 /** Test-owned nested query shape. */
 export class FilterDto {
+  /** Required boolean filter emitted by query parsing. */
   declare public active: boolean;
+  /** Required repeated string filter values. */
   declare public tags: string[];
 }
 IsBoolean()(FilterDto.prototype, "active");
 IsArray(String)(FilterDto.prototype, "tags");
 /** Test-owned query shape with nested scalar arrays and no constructor work. */
 export class QueryDto {
+  /** Required nested query filter with active state and repeated tags. */
   declare public filter: FilterDto;
 }
 IsObject(FilterDto)(QueryDto.prototype, "filter");
 /** Text coercion DTO reused across textual locations, not JSON coercion. */
 export class NumberDto {
+  /** Required integer value renamed to `id` in textual input. */
   declare public id: number;
 }
 IsInt()(NumberDto.prototype, "id");
 Rename("id")(NumberDto.prototype, "id");
 /** Lower-case normalized header DTO. */
 export class HeaderDto {
+  /** Required integer parsed from the normalized `x-count` header. */
   declare public count: number;
 }
 IsInt()(HeaderDto.prototype, "count");
 Rename("x-count")(HeaderDto.prototype, "count");
 /** Input and output body DTO with a deliberate private refinement reason. */
 export class BodyDto {
+  /** Required integer count in the JSON request and response. */
   declare public count: number;
+  /** Required label; the value `reject` triggers the fixture refinement. */
   declare public label: string;
 }
 IsInt()(BodyDto.prototype, "count");
@@ -64,7 +71,9 @@ IsString()(BodyDto.prototype, "label");
 Refine((value) => value !== "reject", "private-refinement-detail")(BodyDto.prototype, "label");
 /** Observable complete binding result; IsAny still requires JSON-safe outbound data. */
 export class ObservationDto {
+  /** Complete observed binder result serialized by the fixture response. */
   declare public value: unknown;
+  /** Optional string field used to check optional schema handling. */
   declare public optional?: string;
 }
 IsAny()(ObservationDto.prototype, "value");
@@ -73,8 +82,24 @@ Optional()(ObservationDto.prototype, "optional");
 
 /** Shared application-owned controller; arguments and requests stay local to each call. */
 export class BindingController {
+  /**
+   * Number of `text` and `body` invocations observed by scenarios.
+   * @default 0
+   */
   public calls = 0;
-  /** Returns every textual/direct binder value so assertions need no private inspection. */
+  /**
+   * Returns all bound request values through a public response body.
+   * @param id Path parameter bound from the route.
+   * @param params Projected numeric path parameters.
+   * @param query Parsed nested query fields.
+   * @param headers Projected request headers.
+   * @param cookies Projected request cookies.
+   * @param header Optional direct header value.
+   * @param cookie Optional direct cookie value.
+   * @param request Public request snapshot bound by the decorator.
+   * @param userId Authenticated user identifier.
+   * @returns JSON response containing each bound value and request observation.
+   */
   public text(
     id: string,
     params: NumberDto,
@@ -107,16 +132,29 @@ export class BindingController {
       },
     });
   }
-  /** Required body input is projected before transport. */
+  /**
+   * Returns the validated body and selects 201 for count 201, otherwise 200.
+   * @param body Validated request body.
+   * @returns JSON response containing the body.
+   */
   public body(body: BodyDto): HttpResponse<BodyDto> {
     this.calls++;
     return HttpResponse.json(body, { status: body.count === 201 ? 201 : 200 });
   }
-  /** No authentication must occur on this endpoint, including body rejections. */
+  /**
+   * Returns a public-route body response without authentication work.
+   * @param body Validated request body.
+   * @returns JSON response containing the body.
+   */
   public publicBody(body: BodyDto): HttpResponse<BodyDto> {
     return HttpResponse.json(body);
   }
-  /** Direct absent and empty values remain distinct. */
+  /**
+   * Exposes optional raw header and cookie bindings as JSON-safe values.
+   * @param header Optional header value; absence is represented as null.
+   * @param cookie Optional cookie value; absence is represented as null.
+   * @returns JSON response containing both direct bindings.
+   */
   public direct(
     header: string | undefined,
     cookie: string | undefined,

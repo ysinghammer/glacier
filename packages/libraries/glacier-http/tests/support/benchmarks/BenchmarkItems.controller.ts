@@ -17,7 +17,13 @@ import { BenchmarkWorkload } from "./BenchmarkWorkload.js";
 /** Two representative routes with authentication, binding, validation, projection and logs. */
 @ApiController("/bench/items")
 export class BenchmarkItemsController {
-  /** Coerces a query integer and returns a projected DTO. */
+  /**
+   * Binds a path id, authenticated user, and query integer into projected output.
+   * @param id Item identifier from the path.
+   * @param userId Authenticated actor identifier.
+   * @param query Validated query count.
+   * @returns Successful response containing projected benchmark output.
+   */
   @ApiGet("/:id")
   @ApiResponse({ status: 200, type: BenchmarkOutputDto })
   public read(
@@ -28,7 +34,13 @@ export class BenchmarkItemsController {
     return HttpResponse.json(BenchmarkWorkload.output(id, userId, query.count, "query"));
   }
 
-  /** Validates a strict JSON object and returns the same projected response shape. */
+  /**
+   * Validates a JSON body and returns the same projected response shape as GET.
+   * @param id Item identifier from the path.
+   * @param userId Authenticated actor identifier.
+   * @param body Validated integer count and label from JSON.
+   * @returns Successful response containing projected benchmark output.
+   */
   @ApiPost("/:id")
   @ApiResponse({ status: 200, type: BenchmarkOutputDto })
   public write(

@@ -2,7 +2,11 @@ import { spawnSync } from "node:child_process";
 
 /** Prepares genuine legacy TypeScript emission without a bundler or new dependency. */
 class HttpTestPreparation {
-  /** Compiles only test-owned consumer inputs; generated files remain ignored under artifacts. */
+  /**
+   * Compiles the fixture, benchmark, and consumer projects before runtime scenarios execute.
+   * @returns No value; generated JavaScript stays in ignored package artifacts.
+   * @throws {Error} When a compiler process cannot start or any project fails.
+   */
   public static run(): void {
     for (const project of [
       "tsconfig.fixtures.json",
@@ -20,7 +24,10 @@ class HttpTestPreparation {
   }
 }
 
-/** Vitest-owned setup delegates compilation; it never starts resources or another test runner. */
+/**
+ * Vitest global setup compiles test-owned TypeScript fixtures before discovery runs.
+ * @returns No value; setup completes only after all fixture projects compile.
+ */
 export default function setup(): void {
   HttpTestPreparation.run();
 }

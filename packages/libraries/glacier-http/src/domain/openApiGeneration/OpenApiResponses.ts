@@ -31,9 +31,15 @@ const RESERVED_HEADERS = new Set([
   "te",
 ]);
 
-/** Documents successful declarations and safe framework/mapped Problem Details without overwriting shared statuses. */
+/**
+ * Generates OpenAPI success and safe Problem Details response contracts.
+ */
 export class OpenApiResponses {
-  /** Registers framework components once per nonempty document and rejects consumer component name collisions. */
+  /**
+   * Adds the framework-owned validation issue and Problem Details schemas.
+   * @param schemas Component registry receiving the framework schemas.
+   * @returns No value; reserves the framework component names in the registry.
+   */
   public static prepare(schemas: OpenApiSchemas): void {
     schemas.add("GlacierInputIssueOutput", {
       type: "object",
@@ -60,7 +66,14 @@ export class OpenApiResponses {
     });
   }
 
-  /** Applies scope precedence for identical/subclass errors and preserves all potentially selectable alternatives. */
+  /**
+   * Builds success and failure responses using endpoint, controller, then global mappings.
+   * @param endpoint Prepared endpoint success and scoped error contracts.
+   * @param schemas Component registry used for response body references.
+   * @param globals Prepared application-wide error mappings.
+   * @param hasAuthentication Whether protected routes may produce authentication failures.
+   * @returns OpenAPI response map keyed by HTTP status code.
+   */
   public static operation(
     endpoint: IHttpEndpointMetadata,
     schemas: OpenApiSchemas,
@@ -77,6 +90,12 @@ export class OpenApiResponses {
     return responses;
   }
 
+  /**
+   * Converts every declared successful response into a status-keyed record.
+   * @param endpoint Endpoint containing success response declarations.
+   * @param schemas Component registry for response DTO references.
+   * @returns Response objects keyed by their numeric status strings.
+   */
   private static successResponses(
     endpoint: IHttpEndpointMetadata,
     schemas: OpenApiSchemas,
@@ -87,6 +106,13 @@ export class OpenApiResponses {
     return responses;
   }
 
+  /**
+   * Converts one success declaration to a bodyless or JSON response object.
+   * @param response Explicit endpoint success contract.
+   * @param schemas Component registry for JSON response DTO references.
+   * @returns OpenAPI response object with documented headers and optional content.
+   * @throws {TypeError} When the response description is not a string.
+   */
   private static successResponse(
     response: IHttpEndpointMetadata["responses"][number],
     schemas: OpenApiSchemas,
@@ -111,6 +137,12 @@ export class OpenApiResponses {
     };
   }
 
+  /**
+   * Adds the generated request ID header and validates documented response headers.
+   * @param supplied Optional documented header contracts.
+   * @returns Response header objects including the generated request identity.
+   * @throws {TypeError} When supplied names collide after case normalization.
+   */
   private static headers(
     supplied: IHttpEndpointMetadata["responses"][number]["headers"],
   ): Record<string, IJsonValue> {
@@ -133,6 +165,13 @@ export class OpenApiResponses {
     return headers;
   }
 
+  /**
+   * Rejects transport-owned names and names outside the HTTP field-token grammar.
+   * @param name Original documented header name.
+   * @param normalizedName Lower-case name used for reserved-name checks.
+   * @returns No value; confirms the name can be documented as caller-owned.
+   * @throws {TypeError} When the name is reserved or is not a valid token.
+   */
   private static validateHeaderName(name: string, normalizedName: string): void {
     if (RESERVED_HEADERS.has(normalizedName))
       throw new TypeError("Reserved response header documentation");
@@ -140,6 +179,12 @@ export class OpenApiResponses {
       throw new TypeError("Invalid response header documentation");
   }
 
+  /**
+   * Creates the DTO component reference or array schema for a successful response.
+   * @param response Non-204 success declaration with a DTO class identity.
+   * @param schemas Component registry used to resolve directional references.
+   * @returns DTO schema reference, optionally wrapped as an array schema.
+   */
   private static responseSchema(
     response: Exclude<IHttpEndpointMetadata["responses"][number], { readonly status: 204 }>,
     schemas: OpenApiSchemas,
@@ -148,11 +193,23 @@ export class OpenApiResponses {
     return response.isArray === true ? { type: "array", items: reference } : reference;
   }
 
+  /**
+   * Collects framework and precedence-selectable mapped error alternatives by status.
+   * @param endpoint Endpoint-scoped and controller-scoped mappings and route visibility.
+   * @param globals Prepared global error mappings.
+   * @param hasAuthentication Whether protected routes can return an authentication problem.
+   * @returns Alternatives and public titles grouped by status for response rendering.
+   */
   private static failureAlternatives(
     endpoint: IHttpEndpointMetadata,
     globals: readonly IHttpErrorMapping[],
     hasAuthentication: boolean,
-  ): { readonly alternatives: Map<number, IJsonObject[]>; readonly titles: Map<number, string[]> } {
+  ): {
+    /** Safe response schema alternatives grouped by status. */
+    readonly alternatives: Map<number, IJsonObject[]>;
+    /** Public response titles grouped by status. */
+    readonly titles: Map<number, string[]>;
+  } {
     const alternatives = new Map<number, IJsonObject[]>();
     const titles = new Map<number, string[]>();
     for (const [status, title] of Object.entries(FRAMEWORK_FAILURES))
@@ -175,6 +232,14 @@ export class OpenApiResponses {
     return { alternatives, titles };
   }
 
+  /**
+   * Adds documentable mappings that are not shadowed by an earlier scope.
+   * @param alternatives Problem schemas grouped by status to update.
+   * @param titles Public titles grouped by status to update.
+   * @param scope Current mappings at one precedence level.
+   * @param earlier Higher-precedence mappings that can shadow this scope.
+   * @returns No value; appends each potentially selectable mapping alternative.
+   */
   private static appendMappings(
     alternatives: Map<number, IJsonObject[]>,
     titles: Map<number, string[]>,
@@ -195,6 +260,11 @@ export class OpenApiResponses {
     }
   }
 
+  /**
+   * Excludes schema-library errors that are reserved for framework handling.
+   * @param mapping Prepared error mapping to inspect.
+   * @returns True when the mapped error can appear in generated API documentation.
+   */
   private static isDocumentable(mapping: IHttpErrorMapping): boolean {
     return !(
       mapping.error === SchemaError ||
@@ -204,6 +274,14 @@ export class OpenApiResponses {
     );
   }
 
+  /**
+   * Renders grouped safe failure alternatives into the status-keyed response map.
+   * @param responses Existing success responses to extend with failure responses.
+   * @param alternatives Safe Problem Details alternatives grouped by status.
+   * @param titles Public descriptions grouped by status.
+   * @param hasAuthentication Whether 401 responses include a challenge header contract.
+   * @returns No value; mutates the local response record with failure responses.
+   */
   private static renderFailures(
     responses: Record<string, IJsonValue>,
     alternatives: Map<number, IJsonObject[]>,
@@ -235,7 +313,12 @@ export class OpenApiResponses {
       };
   }
 
-  /** Walks class prototypes without invoking consumer Symbol.hasInstance callbacks or exception constructors. */
+  /**
+   * Tests whether one mapped error class inherits from another by prototype identity.
+   * @param child Candidate more-specific error class.
+   * @param parent Candidate base error class.
+   * @returns True when the child prototype chain contains the parent prototype.
+   */
   private static inherits(
     child: IHttpErrorMapping["error"],
     parent: IHttpErrorMapping["error"],
@@ -248,7 +331,16 @@ export class OpenApiResponses {
     return false;
   }
 
-  /** Adds a static safe alternative; status collisions are represented as anyOf, never ambiguous oneOf. */
+  /**
+   * Adds one static Problem Details alternative and title for its status.
+   * @param alternatives Schemas grouped by status to update.
+   * @param titles Titles grouped by status to update.
+   * @param status HTTP status represented by the alternative.
+   * @param title Static public title.
+   * @param type Static Problem Details type URI.
+   * @param detail Static public detail text.
+   * @returns No value; appends the alternative and its title to the local groups.
+   */
   private static problem(
     alternatives: Map<number, IJsonObject[]>,
     titles: Map<number, string[]>,

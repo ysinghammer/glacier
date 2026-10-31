@@ -19,14 +19,26 @@ import { UpdateItemUseCase } from "./UpdateItem.use-case.js";
 @ApiController("/consumer/items")
 @ApiMapError(ItemAccessError, { status: 403, title: "Access denied" })
 export class ItemsController {
+  /** Application operation supplied by composition and used for item updates. */
   private readonly updateItem: UpdateItemUseCase;
 
-  /** Composition supplies a technology-independent application operation. */
+  /**
+   * Stores the application operation selected by composition.
+   * @param update Technology-independent item update operation.
+   * @returns No value; retains the injected operation for controller calls.
+   */
   public constructor(update: UpdateItemUseCase) {
     this.updateItem = update;
   }
 
-  /** Translates expected application denial only here, then returns validated logical output. */
+  /**
+   * Translates expected denial at the HTTP boundary and returns the validated item.
+   * @param id Item identifier from the path.
+   * @param userId Authenticated actor identifier.
+   * @param input Validated body containing the requested label.
+   * @returns HTTP response with the updated item and a consumer cookie.
+   * @throws {ItemAccessError} When the application operation denies the actor.
+   */
   @ApiPost("/:id")
   @ApiResponse({ status: 200, type: ItemDto })
   public update(
@@ -39,7 +51,10 @@ export class ItemsController {
     return HttpResponse.json(result.value, { cookies: [HttpCookie.set("consumer", "opaque")] });
   }
 
-  /** Excludes session cleanup records and clears the original safe cookie scope. */
+  /**
+   * Clears the consumer session cookie without recording the response.
+   * @returns Empty successful response carrying a cookie deletion.
+   */
   @ApiDelete("/session")
   @ApiResponse({ status: 204 })
   @ApiSkipResponseLogging()

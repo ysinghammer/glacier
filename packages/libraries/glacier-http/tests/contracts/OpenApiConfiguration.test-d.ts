@@ -7,9 +7,17 @@ import type {
 } from "../../index.js";
 import type { IJsonValue } from "@glacier/schema";
 
-/** Required constructor services do not restrict metadata-only controller class references. */
+/** Controller class reference used to prove OpenAPI generation needs no instance. */
 class Controller {
-  public constructor(public readonly service: string) {}
+  /**
+   * Stores a required consumer dependency that metadata generation must not request.
+   * @param service Consumer-owned service required for explicit construction.
+   * @returns No value; initializes the typed fixture controller.
+   */
+  public constructor(
+    /** Consumer service unavailable to metadata-only generation. */
+    public readonly service: string,
+  ) {}
 }
 const info: IOpenApiInfo = { title: "API", version: "1", description: "Explicit" };
 const authentication: IOpenApiAuthenticationOptions = {

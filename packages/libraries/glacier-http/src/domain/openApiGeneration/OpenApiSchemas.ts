@@ -6,11 +6,21 @@ import { OpenApiJson } from "./OpenApiJson.js";
 const REFERENCE_PREFIX = "#/components/schemas/";
 const LITERAL_KEYWORDS = new Set(["example", "examples", "default", "const", "enum"]);
 
-/** Composes complete class graphs through public schema declarations, retaining global class collision detection. */
+/**
+ * Builds detached input/output schema components from explicit DTO class identities.
+ */
 export class OpenApiSchemas {
+  /**
+   * Directionally named generated schema definitions owned by this composition.
+   * @default Empty record
+   */
   private readonly schemas: Record<string, IJsonValue> = {};
 
-  /** Checks all root identities together before directional graphs; the synthetic graph never becomes a public component. */
+  /**
+   * Generates separate input/output component graphs while checking root class collisions.
+   * @param input DTO class identities used for request schemas.
+   * @param output DTO class identities used for response schemas.
+   */
   public constructor(
     input: readonly IConstructableClass<object>[],
     output: readonly IConstructableClass<object>[],
@@ -45,7 +55,12 @@ export class OpenApiSchemas {
     }
   }
 
-  /** Returns a reference to a registered root in the requested wire direction. */
+  /**
+   * Creates a local component reference for one registered root and direction.
+   * @param target Explicit DTO class identity.
+   * @param direction Input or output schema direction.
+   * @returns JSON Schema reference to the directional component.
+   */
   public reference(
     target: IConstructableClass<object>,
     direction: IJsonSchemaDirection,
@@ -59,7 +74,12 @@ export class OpenApiSchemas {
     };
   }
 
-  /** Resolves a prepared root object for parameter decomposition without exposing schema metadata. */
+  /**
+   * Resolves the generated root definition for parameter-shape inspection.
+   * @param target Explicit DTO class identity.
+   * @param direction Input or output schema direction.
+   * @returns Root schema object from the registered component graph.
+   */
   public definition(
     target: IConstructableClass<object>,
     direction: IJsonSchemaDirection,
@@ -67,7 +87,11 @@ export class OpenApiSchemas {
     return this.resolve(this.reference(target, direction));
   }
 
-  /** Resolves a generated local schema reference for wire-shape checks, leaving inline schemas intact. */
+  /**
+   * Resolves local component references and leaves inline schemas unchanged.
+   * @param schema Inline schema or local component reference to resolve.
+   * @returns Resolved object schema or the original inline object.
+   */
   public resolve(schema: IJsonObject): IJsonObject {
     if (typeof schema.$ref !== "string") return schema;
     const name = schema.$ref.slice(REFERENCE_PREFIX.length);
@@ -75,28 +99,48 @@ export class OpenApiSchemas {
     return OpenApiJson.object(this.schemas[key]);
   }
 
-  /** Adds framework-owned schemas with collision rejection, never a silent override. */
+  /**
+   * Adds one framework-owned component without replacing an existing name.
+   * @param name Component key to reserve.
+   * @param schema Detached schema object to store.
+   * @returns No value; stores the schema under its component name.
+   * @throws {TypeError} When the component name is already present.
+   */
   public add(name: string, schema: IJsonObject): void {
     if (Object.hasOwn(this.schemas, name)) throw new TypeError(`Conflicting component ${name}`);
     this.schemas[name] = schema;
   }
 
-  /** Returns sorted detached components for stable output independent of registration order. */
+  /**
+   * Creates a stable component record sorted by component name.
+   * @returns Components in lexicographic key order, detached from internal storage.
+   */
   public components(): IJsonObject {
     return Object.fromEntries(
       Object.entries(this.schemas).sort(([left], [right]) => left.localeCompare(right)),
     );
   }
 
-  /** Uses a behavior-bearing local graph class solely for metadata composition through deliberate public APIs. */
+  /**
+   * Generates one synthetic graph so reachable DTO schemas share collision detection.
+   * @param roots DTO class identities included in this graph.
+   * @param direction Input or output schema direction for the graph.
+   * @param name Synthetic graph name chosen to avoid root collisions.
+   * @returns Generated JSON Schema metadata for the reachable component graph.
+   */
   private static graph(
     roots: readonly IConstructableClass<object>[],
     direction: IJsonSchemaDirection,
     name: string,
   ): IJsonSchema {
-    /** One generator call keeps reachable class ownership together, including nested cycles and unions. */
+    /**
+     * Synthetic carrier class whose public schema declarations join all graph roots.
+     */
     class ComponentGraph {
-      /** Generates metadata, never an instance of the graph or any consumer DTO. */
+      /**
+       * Generates schema metadata without constructing this class or consumer DTOs.
+       * @returns Schema metadata for this graph's declared root properties.
+       */
       public static generate(): IJsonSchema {
         return Schema.toJsonSchema(ComponentGraph, { target: "openapi-3.1", direction });
       }
@@ -107,12 +151,22 @@ export class OpenApiSchemas {
     return ComponentGraph.generate();
   }
 
-  /** Stable directional names are independent of traversal and contain no collision-hiding numeric suffixes. */
+  /**
+   * Selects the stable suffix distinguishing input and output component names.
+   * @param direction Schema generation direction.
+   * @returns `Input` for request schemas or `Output` for response schemas.
+   */
   private static suffix(direction: IJsonSchemaDirection): string {
     return direction === "input" ? "Input" : "Output";
   }
 
-  /** Rewrites schema refs/discriminator mappings, never literal examples or enum/const data. */
+  /**
+   * Rewrites local references and discriminator mappings for one wire direction.
+   * @param value JSON Schema value to traverse.
+   * @param direction Directional component suffix to apply.
+   * @param isMapping Whether this string is a discriminator mapping target; defaults to false.
+   * @returns Rewritten schema data, leaving literal examples and extension values intact.
+   */
   private static rewrite(
     value: IJsonValue,
     direction: IJsonSchemaDirection,

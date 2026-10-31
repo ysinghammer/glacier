@@ -3,39 +3,77 @@ import { TextDto } from "./TextDto.js";
 
 /** Test-owned public controller methods exercise real transport envelopes. */
 export class PrimitiveController {
+  /**
+   * Current response-like value returned by the parameterized fixture route.
+   * @default HttpResponse.noContent()
+   */
   public response: unknown = HttpResponse.noContent();
+  /**
+   * Current JSON response returned by the static `/json` route.
+   * @default HttpResponse.json({ text: "hello" })
+   */
   public jsonResponse: unknown = HttpResponse.json({ text: "hello" });
+  /**
+   * Current array response returned by the `/array` route.
+   * @default HttpResponse.json([{ text: "hello" }])
+   */
   public arrayResponse: unknown = HttpResponse.json([{ text: "hello" }]);
+  /**
+   * Optional failure thrown by `json`; absent until a scenario assigns one.
+   * @default undefined
+   */
   public jsonFailure: Error | undefined;
 
-  /** Returns the test-selected envelope or deliberate contract violation. */
+  /**
+   * Returns the test-selected envelope or deliberate contract violation.
+   * @returns Current response fixture value without validation.
+   */
   public value(): unknown {
     return this.response;
   }
-  /** Static path must precede the otherwise matching parameter path. */
+  /**
+   * Returns the static JSON fixture or throws its configured failure.
+   * @returns Current JSON response fixture value.
+   * @throws {Error} When `jsonFailure` contains the configured error.
+   */
   public json(): unknown {
     if (this.jsonFailure !== undefined) throw this.jsonFailure;
     return this.jsonResponse;
   }
-  /** Array projection uses the explicit DTO identity. */
+  /**
+   * Returns the array response fixture used with explicit DTO metadata.
+   * @returns Current array response fixture value.
+   */
   public array(): unknown {
     return this.arrayResponse;
   }
 
-  /** Explicit nondefault success status, without a fabricated response reader. */
+  /**
+   * Creates the 201 response used to verify a nondefault success status.
+   * @returns A JSON response containing the `created` text.
+   */
   public created(): HttpResponse<{ readonly text: string }> {
     return HttpResponse.json({ text: "created" }, { status: 201 });
   }
 
-  /** Highest valid success status remains observable over the real transport. */
+  /**
+   * Creates a response using the highest valid success status.
+   * @returns A JSON response containing the `upper` text.
+   */
   public upper(): HttpResponse<{ readonly text: string }> {
     return HttpResponse.json({ text: "upper" }, { status: 299 });
   }
-  /** Preserves interior repeated separators. */
+  /**
+   * Returns an empty success for a route containing repeated separators.
+   * @returns An empty 204 response.
+   */
   public repeated(): HttpResponse<void> {
     return HttpResponse.noContent();
   }
-  /** Root path remains distinct from empty targets. */
+  /**
+   * Returns an empty success for the root route.
+   * @returns An empty 204 response.
+   */
   public root(): HttpResponse<void> {
     return HttpResponse.noContent();
   }

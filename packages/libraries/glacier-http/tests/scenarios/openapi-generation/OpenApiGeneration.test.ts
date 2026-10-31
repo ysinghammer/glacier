@@ -40,21 +40,36 @@ const INFO = { title: "Example API", version: "1.0", description: "Metadata cont
 
 describe("OpenAPI generation", () => {
   it("agrees with real body/query parsing, tuple and singleton-array wire grammar, output renaming and redacted failures", async () => {
+    /** Output DTO with one renamed text field. */
     class Dto {
+      /** Required name projected to the `display_name` JSON field. */
       @IsString() @Rename("display_name") public name!: string;
     }
+    /** Nested query object used by the structured filter. */
     class Filter {
+      /** Required active flag represented in the nested query object. */
       @IsBoolean() public active!: boolean;
     }
+    /** Query contract covering repeated, tuple, and nested values. */
     class Query {
+      /** Required repeated scalar query values. */
       @IsArray(String) public tags!: string[];
+      /** Required fixed-width tuple parsed from two repeated values. */
       @IsTuple([String, Number]) public tuple!: [string, number];
+      /** Required nested query filter. */
       @IsObject(Filter) public filter!: Filter;
     }
     @ApiController("/agreement")
+    /** Joins validated body and query data for runtime/OpenAPI agreement checks. */
     class Controller {
       @ApiPost("/")
       @ApiResponse({ status: 200, type: Dto })
+      /**
+       * Combines validated body and query values in the response projection.
+       * @param body Validated request body DTO.
+       * @param query Validated nested and repeated query values.
+       * @returns JSON response carrying the combined display name.
+       */
       public post(@ApiBody(Dto) body: Dto, @ApiQuery(Query) query: Query): HttpResponse<Dto> {
         return HttpResponse.json({
           name: `${body.name}:${query.tags.join(",")}:${query.tuple.join("/")}:${String(query.filter.active)}`,
@@ -139,40 +154,70 @@ describe("OpenAPI generation", () => {
     /** Shared request/response schema has distinct requiredness and renamed wire fields. */
     @Describe({ name: "Wire/Dto~name" })
     class Dto {
+      /**
+       * Required source name with its documented output alias and default.
+       * @default `default`
+       */
       @IsString() @Rename("display_name") @Default("default") public name!: string;
+      /** Optional text omitted when undefined. */
       @IsString() @Optional() public optional?: string;
+      /** Required nullable text that accepts explicit null. */
       @IsString() @Nullable() public nullable!: string | null;
     }
     /** Nested filter is representable but deeper serialization has tooling limits. */
     class Filter {
+      /** Required boolean used by the nested filter. */
       @IsBoolean() public active!: boolean;
     }
     /** Query DTO binds repeated scalar arrays and nested bracket notation. */
     class Query {
+      /** Required repeated string query values. */
       @IsArray(String) public tags!: string[];
+      /** Optional nested query filter. */
       @IsObject(Filter) @Optional() public filter?: Filter;
+      /** Optional integer page selector. */
       @IsInt() @Optional() public page?: number;
     }
     /** Path DTO uses the route's actual named segment. */
     class Params {
+      /** Required integer bound to the `:id` route segment. */
       @IsInt() public id!: number;
     }
     /** Normalized header contract. */
     class Headers {
+      /** Required client header read from normalized `x-client`. */
       @IsString() @Rename("x-client") public client!: string;
     }
     /** Structured cookie contract. */
     class Cookies {
+      /** Optional session cookie string. */
       @IsString() @Optional() public session?: string;
     }
     /** Classes can require services unavailable to generation. */
     @ApiController("/users", { tags: ["users"] })
     class Controller {
-      /** Application-owned dependency must not be constructed. */
-      public constructor(public readonly service: string) {
+      /**
+       * Rejects metadata-time construction when the consumer service is unavailable.
+       * @param service Required application-owned service value.
+       * @returns No value; this fixture constructor always throws.
+       * @throws {Error} Always, because generation must not instantiate the controller.
+       */
+      public constructor(
+        /** Required consumer service retained only for application construction. */
+        public readonly service: string,
+      ) {
         throw new Error("Unavailable");
       }
-      /** Every binder is explicit; docs come from the runtime decorators. */
+      /**
+       * Returns the validated body through the declared DTO response contract.
+       * @param body Validated body DTO.
+       * @param query Explicitly bound query DTO.
+       * @param params Explicitly bound path parameter DTO.
+       * @param headers Explicitly bound request header DTO.
+       * @param cookies Explicitly bound request cookie DTO.
+       * @param request Public normalized request snapshot.
+       * @returns JSON response containing the body DTO.
+       */
       @ApiPost("/:id", {
         summary: "Create",
         description: "Described",
@@ -215,7 +260,13 @@ describe("OpenAPI generation", () => {
         void request;
         return HttpResponse.json(body);
       }
-      /** Named binders describe raw strings, not schema-inferred values. */
+      /**
+       * Accepts raw path, header, and cookie values without schema inference.
+       * @param name Required path segment value.
+       * @param header Optional raw `X-Raw` header.
+       * @param cookie Optional raw `raw` cookie value.
+       * @returns No value; exercises declared bodyless response handling.
+       */
       @ApiGet("/raw/:name")
       @ApiResponse({ status: 204 })
       public raw(
@@ -299,19 +350,27 @@ describe("OpenAPI generation", () => {
     /** Recursive field references never expand indefinitely. */
     @Describe({ name: "Tree/~ ü" })
     class Tree {
+      /** Required tree node label. */
       @IsString() public name!: string;
+      /** Optional reference to the next recursive node. */
       @IsObject(() => Tree) @Optional() public next?: Tree;
     }
     /** Union variant preserves a declared discriminator. */
     class Variant {
+      /** Discriminator value identifying this union variant. */
       @IsLiteral("variant") public kind!: "variant";
+      /** Required recursive tree payload. */
       @IsObject(Tree) public tree!: Tree;
     }
-    /** Class union is generated without instance construction. */
+    /** Union schema class identity generated without instance construction. */
     @IsUnion({ discriminator: "kind", variants: { variant: Variant } })
     class Union {}
     @ApiController("/cycles")
     class Controller {
+      /**
+       * Declares the union response schema on the cycle test route.
+       * @returns No value; this fixture is used for metadata generation only.
+       */
       @ApiGet("/") @ApiResponse({ status: 200, type: Union }) public get(): void {}
     }
     const document = OpenApi.generate({ controllers: [Controller], info: INFO });
@@ -329,7 +388,12 @@ describe("OpenAPI generation", () => {
 
   it("generates implicit path strings and metadata-only empty documents without HEAD or OPTIONS operations", () => {
     @ApiController("/implicit")
+    /** Declares one route whose path parameter schema is inferred as a string. */
     class Controller {
+      /**
+       * Declares an implicit string path parameter with an empty response.
+       * @returns No value; the route is used for metadata generation only.
+       */
       @ApiGet("/:id") @ApiResponse({ status: 204 }) public get(): void {}
     }
     const document = OpenApi.generate({ controllers: [Controller], info: INFO });

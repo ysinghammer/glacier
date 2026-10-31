@@ -6,9 +6,16 @@ import { OpenApiJson } from "./OpenApiJson.js";
 const QUERY_LIMITATION =
   "Bracket notation for objects; repeated keys for scalar arrays. Deeply nested objects and nested repeated arrays are not uniformly supported by OpenAPI tooling. No indexed arrays, arrays of objects, empty brackets, dotted paths or embedded JSON.";
 
-/** Describes the actual binder wire grammar without reconstructing handler types or invoking controllers. */
+/**
+ * Generates OpenAPI input contracts from explicit binder metadata and wire-shape schemas.
+ */
 export class OpenApiInputs {
-  /** Produces bound parameters and one required JSON object body; ambiguous parameter declarations fail. */
+  /**
+   * Builds path/query/header/cookie parameters and the endpoint's JSON request body.
+   * @param endpoint Prepared endpoint metadata containing explicit binders.
+   * @param schemas Directional schemas used to describe DTO-backed inputs.
+   * @returns OpenAPI operation fields for declared parameters and optional request body.
+   */
   public static operation(endpoint: IHttpEndpointMetadata, schemas: OpenApiSchemas): IJsonObject {
     const parameters: IJsonObject[] = [];
     const names = new Set<string>();
@@ -35,6 +42,16 @@ export class OpenApiInputs {
     };
   }
 
+  /**
+   * Converts one explicit binder into either a request body or one/more parameters.
+   * @param binding Prepared parameter binding declaration.
+   * @param parameters Output parameter list receiving generated contracts.
+   * @param names Parameter identities already emitted, used to reject collisions.
+   * @param pathNames Named path segments available to bind.
+   * @param schemas Directional schemas used for DTO-backed bindings.
+   * @returns Request-body object for a body binder, or undefined for other locations.
+   * @throws {TypeError} When the binder description is not a string.
+   */
   private static binding(
     binding: IHttpEndpointMetadata["bindings"][number],
     parameters: IJsonObject[],
@@ -69,6 +86,16 @@ export class OpenApiInputs {
     return undefined;
   }
 
+  /**
+   * Expands the explicit DTO object's properties into location-specific parameters.
+   * @param binding DTO-backed binder with its input location and documentation options.
+   * @param parameters Output parameter list receiving the expanded properties.
+   * @param names Parameter identities already emitted, used to reject collisions.
+   * @param pathNames Named route segments available to path DTO properties.
+   * @param schemas Directional schema resolver for DTO property definitions.
+   * @returns No value; appends each supported property parameter.
+   * @throws {TypeError} When DTO schema is not an object or a path property is unbound.
+   */
   private static structuredParameters(
     binding: Extract<IHttpEndpointMetadata["bindings"][number], { readonly dto: unknown }>,
     parameters: IJsonObject[],
@@ -98,6 +125,11 @@ export class OpenApiInputs {
     }
   }
 
+  /**
+   * Maps binder source names to OpenAPI parameter locations.
+   * @param location Explicit binder source name.
+   * @returns OpenAPI `path`, `header`, `cookie`, or `query` location.
+   */
   private static structuredLocation(location: string): string {
     switch (location) {
       case "params":
@@ -111,6 +143,13 @@ export class OpenApiInputs {
     }
   }
 
+  /**
+   * Converts one named scalar binder into its OpenAPI parameter object.
+   * @param binding Named path, header, or cookie binding.
+   * @param parameters Output parameter list receiving the declaration.
+   * @param names Parameter identities already emitted, used to reject collisions.
+   * @returns No value; appends one parameter with optional examples.
+   */
   private static scalarParameter(
     binding: Extract<IHttpEndpointMetadata["bindings"][number], { readonly name: string }>,
     parameters: IJsonObject[],
@@ -131,7 +170,11 @@ export class OpenApiInputs {
     });
   }
 
-  /** Named raw values become Example Objects without executing consumer serialization callbacks. */
+  /**
+   * Wraps copied named JSON values as OpenAPI Example Objects.
+   * @param options Optional description/examples record to document.
+   * @returns OpenAPI examples field, or an empty object when examples are absent.
+   */
   public static examples(options: {
     readonly description?: string;
     readonly examples?: Readonly<Record<string, IJsonValue>>;
@@ -139,7 +182,11 @@ export class OpenApiInputs {
     return OpenApiInputs.wrapExamples(options);
   }
 
-  /** Wraps copied examples; absence is distinct from an explicitly empty examples record. */
+  /**
+   * Wraps each named raw value in an Example Object without changing absence semantics.
+   * @param options Optional static description and named examples record.
+   * @returns Examples field when supplied, or an empty object when absent.
+   */
   private static wrapExamples(options: {
     readonly description?: string;
     readonly examples?: Readonly<Record<string, IJsonValue>>;
@@ -155,7 +202,16 @@ export class OpenApiInputs {
     };
   }
 
-  /** Scalar arrays repeat query keys; nested query objects use bounded deepObject documentation. */
+  /**
+   * Produces one OpenAPI parameter and rejects structured non-query wire values.
+   * @param name Parameter name as bound or declared by a DTO.
+   * @param location OpenAPI parameter location.
+   * @param schema JSON Schema describing the parameter value.
+   * @param required Whether a value must be supplied.
+   * @param description Optional static parameter description.
+   * @returns OpenAPI parameter record with query serialization settings when applicable.
+   * @throws {TypeError} When a non-query parameter is an object or array on the wire.
+   */
   private static parameter(
     name: string,
     location: string,
@@ -191,7 +247,13 @@ export class OpenApiInputs {
     };
   }
 
-  /** Checks nested repeated-array grammar without expanding cyclic DTO references indefinitely. */
+  /**
+   * Checks nested query-schema arrays while terminating on repeated component references.
+   * @param schema Schema node to inspect.
+   * @param schemas Resolver for local component references.
+   * @param visited Component references already traversed in this query schema.
+   * @returns No value; validates the supported query-array grammar.
+   */
   private static query(schema: IJsonObject, schemas: OpenApiSchemas, visited: Set<string>): void {
     if (typeof schema.$ref === "string") {
       if (visited.has(schema.$ref)) return;
@@ -206,6 +268,12 @@ export class OpenApiInputs {
     OpenApiInputs.queryChildren(resolved, schemas, visited);
   }
 
+  /**
+   * Validates one query array's tuple length and scalar element requirements.
+   * @param resolved Resolved array schema object.
+   * @returns No value; accepts only the documented repeated-scalar grammar.
+   * @throws {TypeError} When tuples are too short or array elements are structured.
+   */
   private static queryArray(resolved: IJsonObject): void {
     if (Array.isArray(resolved.prefixItems) && resolved.prefixItems.length < 2)
       throw new TypeError(
@@ -218,6 +286,13 @@ export class OpenApiInputs {
       throw new TypeError("Query arrays require scalar elements at every depth");
   }
 
+  /**
+   * Traverses nested object properties and union alternatives for query compatibility.
+   * @param resolved Resolved schema object whose children are inspected.
+   * @param schemas Resolver for local component references.
+   * @param visited Component references already traversed in this query schema.
+   * @returns No value; validates every supported nested schema branch.
+   */
   private static queryChildren(
     resolved: IJsonObject,
     schemas: OpenApiSchemas,
@@ -235,7 +310,14 @@ export class OpenApiInputs {
       OpenApiInputs.query(OpenApiJson.object(resolved.additionalProperties), schemas, visited);
   }
 
-  /** Parameter identity is location plus normalized name; duplicate metadata cannot overwrite documentation. */
+  /**
+   * Adds a parameter only when its normalized location/name identity is unique.
+   * @param parameters Output list receiving a unique parameter declaration.
+   * @param names Parameter identities already emitted.
+   * @param parameter OpenAPI parameter record to append.
+   * @returns No value; updates the list and identity set together.
+   * @throws {TypeError} When another declaration already uses this location and name.
+   */
   private static add(parameters: IJsonObject[], names: Set<string>, parameter: IJsonObject): void {
     const key = `${String(parameter.in)}:${String(parameter.name)}`;
     if (names.has(key)) throw new TypeError("Ambiguous bound parameter documentation");

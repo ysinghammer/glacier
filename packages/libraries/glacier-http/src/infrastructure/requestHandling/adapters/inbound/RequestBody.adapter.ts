@@ -4,9 +4,15 @@ import type { IHttpRequestHeaders } from "../../../../domain/requestHandling/req
 const JSON_MEDIA =
   /^application\/(?:json|[!#$%&'*+.^_`|~0-9a-z-]+\+json)(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?$/i;
 
-/** Bounded Node body adapter; preflight never consumes bytes or sends Continue. */
+/** Enforces request-body framing and parses bounded JSON from Node HTTP request streams. */
 export class RequestBody {
-  /** Rejects declared excess, compression, unsupported media and framed unbound input before body reads. */
+  /**
+   * Rejects excessive size, compression, unsupported media, and declared unbound input before reads.
+   * @param headers Validated request headers used to inspect body framing and media type.
+   * @param hasBodyBinder Whether the selected endpoint declares a body parameter.
+   * @param limit Maximum permitted body size in bytes.
+   * @returns HTTP rejection status 400, 413, or 415; undefined when reading may proceed.
+   */
   public static preflight(
     headers: IHttpRequestHeaders,
     hasBodyBinder: boolean,
@@ -29,7 +35,14 @@ export class RequestBody {
     return undefined;
   }
 
-  /** Reads within byte/time bounds and validates fatal UTF-8 and an actual nonempty JSON object. */
+  /**
+   * Reads within byte/time bounds and validates fatal UTF-8 and a nonempty JSON object.
+   * @param incoming Native request stream to consume.
+   * @param limit Maximum accepted body size in bytes.
+   * @param timeoutMs Maximum body receive duration in milliseconds.
+   * @param requiresJson Whether a nonempty JSON object body is required.
+   * @returns Promise resolving to parsed JSON/undefined or a status-400/413 rejection result.
+   */
   public static async read(
     incoming: IncomingMessage,
     limit: number,

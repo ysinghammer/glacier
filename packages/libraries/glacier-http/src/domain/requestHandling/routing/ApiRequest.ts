@@ -1,6 +1,9 @@
 import { RoutingMetadata } from "./RoutingMetadata.js";
 
-/** Binds the detached read-only request, never a body stream or response socket. */
+/**
+ * Binds the detached readonly request without exposing a body stream or response socket.
+ * @returns A parameter decorator that records the request binding.
+ */
 export function ApiRequest(): ParameterDecorator {
   return RoutingMetadata.bindingDecorator({ location: "request" });
 }

@@ -1,4 +1,6 @@
 import type { IHttpQueryObject } from "./IHttpQueryObject.js";
 
-/** Queries support scalars, repeated scalar arrays and nested records, never object arrays. */
+/**
+ * Query value grammar: scalar text, repeated scalar text, or nested records; arrays of objects are excluded.
+ */
 export type IHttpQueryValue = string | readonly string[] | IHttpQueryObject;

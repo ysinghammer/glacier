@@ -2,7 +2,14 @@ import { request } from "node:http";
 
 /** Real HTTP client that withholds the body until the server explicitly sends Continue. */
 export class ContinueClient {
-  /** Flushes headers only; rejected requests finish without the client ever sending body bytes. */
+  /**
+   * Waits for `100 Continue` before sending a POST body to a real listener.
+   * @param port Listening loopback port.
+   * @param path Request path sent in the POST line.
+   * @param body UTF-8 request body sent only after Continue.
+   * @param headers Additional request headers; defaults to none.
+   * @returns Promise fulfilled with the response; socket errors and timeout reject it.
+   */
   public static send(
     port: number,
     path: string,

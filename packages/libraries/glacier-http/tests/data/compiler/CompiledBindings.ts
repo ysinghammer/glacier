@@ -17,8 +17,17 @@ import { request } from "node:http";
 
 /** Genuine emitted DTO metadata must not cause constructor invocation. */
 class BodyDto {
+  /**
+   * Counts explicit fixture construction while deserialization should avoid it.
+   * @default 0
+   */
   public static constructions = 0;
+  /** Required integer projected from JSON. */
   @IsInt() public count!: number;
+  /**
+   * Increments the observable construction counter.
+   * @returns No value; records explicit fixture construction.
+   */
   public constructor() {
     BodyDto.constructions++;
   }
@@ -26,7 +35,12 @@ class BodyDto {
 /** Application-owned instance with genuine default-parameter compiler emissions. */
 @ApiController("/compiled")
 class Controller {
-  /** Missing argument count cannot hide behind JavaScript function.length zero. */
+  /**
+   * Accepts compiled default parameters to check metadata preserves both binding positions.
+   * @param id String route identifier, with a JavaScript default for emitted metadata coverage.
+   * @param userId Authenticated actor, with a default for emitted metadata coverage.
+   * @returns No value; consumes the bound values without side effects.
+   */
   @ApiGet("/:id")
   @ApiResponse({ status: 204 })
   public get(
@@ -35,7 +49,11 @@ class Controller {
   ): void {
     void [id, userId];
   }
-  /** Explicit JSON binding and response projection share the same public DTO reference. */
+  /**
+   * Returns the explicitly bound body through the declared output DTO schema.
+   * @param body Public DTO instance created by body validation.
+   * @returns JSON response carrying the body projection.
+   */
   @ApiPost("/body")
   @ApiPublic()
   @ApiResponse({ status: 200, type: BodyDto })
@@ -46,6 +64,11 @@ class Controller {
 /** Invalid emitted direct binder type must fail synchronously. */
 @ApiController("/wrong")
 class Wrong {
+  /**
+   * Declares an invalid numeric user identifier for synchronous metadata rejection.
+   * @param userId Deliberately incompatible numeric user identifier.
+   * @returns No value; the method is never served by the fixture.
+   */
   @ApiGet("/")
   @ApiResponse({ status: 204 })
   public get(@ApiUserId() userId: number): void {
@@ -55,6 +78,11 @@ class Wrong {
 
 /** Runs an isolated real consumer with no private imports, resets or test injection APIs. */
 class CompiledBindings {
+  /**
+   * Exercises compiled binder metadata and consumes one request over a real listener.
+   * @returns Promise fulfilled after printing JSON and closing the server.
+   * @throws {Error} Promise rejects when the server exposes no listening address.
+   */
   public static async run(): Promise<void> {
     let isWrongRejected = false;
     try {

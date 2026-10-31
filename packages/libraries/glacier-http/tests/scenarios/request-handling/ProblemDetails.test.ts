@@ -10,7 +10,15 @@ describe("framework-owned RFC 9457 privacy and mapping boundaries", () => {
   it("framework response/cookie factory and schema failures thrown inside a controller remain unmappable", async () => {
     /** Framework operations invoked in a controller are not application-owned exception types. */
     class Controller {
+      /**
+       * Selects the framework operation exercised by the fixture route.
+       * @default `json`
+       */
       public mode = "json";
+      /**
+       * Runs the selected response, cookie, or schema operation.
+       * @returns Result of the selected framework operation.
+       */
       public value(): unknown {
         if (this.mode === "json")
           return HttpResponse.json({}, { headers: { "Bad Header": "secret" } });
@@ -22,6 +30,10 @@ describe("framework-owned RFC 9457 privacy and mapping boundaries", () => {
           return Schema.parse(BodyDto, { count: "secret", label: "safe" });
         /** Missing schema declarations are exceptional framework definition failures. */
         class UndeclaredDto {
+          /**
+           * Field deliberately lacks a schema declaration.
+           * @default `secret`
+           */
           public field = "secret";
         }
         Optional()(UndeclaredDto.prototype, "field");
@@ -69,9 +81,18 @@ describe("framework-owned RFC 9457 privacy and mapping boundaries", () => {
   it("controller mappings cannot replace auth/input/output/routing failures; mapped 401 retains the static challenge", async () => {
     /** Application exceptions and invalid output share Error, but only invocation throws are mapped. */
     class Controller {
+      /**
+       * Throws an application rejection for HTTP error mapping.
+       * @returns No value; this operation always throws.
+       * @throws {Error} Always, with a private message and cause.
+       */
       public rejected(): never {
         throw new Error("secret", { cause: new Error("secret-cause") });
       }
+      /**
+       * Returns an invalid output envelope to test output-boundary handling.
+       * @returns JSON response carrying an invalid count value.
+       */
       public output(): unknown {
         return HttpResponse.json({ count: "secret-value", label: "safe" });
       }
@@ -132,7 +153,13 @@ describe("framework-owned RFC 9457 privacy and mapping boundaries", () => {
   it("unmapped Error and non-Error throws are generic correlated 500 without exposing message/cause/stack/properties", async () => {
     /** Untrusted throw values never define public JSON. */
     class Controller {
+      /** Untrusted failure value thrown by the fixture route. */
       public failure: unknown;
+      /**
+       * Throws the configured untrusted value without rendering it.
+       * @returns No value; execution always throws the configured value.
+       * @throws {unknown} When invoked, throws the value currently stored in `failure`.
+       */
       public value(): never {
         throw this.failure;
       }

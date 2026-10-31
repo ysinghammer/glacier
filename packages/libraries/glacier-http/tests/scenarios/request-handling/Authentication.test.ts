@@ -64,6 +64,11 @@ describe("protected and public authentication precedes body work", () => {
     ).toThrow("authentication");
     /** Test-owned incompatible public binder declarations. */
     class PublicController {
+      /**
+       * Accepts the path id while its public binder declaration is intentionally invalid.
+       * @param id String route identifier.
+       * @returns No value; the method exists only for construction validation.
+       */
       public handler(id: string): void {
         void id;
       }

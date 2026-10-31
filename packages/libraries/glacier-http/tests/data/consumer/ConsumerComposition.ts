@@ -8,7 +8,11 @@ import { UpdateItemUseCase } from "./UpdateItem.use-case.js";
 
 /** Genuine compiled ESM composition exercising registration order, public wire and dependency lifetime. */
 class ConsumerComposition {
-  /** Generates offline, constructs explicitly, consumes bodies and closes HTTP before dependency disposal. */
+  /**
+   * Exercises compiled metadata, authenticated requests, offline docs, logging, and server cleanup.
+   * @returns Promise fulfilled after writing one JSON observation for the scenario.
+   * @throws {Error} Promise rejects when the listener exposes no bound address.
+   */
   public static async run(): Promise<void> {
     const document = OpenApi.generate({
       controllers: [ItemsController],

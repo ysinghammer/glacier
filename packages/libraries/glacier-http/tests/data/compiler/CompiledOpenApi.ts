@@ -20,8 +20,13 @@ class MetadataDto {
     valueCallbacks++;
     return true;
   })
+  /** String output field whose schema callbacks must remain unexecuted during generation. */
   public value!: string;
-  /** Fails if generation attempts construction. */
+  /**
+   * Counts then rejects construction to expose accidental DTO instantiation.
+   * @returns No value; construction always fails after incrementing the counter.
+   * @throws {Error} Always, because generation must not construct this DTO.
+   */
   public constructor() {
     constructors++;
     throw new Error("DTO must not be constructed");
@@ -31,12 +36,24 @@ class MetadataDto {
 /** Services are unavailable during metadata-only generation. */
 @ApiController("/compiled-openapi")
 class MetadataController {
-  /** Application-owned service construction is never generation's responsibility. */
-  public constructor(public readonly unavailableService: string) {
+  /**
+   * Records an unavailable service and prevents metadata generation from constructing a controller.
+   * @param unavailableService Application-owned dependency unavailable to documentation generation.
+   * @returns No value; increments the construction counter before failing.
+   * @throws {Error} Always, because generation must not construct this controller.
+   */
+  public constructor(
+    /** Consumer service unavailable during metadata-only generation. */
+    public readonly unavailableService: string,
+  ) {
     constructors++;
     throw new Error("Service unavailable");
   }
-  /** Genuine parameter/response emissions do not recover erased DTO generics. */
+  /**
+   * Returns the supplied body as a JSON response for the compiled metadata fixture.
+   * @param dto Body bound using explicit DTO metadata.
+   * @returns JSON response carrying the supplied DTO.
+   */
   @ApiPost("/value", { summary: "Compiled metadata" })
   @ApiResponse({ status: 200, type: MetadataDto })
   public value(@ApiBody(MetadataDto) dto: MetadataDto): HttpResponse<MetadataDto> {

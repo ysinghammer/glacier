@@ -17,21 +17,37 @@ const COOKIE_FIELDS = new WeakMap<HttpCookie, string>();
 
 /** Immutable validated cookie field; factories never encode opaque values. */
 export class HttpCookie {
-  /** Retains native receiver validation without exposing credential-bearing cookie fields. */
+  /**
+   * Retrieves the serialized field from private weak storage without exposing its value.
+   * @returns The validated cookie field string owned by this receiver.
+   * @throws {TypeError} When this receiver has no entry in the private field registry.
+   */
   private get wire(): string {
     const wire = COOKIE_FIELDS.get(this);
     if (wire === undefined) throw new TypeError("Invalid cookie receiver");
     return wire;
   }
 
-  /** Stores a validated field; consumers cannot construct arbitrary cookie instances. */
+  /**
+   * Stores a validated cookie field after checking the module-private factory token.
+   * @param token Module-private identity proving construction through a factory.
+   * @param wire Validated serialized cookie field.
+   * @throws {HttpContractError} When construction is attempted without the private factory token.
+   */
   private constructor(token: symbol, wire: string) {
     if (token !== COOKIE_CREATION) throw new HttpContractError("Use HttpCookie factories");
     COOKIE_FIELDS.set(this, wire);
     Object.freeze(this);
   }
 
-  /** Validates syntax/security attributes and snapshots mutable Date values without retaining them. */
+  /**
+   * Creates a cookie field after validating syntax, security attributes, and expiry values.
+   * @param name Cookie name to emit.
+   * @param value Opaque cookie value; this factory does not encode it.
+   * @param options Optional attributes; defaults use secure, HttpOnly, and SameSite=Lax.
+   * @returns An immutable cookie value suitable for an HttpResponse factory.
+   * @throws {HttpContractError} When the name, value, attributes, age, or expiry is invalid.
+   */
   public static set(name: string, value: string, options: IHttpCookieOptions = {}): HttpCookie {
     try {
       const attributes = HttpCookie.attributes(name, value, options);
@@ -50,7 +66,13 @@ export class HttpCookie {
     }
   }
 
-  /** Emits immediate expiry and Max-Age=0 with the caller's matching scope/security attributes. */
+  /**
+   * Creates an immediately expired cookie while preserving caller-selected scope attributes.
+   * @param name Cookie name to clear.
+   * @param options Optional matching attributes; omitted options use an empty record.
+   * @returns An immutable cookie field with Max-Age zero and a past expiry.
+   * @throws {HttpContractError} When the name or supplied attributes are invalid.
+   */
   public static clear(name: string, options: IHttpClearCookieOptions = {}): HttpCookie {
     try {
       const attributes = HttpCookie.attributes(name, "", options);
@@ -61,12 +83,21 @@ export class HttpCookie {
     }
   }
 
-  /** Internal transport bridge, inaccessible through a public package export. */
+  /**
+   * Returns the validated field for internal response assembly.
+   * @returns The complete serialized cookie field; callers must not log its value.
+   */
   public [COOKIE_WIRE](): string {
     return this.wire;
   }
 
-  /** Builds safe attributes and enforces cookie prefixes before any field is emitted. */
+  /**
+   * Builds ordered cookie attributes and enforces prefix requirements before serialization.
+   * @param name Cookie name being emitted.
+   * @param value Opaque cookie value being emitted.
+   * @param options Caller-supplied path, domain, and security attributes.
+   * @returns Cookie name/value and validated attributes in wire order.
+   */
   private static attributes(name: string, value: string, options: IHttpCookieOptions): string[] {
     HttpCookie.validateNameValue(name, value);
     const path = options.path === undefined ? "/" : options.path;
@@ -82,6 +113,13 @@ export class HttpCookie {
     return attributes;
   }
 
+  /**
+   * Validates the cookie name and opaque cookie-value wire syntax.
+   * @param name Name to validate against the cookie token grammar.
+   * @param value Value to validate without decoding or transformation.
+   * @returns No value; confirms both fields are safe to serialize.
+   * @throws {TypeError} When either field violates the cookie wire grammar.
+   */
   private static validateNameValue(name: string, value: string): void {
     if (typeof name !== "string" || !COOKIE_NAME.test(name))
       throw new TypeError("Invalid cookie name");
@@ -89,6 +127,17 @@ export class HttpCookie {
       throw new TypeError("Invalid cookie value");
   }
 
+  /**
+   * Validates path and security flags, including SameSite and cookie-prefix constraints.
+   * @param name Cookie name whose prefixes impose attribute requirements.
+   * @param path Cookie path attribute.
+   * @param secure Whether the Secure attribute is enabled.
+   * @param httpOnly Whether the HttpOnly attribute is enabled.
+   * @param sameSite Selected SameSite policy.
+   * @param domain Optional domain attribute.
+   * @returns No value; confirms attributes satisfy cookie policy.
+   * @throws {TypeError} When attributes conflict or violate the supported policy.
+   */
   private static validateFlags(
     name: string,
     path: string,
@@ -110,6 +159,13 @@ export class HttpCookie {
       throw new TypeError("Invalid Host prefix");
   }
 
+  /**
+   * Validates and appends the optional cookie domain attribute.
+   * @param attributes Ordered cookie attributes receiving the domain when supplied.
+   * @param domain Optional domain string to append.
+   * @returns No value; mutates the local attribute list only when a domain is present.
+   * @throws {TypeError} When the supplied domain violates the accepted hostname grammar.
+   */
   private static appendDomain(attributes: string[], domain: string | undefined): void {
     if (domain !== undefined) {
       if (typeof domain !== "string" || !COOKIE_DOMAIN.test(domain))
