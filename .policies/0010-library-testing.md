@@ -1,6 +1,6 @@
 # 0010 — Library testing
 
-1. Backend, frontend, and technology-independent libraries MUST use Vitest with package-local `tests/` for test code/data/doubles/support. Runtime scenarios MUST live under `tests/scenarios/`; multi-capability libraries MUST group by public capability, not implementation layers. Optional directories MUST exist only when needed.
+1. Backend, frontend, and technology-independent libraries MUST use Vitest with package-local `tests/` for test code/data/doubles/support. Runtime scenarios MUST live under `tests/scenarios/`; multi-capability libraries MUST group by public capability, not implementation layers. Capability scenario folder names MUST use descriptive kebab-case (`request-handling`, `openapi-generation`); they MUST NOT mirror the layer-first production source tree or be renamed merely to match camelCase source-domain folders. Optional directories MUST exist only when needed.
 
 | Package-local path                                              | Ownership/discovery                                     |
 | --------------------------------------------------------------- | ------------------------------------------------------- |
