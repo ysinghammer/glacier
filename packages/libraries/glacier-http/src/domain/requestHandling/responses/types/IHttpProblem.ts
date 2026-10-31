@@ -1,4 +1,4 @@
-import type { IHttpInputIssue } from "../requests/IHttpInputIssue.js";
+import type { IHttpInputIssue } from "../../requests/types/IHttpInputIssue.js";
 
 /** RFC 9457 public error representation, with value-free input issues and correlation only. */
 export interface IHttpProblem {

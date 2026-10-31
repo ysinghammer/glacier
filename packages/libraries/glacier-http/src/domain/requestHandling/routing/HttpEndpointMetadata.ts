@@ -2,8 +2,8 @@ import { DESIGN_PARAMETER_TYPES_METADATA } from "@glacier/reflection";
 import type { IConstructableClass } from "@glacier/reflection";
 import { Schema } from "@glacier/schema";
 import { RoutingMetadata } from "./RoutingMetadata.js";
-import type { IHttpEndpointMetadata } from "./IHttpEndpointMetadata.js";
-import type { IHttpBindingMetadata } from "./IHttpBindingMetadata.js";
+import type { IHttpEndpointMetadata } from "./types/IHttpEndpointMetadata.js";
+import type { IHttpBindingMetadata } from "./types/IHttpBindingMetadata.js";
 
 /** Prepares the shared endpoint invariants without instances, listeners or OpenAPI dependencies. */
 export class HttpEndpointMetadata {

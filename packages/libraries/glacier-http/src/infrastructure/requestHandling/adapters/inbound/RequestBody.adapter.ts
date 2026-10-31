@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import type { IHttpRequestHeaders } from "../../../../domain/requestHandling/requests/IHttpRequestHeaders.js";
+import type { IHttpRequestHeaders } from "../../../../domain/requestHandling/requests/types/IHttpRequestHeaders.js";
 
 const JSON_MEDIA =
   /^application\/(?:json|[!#$%&'*+.^_`|~0-9a-z-]+\+json)(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?$/i;

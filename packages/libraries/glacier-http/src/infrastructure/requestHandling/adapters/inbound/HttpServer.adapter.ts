@@ -19,10 +19,10 @@ import type { IHttpServerOptions } from "../../../../domain/requestHandling/serv
 import type { IHttpListenOptions } from "../../../../domain/requestHandling/server/IHttpListenOptions.js";
 import type { IHttpAddress } from "../../../../domain/requestHandling/server/IHttpAddress.js";
 import type { IHttpErrorContext } from "../../../../domain/requestHandling/server/IHttpErrorContext.js";
-import type { IHttpInputIssue } from "../../../../domain/requestHandling/requests/IHttpInputIssue.js";
+import type { IHttpInputIssue } from "../../../../domain/requestHandling/requests/types/IHttpInputIssue.js";
 import type { IConstructableClass } from "@glacier/reflection";
 import type { IHttpServerRegistration } from "../../../../domain/requestHandling/server/IHttpServerRegistration.js";
-import type { IHttpErrorMapping } from "../../../../domain/requestHandling/responses/IHttpErrorMapping.js";
+import type { IHttpErrorMapping } from "../../../../domain/requestHandling/responses/types/IHttpErrorMapping.js";
 import { ErrorMappings } from "../../../../domain/requestHandling/responses/ErrorMappings.js";
 import { ResponseLogs } from "../../../../application/requestHandling/ResponseLogs.js";
 import { ResponseCompletion } from "./ResponseCompletion.js";

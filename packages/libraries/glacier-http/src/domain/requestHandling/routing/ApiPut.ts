@@ -1,4 +1,4 @@
-import type { IApiRouteOptions } from "./IApiRouteOptions.js";
+import type { IApiRouteOptions } from "./types/IApiRouteOptions.js";
 import { RoutingMetadata } from "./RoutingMetadata.js";
 
 /** Registers an explicit PUT instance handler with optional documentation. */

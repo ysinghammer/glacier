@@ -1,5 +1,5 @@
-import type { IHttpQueryObject } from "./IHttpQueryObject.js";
-import type { IRequestNormalizationResult } from "./IRequestNormalizationResult.js";
+import type { IHttpQueryObject } from "./types/IHttpQueryObject.js";
+import type { IRequestNormalizationResult } from "./types/IRequestNormalizationResult.js";
 
 const FORBIDDEN_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 const QUERY_KEY = /^[^.[\]]+(?:\[[^.[\]]+\])*$/;

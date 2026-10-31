@@ -1,4 +1,4 @@
-import type { IApiInputOptions } from "./IApiInputOptions.js";
+import type { IApiInputOptions } from "./types/IApiInputOptions.js";
 import { RoutingMetadata } from "./RoutingMetadata.js";
 
 /** Binds one opaque cookie string, preserving empty values and absence. */

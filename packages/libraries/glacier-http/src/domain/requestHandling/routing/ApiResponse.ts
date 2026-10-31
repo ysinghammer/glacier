@@ -1,4 +1,4 @@
-import type { IApiResponseOptions } from "./IApiResponseOptions.js";
+import type { IApiResponseOptions } from "./types/IApiResponseOptions.js";
 import { RoutingMetadata } from "./RoutingMetadata.js";
 
 /** Adds one success status/DTO contract; every returned status is enforced before bytes commit. */

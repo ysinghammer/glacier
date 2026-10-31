@@ -1,5 +1,5 @@
 import type { IConstructableClass } from "@glacier/reflection";
-import type { IHttpErrorMapping } from "../responses/IHttpErrorMapping.js";
+import type { IHttpErrorMapping } from "../responses/types/IHttpErrorMapping.js";
 
 /** Detached documentation bridge with class identities, never instances, hooks or native resources. */
 export interface IHttpServerRegistration {

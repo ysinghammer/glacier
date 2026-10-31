@@ -1,7 +1,7 @@
 import type { IConstructableClass } from "@glacier/reflection";
 import type { HttpServer } from "../../../requestHandling/adapters/inbound/HttpServer.adapter.js";
-import type { IOpenApiInfo } from "../../../../domain/openApiGeneration/IOpenApiInfo.js";
-import type { IOpenApiAuthenticationOptions } from "../../../../domain/openApiGeneration/IOpenApiAuthenticationOptions.js";
+import type { IOpenApiInfo } from "../../../../domain/openApiGeneration/types/IOpenApiInfo.js";
+import type { IOpenApiAuthenticationOptions } from "../../../../domain/openApiGeneration/types/IOpenApiAuthenticationOptions.js";
 
 /** Exactly one metadata source; controllers are class references and server exposes only its public registration snapshot. */
 export type IOpenApiOptions = {

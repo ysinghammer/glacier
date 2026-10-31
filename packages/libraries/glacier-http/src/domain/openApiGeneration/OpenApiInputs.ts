@@ -1,5 +1,5 @@
 import type { IJsonObject, IJsonValue } from "@glacier/schema";
-import type { IHttpEndpointMetadata } from "../requestHandling/routing/IHttpEndpointMetadata.js";
+import type { IHttpEndpointMetadata } from "../requestHandling/routing/types/IHttpEndpointMetadata.js";
 import { OpenApiSchemas } from "./OpenApiSchemas.js";
 import { OpenApiJson } from "./OpenApiJson.js";
 

@@ -1,7 +1,7 @@
 import { Schema } from "@glacier/schema";
 import type { HttpRequest } from "../../domain/requestHandling/requests/HttpRequest.js";
-import type { IHttpBindingMetadata } from "../../domain/requestHandling/routing/IHttpBindingMetadata.js";
-import type { IHttpInputIssue } from "../../domain/requestHandling/requests/IHttpInputIssue.js";
+import type { IHttpBindingMetadata } from "../../domain/requestHandling/routing/types/IHttpBindingMetadata.js";
+import type { IHttpInputIssue } from "../../domain/requestHandling/requests/types/IHttpInputIssue.js";
 
 /** Request-local explicit binding; no values or options are cached across controller invocations. */
 export class RequestBinding {

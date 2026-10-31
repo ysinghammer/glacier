@@ -1,5 +1,5 @@
 import { HttpEndpointMetadata } from "../../domain/requestHandling/routing/HttpEndpointMetadata.js";
-import type { IHttpEndpointMetadata } from "../../domain/requestHandling/routing/IHttpEndpointMetadata.js";
+import type { IHttpEndpointMetadata } from "../../domain/requestHandling/routing/types/IHttpEndpointMetadata.js";
 import type { IConstructableClass } from "@glacier/reflection";
 import { RoutingMetadata } from "../../domain/requestHandling/routing/RoutingMetadata.js";
 

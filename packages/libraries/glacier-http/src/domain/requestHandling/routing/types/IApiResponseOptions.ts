@@ -1,5 +1,5 @@
 import type { IConstructableClass } from "@glacier/reflection";
-import type { IHttpSuccessStatus } from "../responses/IHttpSuccessStatus.js";
+import type { IHttpSuccessStatus } from "../../responses/types/IHttpSuccessStatus.js";
 import type { IJsonValue } from "@glacier/schema";
 import type { IApiResponseHeaders } from "./IApiResponseHeaders.js";
 

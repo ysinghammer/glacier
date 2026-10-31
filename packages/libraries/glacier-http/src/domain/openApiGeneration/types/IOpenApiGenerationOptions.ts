@@ -1,5 +1,5 @@
 import type { IConstructableClass } from "@glacier/reflection";
-import type { IHttpErrorMapping } from "../requestHandling/responses/IHttpErrorMapping.js";
+import type { IHttpErrorMapping } from "../../requestHandling/responses/types/IHttpErrorMapping.js";
 import type { IOpenApiInfo } from "./IOpenApiInfo.js";
 import type { IOpenApiAuthenticationOptions } from "./IOpenApiAuthenticationOptions.js";
 

@@ -1,5 +1,5 @@
 import type { IConstructableClass } from "@glacier/reflection";
-import type { IHttpErrorMappingOptions } from "../responses/IHttpErrorMappingOptions.js";
+import type { IHttpErrorMappingOptions } from "../responses/types/IHttpErrorMappingOptions.js";
 import { ErrorMappings } from "../responses/ErrorMappings.js";
 import { RoutingMetadata } from "./RoutingMetadata.js";
 

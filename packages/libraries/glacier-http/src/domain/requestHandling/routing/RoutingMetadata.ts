@@ -1,11 +1,11 @@
 import { ValueMetadataDefinition, ListMetadataDefinition } from "@glacier/reflection";
 import type { IMetadataRead } from "@glacier/reflection";
-import type { IApiControllerOptions } from "./IApiControllerOptions.js";
-import type { IApiRouteOptions } from "./IApiRouteOptions.js";
-import type { IApiResponseOptions } from "./IApiResponseOptions.js";
-import type { IHttpMethod } from "./IHttpMethod.js";
-import type { IHttpBindingMetadata } from "./IHttpBindingMetadata.js";
-import type { IHttpErrorMapping } from "../responses/IHttpErrorMapping.js";
+import type { IApiControllerOptions } from "./types/IApiControllerOptions.js";
+import type { IApiRouteOptions } from "./types/IApiRouteOptions.js";
+import type { IApiResponseOptions } from "./types/IApiResponseOptions.js";
+import type { IHttpMethod } from "./types/IHttpMethod.js";
+import type { IHttpBindingMetadata } from "./types/IHttpBindingMetadata.js";
+import type { IHttpErrorMapping } from "../responses/types/IHttpErrorMapping.js";
 
 const FIELD_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 

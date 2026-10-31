@@ -1,6 +1,6 @@
-import type { IHttpQueryObject } from "./IHttpQueryObject.js";
-import type { IHttpRequestHeaders } from "./IHttpRequestHeaders.js";
-import type { IHttpRequestCookies } from "./IHttpRequestCookies.js";
+import type { IHttpQueryObject } from "./types/IHttpQueryObject.js";
+import type { IHttpRequestHeaders } from "./types/IHttpRequestHeaders.js";
+import type { IHttpRequestCookies } from "./types/IHttpRequestCookies.js";
 import { REQUEST_CREATION } from "./RequestCreation.js";
 
 /** Detached normalized transport data, supplied only by the server to approved hooks/binders. */

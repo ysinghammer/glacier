@@ -1,8 +1,8 @@
 import { HttpServer } from "../../../requestHandling/adapters/inbound/HttpServer.adapter.js";
 import type { IConstructableClass } from "@glacier/reflection";
-import type { IHttpErrorMapping } from "../../../../domain/requestHandling/responses/IHttpErrorMapping.js";
+import type { IHttpErrorMapping } from "../../../../domain/requestHandling/responses/types/IHttpErrorMapping.js";
 import type { IOpenApiOptions } from "./IOpenApiOptions.js";
-import type { IOpenApiDocument } from "../../../../domain/openApiGeneration/IOpenApiDocument.js";
+import type { IOpenApiDocument } from "../../../../domain/openApiGeneration/types/IOpenApiDocument.js";
 import { OpenApiGeneration } from "../../../../application/openApiGeneration/OpenApiGeneration.use-case.js";
 
 /** Public integration boundary selects exactly one class/created-server source, never starting resources or invoking hooks. */

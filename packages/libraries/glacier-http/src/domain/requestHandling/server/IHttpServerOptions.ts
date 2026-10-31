@@ -2,7 +2,7 @@ import type { IHttpAuthenticationOptions } from "./IHttpAuthenticationOptions.js
 import type { IHttpErrorContext } from "./IHttpErrorContext.js";
 import type { IHttpLimitsOptions } from "./IHttpLimitsOptions.js";
 import type { IHttpResponseLogRecord } from "./IHttpResponseLogRecord.js";
-import type { IHttpErrorMapping } from "../responses/IHttpErrorMapping.js";
+import type { IHttpErrorMapping } from "../responses/types/IHttpErrorMapping.js";
 
 /** Explicit composition with static business mappings and supervised metadata-only response logging. */
 export interface IHttpServerOptions {

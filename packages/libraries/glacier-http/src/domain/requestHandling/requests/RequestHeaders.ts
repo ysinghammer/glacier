@@ -1,5 +1,5 @@
-import type { IHttpRequestHeaders } from "./IHttpRequestHeaders.js";
-import type { IRequestNormalizationResult } from "./IRequestNormalizationResult.js";
+import type { IHttpRequestHeaders } from "./types/IHttpRequestHeaders.js";
+import type { IRequestNormalizationResult } from "./types/IRequestNormalizationResult.js";
 
 const SENSITIVE_SINGLETONS = new Set([
   "authorization",

@@ -1,4 +1,4 @@
-import type { IApiControllerOptions } from "./IApiControllerOptions.js";
+import type { IApiControllerOptions } from "./types/IApiControllerOptions.js";
 import { RoutingMetadata } from "./RoutingMetadata.js";
 
 /** Legacy class decorator identifying an application-owned controller; starts no resources. */

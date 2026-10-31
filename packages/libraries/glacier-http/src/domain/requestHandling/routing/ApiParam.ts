@@ -1,4 +1,4 @@
-import type { IApiParamOptions } from "./IApiParamOptions.js";
+import type { IApiParamOptions } from "./types/IApiParamOptions.js";
 import { RoutingMetadata } from "./RoutingMetadata.js";
 
 /** Binds one required nonempty named path string, without schema inference. */

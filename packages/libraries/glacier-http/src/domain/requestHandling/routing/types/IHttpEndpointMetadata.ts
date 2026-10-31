@@ -4,7 +4,7 @@ import type { IApiControllerOptions } from "./IApiControllerOptions.js";
 import type { IApiRouteOptions } from "./IApiRouteOptions.js";
 import type { IApiResponseOptions } from "./IApiResponseOptions.js";
 import type { IHttpBindingMetadata } from "./IHttpBindingMetadata.js";
-import type { IHttpErrorMapping } from "../responses/IHttpErrorMapping.js";
+import type { IHttpErrorMapping } from "../../responses/types/IHttpErrorMapping.js";
 
 /** Immutable public endpoint contracts shared with future documentation consumers, not executable handlers. */
 export interface IHttpEndpointMetadata {

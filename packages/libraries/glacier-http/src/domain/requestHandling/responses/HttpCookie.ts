@@ -1,5 +1,5 @@
-import type { IHttpCookieOptions } from "./IHttpCookieOptions.js";
-import type { IHttpClearCookieOptions } from "./IHttpClearCookieOptions.js";
+import type { IHttpCookieOptions } from "./types/IHttpCookieOptions.js";
+import type { IHttpClearCookieOptions } from "./types/IHttpClearCookieOptions.js";
 import { COOKIE_WIRE } from "./CookieWire.js";
 import { HttpContractError } from "./HttpContract.error.js";
 

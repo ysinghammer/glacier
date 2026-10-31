@@ -1,5 +1,5 @@
-import type { IHttpRequestCookies } from "./IHttpRequestCookies.js";
-import type { IRequestNormalizationResult } from "./IRequestNormalizationResult.js";
+import type { IHttpRequestCookies } from "./types/IHttpRequestCookies.js";
+import type { IRequestNormalizationResult } from "./types/IRequestNormalizationResult.js";
 
 const COOKIE_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 const COOKIE_VALUE =

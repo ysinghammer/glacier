@@ -1,4 +1,4 @@
-import type { HttpCookie } from "./HttpCookie.js";
+import type { HttpCookie } from "../HttpCookie.js";
 
 /** Caller-owned transport fields are snapshotted and validated by response factories. */
 export interface IHttpResponseOptions {

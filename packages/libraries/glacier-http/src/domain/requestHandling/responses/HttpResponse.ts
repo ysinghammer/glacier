@@ -1,6 +1,6 @@
 import { validateHeaderName, validateHeaderValue } from "node:http";
-import type { IHttpResponseOptions } from "./IHttpResponseOptions.js";
-import type { IHttpJsonResponseOptions } from "./IHttpJsonResponseOptions.js";
+import type { IHttpResponseOptions } from "./types/IHttpResponseOptions.js";
+import type { IHttpJsonResponseOptions } from "./types/IHttpJsonResponseOptions.js";
 import { HttpCookie } from "./HttpCookie.js";
 import { COOKIE_WIRE } from "./CookieWire.js";
 import { RESPONSE_WIRE } from "./ResponseWire.js";

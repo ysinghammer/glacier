@@ -1,4 +1,4 @@
-import type { IHttpErrorMapping } from "./IHttpErrorMapping.js";
+import type { IHttpErrorMapping } from "./types/IHttpErrorMapping.js";
 import { HttpContractError } from "./HttpContract.error.js";
 import { SchemaError, SchemaDefinitionError } from "@glacier/schema";
 

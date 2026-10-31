@@ -1,5 +1,5 @@
 import type { IConstructableClass } from "@glacier/reflection";
-import type { IApiInputOptions } from "./IApiInputOptions.js";
+import type { IApiInputOptions } from "./types/IApiInputOptions.js";
 import { RoutingMetadata } from "./RoutingMetadata.js";
 
 /** Binds normalized lower-case header names through an explicit DTO with textual coercion. */

@@ -1,7 +1,7 @@
 import { SchemaError, SchemaDefinitionError } from "@glacier/schema";
 import type { IJsonObject, IJsonValue } from "@glacier/schema";
-import type { IHttpEndpointMetadata } from "../requestHandling/routing/IHttpEndpointMetadata.js";
-import type { IHttpErrorMapping } from "../requestHandling/responses/IHttpErrorMapping.js";
+import type { IHttpEndpointMetadata } from "../requestHandling/routing/types/IHttpEndpointMetadata.js";
+import type { IHttpErrorMapping } from "../requestHandling/responses/types/IHttpErrorMapping.js";
 import { OpenApiSchemas } from "./OpenApiSchemas.js";
 import { OpenApiInputs } from "./OpenApiInputs.js";
 import { OpenApiJson } from "./OpenApiJson.js";
