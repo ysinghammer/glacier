@@ -51,14 +51,14 @@ export class InjectionMetadata {
     return Object.freeze(
       parameterTypes.map((emittedType, position) => ({
         position,
-        token: InjectionMetadata.#resolveToken(target, position, emittedType),
-        isOptional: InjectionMetadata.#isOptional(target, position),
+        token: InjectionMetadata.resolveToken(target, position, emittedType),
+        isOptional: InjectionMetadata.isOptional(target, position),
       })),
     );
   }
 
   /** Picks the explicit token or falls back to a usable emitted class. */
-  static #resolveToken(target: IClass, position: number, emittedType: IRuntimeType): IToken {
+  private static resolveToken(target: IClass, position: number, emittedType: IRuntimeType): IToken {
     const explicit = INJECT_TOKEN_METADATA.readDynamic(target, {
       kind: "constructor-parameter",
       position,
@@ -75,7 +75,7 @@ export class InjectionMetadata {
   }
 
   /** Reads whether `@Optional` was declared for the parameter. */
-  static #isOptional(target: IClass, position: number): boolean {
+  private static isOptional(target: IClass, position: number): boolean {
     const result = OPTIONAL_PARAMETER_METADATA.readDynamic(target, {
       kind: "constructor-parameter",
       position,

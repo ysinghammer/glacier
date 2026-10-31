@@ -52,9 +52,9 @@ describe("IOC-003 decorator metadata is readable through the public API", () => 
 
     class Consumer {
       public constructor(
-        readonly first: string,
-        readonly second: unknown,
-        readonly third: Repository,
+        public readonly first: string,
+        public readonly second: unknown,
+        public readonly third: Repository,
       ) {}
     }
     Injectable()(Consumer);
@@ -76,8 +76,8 @@ describe("IOC-004 implicit tokens come from design:paramtypes", () => {
   it("uses emitted parameter classes when no @Inject is present", () => {
     class Consumer {
       public constructor(
-        readonly repository: Repository,
-        readonly logger: Logger,
+        public readonly repository: Repository,
+        public readonly logger: Logger,
       ) {}
     }
     Injectable()(Consumer);
@@ -105,7 +105,7 @@ describe("IOC-004 implicit tokens come from design:paramtypes", () => {
 
   it("does not inherit emitted parameter types from a base class", () => {
     class Base {
-      public constructor(readonly repository: Repository) {}
+      public constructor(public readonly repository: Repository) {}
     }
     emitParameterTypes(Base, [Repository]);
     class Derived extends Base {}
@@ -118,7 +118,7 @@ describe("IOC-004 implicit tokens come from design:paramtypes", () => {
 describe("IOC-005 unusable injection metadata fails explicitly", () => {
   it("rejects a class with parameters but no emitted metadata", () => {
     class Missing {
-      public constructor(readonly repository: Repository) {}
+      public constructor(public readonly repository: Repository) {}
     }
 
     expect(() => InjectionMetadata.readDependencies(Missing)).toThrow(
@@ -130,7 +130,7 @@ describe("IOC-005 unusable injection metadata fails explicitly", () => {
     "rejects parameter %s that has neither @Inject nor a usable emitted class",
     (emitted) => {
       class Consumer {
-        public constructor(readonly dependency: unknown) {}
+        public constructor(public readonly dependency: unknown) {}
       }
       emitParameterTypes(Consumer, [emitted]);
 

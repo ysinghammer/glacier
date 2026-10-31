@@ -46,10 +46,10 @@ describe("IOC-024 scope bubbling", () => {
   it("shares the REQUEST dependency between dependents of one context", async () => {
     const request = scoped("request");
     class Left {
-      public constructor(readonly shared: object) {}
+      public constructor(public readonly shared: object) {}
     }
     class Right {
-      public constructor(readonly shared: object) {}
+      public constructor(public readonly shared: object) {}
     }
     ParameterTypes.emit(Left, [request]);
     ParameterTypes.emit(Right, [request]);
@@ -65,7 +65,7 @@ describe("IOC-024 scope bubbling", () => {
   it("does not bubble TRANSIENT to dependents", async () => {
     const transient = scoped("transient");
     class Holder {
-      public constructor(readonly inner: object) {}
+      public constructor(public readonly inner: object) {}
     }
     ParameterTypes.emit(Holder, [transient]);
     const container = await GlacierContainer.create(moduleOf(transient, Holder));

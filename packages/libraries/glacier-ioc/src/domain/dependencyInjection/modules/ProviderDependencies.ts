@@ -10,16 +10,16 @@ export class ProviderDependencies {
   public static of(registration: IProviderRegistration): readonly IConstructorDependency[] {
     const { provider } = registration;
     if ("useValue" in provider) return [];
-    if ("useExisting" in provider) return [ProviderDependencies.#required(0, provider.useExisting)];
+    if ("useExisting" in provider) return [ProviderDependencies.required(0, provider.useExisting)];
     if ("useFactory" in provider) {
       return (provider.inject ?? []).map((token, position) =>
-        ProviderDependencies.#required(position, token),
+        ProviderDependencies.required(position, token),
       );
     }
     return InjectionMetadata.readDependencies(provider.useClass);
   }
 
-  static #required(position: number, token: ITokenReference): IConstructorDependency {
+  private static required(position: number, token: ITokenReference): IConstructorDependency {
     return { position, token: TokenIdentity.of(token), isOptional: false };
   }
 }

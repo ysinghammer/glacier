@@ -7,19 +7,29 @@ import { ModuleRef } from "../../domain/dependencyInjection/scopes/ModuleRef.js"
 import type { IGetOptions } from "../../domain/dependencyInjection/modules/types/IGetOptions.js";
 import type { InstanceResolver } from "./InstanceResolver.js";
 
+/** The lookup's resolver can retain sensitive provider values and must stay out of serialization. */
+interface IModuleLookupState {
+  readonly resolver: InstanceResolver;
+  readonly module: ModuleNode;
+}
+const MODULE_LOOKUP_STATES = new WeakMap<ModuleLookup, IModuleLookupState>();
+
 /**
  * The container as seen from one module, also injectable as `ModuleRef`; lookups are strict unless
  * `{ strict: false }` is given.
  */
 export class ModuleLookup extends ModuleRef {
-  readonly #resolver: InstanceResolver;
-  readonly #module: ModuleNode;
+  /** Rejects borrowed receivers without exposing the container graph or provider cache. */
+  private get state(): IModuleLookupState {
+    const state = MODULE_LOOKUP_STATES.get(this);
+    if (state === undefined) throw new TypeError("Invalid module lookup receiver");
+    return state;
+  }
 
   /** Wraps the resolver for one module; created by `GlacierContainer.select`. */
   public constructor(resolver: InstanceResolver, module: ModuleNode) {
     super();
-    this.#resolver = resolver;
-    this.#module = module;
+    MODULE_LOOKUP_STATES.set(this, { resolver, module });
   }
 
   /**
@@ -32,7 +42,7 @@ export class ModuleLookup extends ModuleRef {
   public override get<T extends object>(token: IConstructableClass<T>, options?: IGetOptions): T;
   public override get(token: symbol, options?: IGetOptions): unknown;
   public override get(token: ITokenReference, options: IGetOptions = {}): unknown {
-    return this.#resolver.get(token, this.#module, options.strict ?? true);
+    return this.state.resolver.get(token, this.state.module, options.strict ?? true);
   }
 
   /**
@@ -60,6 +70,6 @@ export class ModuleLookup extends ModuleRef {
     contextId?: ContextId,
     options: IGetOptions = {},
   ): Promise<unknown> {
-    return this.#resolver.resolve(token, this.#module, options.strict ?? true, contextId);
+    return this.state.resolver.resolve(token, this.state.module, options.strict ?? true, contextId);
   }
 }

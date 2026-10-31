@@ -31,7 +31,7 @@ function emitParameterTypes(
 class Repository {}
 
 class Service {
-  public constructor(readonly repository: Repository) {}
+  public constructor(public readonly repository: Repository) {}
 }
 Injectable()(Service);
 emitParameterTypes(Service, [Repository]);
@@ -193,7 +193,7 @@ describe("IOC-008 factories receive injected arguments in order", () => {
 describe("IOC-009 unknown dependencies and cycles name their path", () => {
   it("throws with the path to a missing constructor dependency", async () => {
     class Controller {
-      public constructor(readonly service: Service) {}
+      public constructor(public readonly service: Service) {}
     }
     Injectable()(Controller);
     emitParameterTypes(Controller, [Service]);
@@ -216,9 +216,9 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
   it("yields undefined for a missing @Optional dependency", async () => {
     class Audited {
       public constructor(
-        readonly repository: Repository,
-        readonly note: unknown,
-        readonly name: unknown,
+        public readonly repository: Repository,
+        public readonly note: unknown,
+        public readonly name: unknown,
       ) {}
     }
     const note = Symbol("note");
@@ -253,7 +253,7 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
 
   it("does not treat a missing dependency of an optional provider as optional", async () => {
     class Holder {
-      public constructor(readonly service: Service) {}
+      public constructor(public readonly service: Service) {}
     }
     Injectable()(Holder);
     Optional()(Holder, undefined, 0);
@@ -266,10 +266,10 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
 
   it("detects a cycle instead of recursing forever", async () => {
     class Left {
-      public constructor(readonly right: unknown) {}
+      public constructor(public readonly right: unknown) {}
     }
     class Right {
-      public constructor(readonly left: unknown) {}
+      public constructor(public readonly left: unknown) {}
     }
     Injectable()(Left);
     Injectable()(Right);

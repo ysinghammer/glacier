@@ -10,7 +10,7 @@ import {
 } from "../../index.js";
 
 class Service {
-  readonly name = "service";
+  public readonly name = "service";
 }
 class AppModule {}
 Module({ providers: [Service] })(AppModule);

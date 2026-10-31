@@ -12,15 +12,15 @@ import type { IProviderRegistration } from "./types/IProviderRegistration.js";
  */
 export class ModuleNode {
   /** The class or dynamic module this node was created from; the graph keeps one node per reference. */
-  readonly reference: IModuleReference;
+  public readonly reference: IModuleReference;
   /** The decorated module class. */
-  readonly moduleClass: IClassConstructor;
+  public readonly moduleClass: IClassConstructor;
   /** Whether the module's exports are visible container-wide. */
-  readonly isGlobal: boolean;
-  readonly #registrations = new Map<IToken, IProviderRegistration>();
-  readonly #exportedTokens = new Map<IToken, ITokenReference>();
-  readonly #reExportedModules: ModuleNode[] = [];
-  readonly #imports: ModuleNode[] = [];
+  public readonly isGlobal: boolean;
+  private readonly registrations = new Map<IToken, IProviderRegistration>();
+  private readonly exportedTokens = new Map<IToken, ITokenReference>();
+  private readonly reExportedModules: ModuleNode[] = [];
+  private readonly imports: ModuleNode[] = [];
 
   /** Creates an empty node; providers, imports and exports are added while the graph is built. */
   public constructor(
@@ -35,7 +35,7 @@ export class ModuleNode {
 
   /** Registers an own provider; a later provider for the same token replaces an earlier one. */
   public register(token: ITokenReference, provider: INormalizedProvider): void {
-    this.#registrations.set(TokenIdentity.of(token), {
+    this.registrations.set(TokenIdentity.of(token), {
       module: this,
       provider,
     });
@@ -43,41 +43,41 @@ export class ModuleNode {
 
   /** Records an imported module; importing the same node twice keeps a single entry. */
   public addImport(imported: ModuleNode): void {
-    if (!this.#imports.includes(imported)) this.#imports.push(imported);
+    if (!this.imports.includes(imported)) this.imports.push(imported);
   }
 
   /** Records an exported token. */
   public exportToken(token: ITokenReference): void {
-    this.#exportedTokens.set(TokenIdentity.of(token), token);
+    this.exportedTokens.set(TokenIdentity.of(token), token);
   }
 
   /** Records an imported module whose exports are re-exported. */
   public reExport(imported: ModuleNode): void {
-    this.#reExportedModules.push(imported);
+    this.reExportedModules.push(imported);
   }
 
   /** Returns the imported node matching the class or dynamic module, or `undefined` when not imported. */
   public findImport(reference: IModuleReference): ModuleNode | undefined {
-    return this.#imports.find(
+    return this.imports.find(
       (imported) => imported.reference === reference || imported.moduleClass === reference,
     );
   }
 
   /** Returns the registration owned by this module for the token, regardless of exports. */
   public findOwn(token: ITokenReference): IProviderRegistration | undefined {
-    return this.#registrations.get(TokenIdentity.of(token));
+    return this.registrations.get(TokenIdentity.of(token));
   }
 
   /** Lists every provider registered by this module. */
   public listRegistrations(): readonly IProviderRegistration[] {
-    return [...this.#registrations.values()];
+    return [...this.registrations.values()];
   }
 
   /** Lists exported tokens that are neither owned nor exported by an imported module. */
   public findUnavailableExports(): readonly ITokenReference[] {
-    return [...this.#exportedTokens.entries()]
+    return [...this.exportedTokens.entries()]
       .filter(
-        ([identity, token]) => this.findOwn(token) === undefined && !this.#isImported(identity),
+        ([identity, token]) => this.findOwn(token) === undefined && !this.isImported(identity),
       )
       .map(([, token]) => token);
   }
@@ -93,10 +93,10 @@ export class ModuleNode {
     if (visited.has(this)) return undefined;
     visited.add(this);
     const own = this.findOwn(token);
-    if (own !== undefined && this.#exportedTokens.has(TokenIdentity.of(token))) return own;
-    const sources = this.#exportedTokens.has(TokenIdentity.of(token))
-      ? this.#imports
-      : this.#reExportedModules;
+    if (own !== undefined && this.exportedTokens.has(TokenIdentity.of(token))) return own;
+    const sources = this.exportedTokens.has(TokenIdentity.of(token))
+      ? this.imports
+      : this.reExportedModules;
     for (const source of sources) {
       const found = source.findExported(token, visited);
       if (found !== undefined) return found;
@@ -111,7 +111,7 @@ export class ModuleNode {
   ): IProviderRegistration | undefined {
     const own = this.findOwn(token);
     if (own !== undefined) return own;
-    for (const source of [...this.#imports, ...globalModules]) {
+    for (const source of [...this.imports, ...globalModules]) {
       const found = source.findExported(token);
       if (found !== undefined) return found;
     }
@@ -119,7 +119,7 @@ export class ModuleNode {
   }
 
   /** Whether an imported module offers the token to this module. */
-  #isImported(identity: IToken): boolean {
-    return this.#imports.some((imported) => imported.findExported(identity) !== undefined);
+  private isImported(identity: IToken): boolean {
+    return this.imports.some((imported) => imported.findExported(identity) !== undefined);
   }
 }

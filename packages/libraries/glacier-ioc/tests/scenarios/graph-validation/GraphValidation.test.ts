@@ -219,7 +219,7 @@ describe("IOC-021 optional dependencies are not errors", () => {
   it("accepts missing @Optional dependencies and resolves them to undefined", async () => {
     const missing = new InjectionToken<string>("missing");
     class Needy {
-      public constructor(readonly value: unknown) {}
+      public constructor(public readonly value: unknown) {}
     }
     Injectable()(Needy);
     Inject(missing)(Needy, undefined, 0);

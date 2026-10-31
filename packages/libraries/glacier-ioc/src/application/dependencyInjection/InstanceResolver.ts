@@ -21,28 +21,28 @@ import { ModuleLookup } from "./ModuleLookup.js";
  * Dependencies are resolved from the owning module's point of view, in the same context.
  */
 export class InstanceResolver {
-  readonly #graph: ModuleGraph;
-  readonly #instances = new Map<IProviderRegistration, Promise<unknown>>();
-  readonly #createdDefaults = new Map<IProviderRegistration, unknown>();
-  readonly #requestInstances = new WeakMap<
+  private readonly graph: ModuleGraph;
+  private readonly instances = new Map<IProviderRegistration, Promise<unknown>>();
+  private readonly createdDefaults = new Map<IProviderRegistration, unknown>();
+  private readonly requestInstances = new WeakMap<
     ContextId,
     Map<IProviderRegistration, Promise<unknown>>
   >();
-  #isClosed = false;
+  private isClosed = false;
 
   /** Creates a resolver over a validated graph; nothing is constructed until the first lookup. */
   public constructor(graph: ModuleGraph) {
-    this.#graph = graph;
+    this.graph = graph;
   }
 
   /** Marks the resolver closed; every later lookup is rejected with `UseAfterCloseError`. */
   public close(): void {
-    this.#isClosed = true;
+    this.isClosed = true;
   }
 
   /** Throws `UseAfterCloseError` naming the attempted operation once the resolver is closed. */
   public assertOpen(operation: string): void {
-    if (this.#isClosed) throw new UseAfterCloseError(operation);
+    if (this.isClosed) throw new UseAfterCloseError(operation);
   }
 
   /**
@@ -53,10 +53,10 @@ export class InstanceResolver {
   public async createDefaultInstances(): Promise<readonly object[]> {
     const context = ContainerContext.createContextId();
     const instances: object[] = [];
-    for (const node of this.#graph.dependencyOrder) {
+    for (const node of this.graph.dependencyOrder) {
       for (const registration of node.listRegistrations()) {
-        if (this.#graph.profileOf(registration).lifetime !== "default") continue;
-        const instance = await this.#resolve(registration, context);
+        if (this.graph.profileOf(registration).lifetime !== "default") continue;
+        const instance = await this.resolveValue(registration, context);
         if (LifecycleHooks.canHaveHooks(instance) && !instances.includes(instance)) {
           instances.push(instance);
         }
@@ -73,20 +73,20 @@ export class InstanceResolver {
    */
   public get(token: ITokenReference, module: ModuleNode, isStrict: boolean): unknown {
     this.assertOpen("get a provider");
-    const registration = this.#locate(token, module, isStrict);
-    if (this.#graph.profileOf(registration).lifetime !== "default") {
+    const registration = this.locate(token, module, isStrict);
+    if (this.graph.profileOf(registration).lifetime !== "default") {
       throw new InvalidScopeError(
         [token],
         "the provider is not DEFAULT-scoped, so it needs a context; use resolve() instead of get()",
       );
     }
-    if (!this.#createdDefaults.has(registration)) {
+    if (!this.createdDefaults.has(registration)) {
       throw new InvalidScopeError(
         [token],
         "the provider is still being created; use resolve() inside providers",
       );
     }
-    return this.#createdDefaults.get(registration);
+    return this.createdDefaults.get(registration);
   }
 
   /**
@@ -103,29 +103,33 @@ export class InstanceResolver {
   ): Promise<unknown> {
     this.assertOpen("resolve a provider");
     const context = ContextIds.require(contextId);
-    return this.#resolve(this.#locate(token, module, isStrict), context);
+    return this.resolveValue(this.locate(token, module, isStrict), context);
   }
 
   /** Finds the registration for a token or throws `UnknownDependencyError`. */
-  #locate(token: ITokenReference, module: ModuleNode, isStrict: boolean): IProviderRegistration {
-    const visible = this.#graph.findVisible(module, token);
-    const registration = visible ?? (isStrict ? undefined : this.#graph.findAnywhere(token));
+  private locate(
+    token: ITokenReference,
+    module: ModuleNode,
+    isStrict: boolean,
+  ): IProviderRegistration {
+    const visible = this.graph.findVisible(module, token);
+    const registration = visible ?? (isStrict ? undefined : this.graph.findAnywhere(token));
     if (registration === undefined) throw new UnknownDependencyError([token]);
     return registration;
   }
 
   /** Returns the instance of a registration according to its effective scope; concurrent callers share one creation. */
-  #resolve(registration: IProviderRegistration, context: ContextId): Promise<unknown> {
-    const { lifetime } = this.#graph.profileOf(registration);
-    if (lifetime === "transient") return this.#create(registration, context);
-    const cache = lifetime === "request" ? this.#requestCache(context) : this.#instances;
+  private resolveValue(registration: IProviderRegistration, context: ContextId): Promise<unknown> {
+    const { lifetime } = this.graph.profileOf(registration);
+    if (lifetime === "transient") return this.create(registration, context);
+    const cache = lifetime === "request" ? this.requestCache(context) : this.instances;
     const known = cache.get(registration);
     if (known !== undefined) return known;
-    const created = this.#create(registration, context);
+    const created = this.create(registration, context);
     cache.set(registration, created);
     if (lifetime === "default") {
       return created.then((instance) => {
-        this.#createdDefaults.set(registration, instance);
+        this.createdDefaults.set(registration, instance);
         return instance;
       });
     }
@@ -133,27 +137,31 @@ export class InstanceResolver {
   }
 
   /** Returns the instances created so far for one context. */
-  #requestCache(context: ContextId): Map<IProviderRegistration, Promise<unknown>> {
-    const known = this.#requestInstances.get(context);
+  private requestCache(context: ContextId): Map<IProviderRegistration, Promise<unknown>> {
+    const known = this.requestInstances.get(context);
     if (known !== undefined) return known;
     const created = new Map<IProviderRegistration, Promise<unknown>>();
-    this.#requestInstances.set(context, created);
+    this.requestInstances.set(context, created);
     return created;
   }
 
   /** Resolves one validated dependency from the owning module's point of view. */
-  #resolveToken(token: ITokenReference, owner: ModuleNode, context: ContextId): Promise<unknown> {
-    return this.#resolve(this.#locate(token, owner, true), context);
+  private resolveToken(
+    token: ITokenReference,
+    owner: ModuleNode,
+    context: ContextId,
+  ): Promise<unknown> {
+    return this.resolveValue(this.locate(token, owner, true), context);
   }
 
   /** Produces the value of one provider according to its kind, awaiting dependencies and async factories. */
-  async #create(registration: IProviderRegistration, context: ContextId): Promise<unknown> {
+  private async create(registration: IProviderRegistration, context: ContextId): Promise<unknown> {
     const { provider, module } = registration;
     if (provider === ModuleRef.PROVIDER) return new ModuleLookup(this, module);
     if ("useValue" in provider) return provider.useValue;
-    if ("useExisting" in provider) return this.#resolveToken(provider.useExisting, module, context);
+    if ("useExisting" in provider) return this.resolveToken(provider.useExisting, module, context);
     if ("useFactory" in provider) {
-      const injected = await this.#resolveAll(provider.inject ?? [], module, context);
+      const injected = await this.resolveAll(provider.inject ?? [], module, context);
       try {
         return await provider.useFactory(...(injected as never[]));
       } catch (cause) {
@@ -163,30 +171,30 @@ export class InstanceResolver {
     const dependencies = InjectionMetadata.readDependencies(provider.useClass);
     const injected: unknown[] = [];
     for (const dependency of dependencies) {
-      injected.push(await this.#resolveDependency(dependency, module, context));
+      injected.push(await this.resolveDependency(dependency, module, context));
     }
     return new provider.useClass(...(injected as never[]));
   }
 
   /** Resolves tokens one after another so dependencies are created in declaration order. */
-  async #resolveAll(
+  private async resolveAll(
     tokens: readonly ITokenReference[],
     owner: ModuleNode,
     context: ContextId,
   ): Promise<unknown[]> {
     const injected: unknown[] = [];
-    for (const token of tokens) injected.push(await this.#resolveToken(token, owner, context));
+    for (const token of tokens) injected.push(await this.resolveToken(token, owner, context));
     return injected;
   }
 
   /** Resolves one constructor parameter, yielding `undefined` for a missing `@Optional` dependency. */
-  async #resolveDependency(
+  private async resolveDependency(
     dependency: IConstructorDependency,
     owner: ModuleNode,
     context: ContextId,
   ): Promise<unknown> {
-    const isMissing = this.#graph.findVisible(owner, dependency.token) === undefined;
+    const isMissing = this.graph.findVisible(owner, dependency.token) === undefined;
     if (dependency.isOptional && isMissing) return undefined;
-    return this.#resolveToken(dependency.token, owner, context);
+    return this.resolveToken(dependency.token, owner, context);
   }
 }

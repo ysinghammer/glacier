@@ -30,7 +30,7 @@ describe("IOC-013 global modules", () => {
 
   it("injects global providers into providers of other modules", async () => {
     class Reporter {
-      public constructor(readonly clock: Clock) {}
+      public constructor(public readonly clock: Clock) {}
     }
     ParameterTypes.emit(Reporter, [Clock]);
     class Reporting {}

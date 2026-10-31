@@ -16,7 +16,7 @@ export class ModuleMetadata {
    * class, or a member has the wrong shape.
    */
   public static resolve(reference: IModuleReference): IResolvedModule {
-    if (typeof reference === "function") return ModuleMetadata.#merge(reference, undefined);
+    if (typeof reference === "function") return ModuleMetadata.merge(reference, undefined);
     const dynamic: unknown = reference;
     if (typeof dynamic !== "object" || dynamic === null || !("module" in dynamic)) {
       throw new InvalidModuleError(
@@ -30,11 +30,14 @@ export class ModuleMetadata {
         "`module` of a dynamic module must be a class",
       );
     }
-    return ModuleMetadata.#merge(dynamic.module as IClassConstructor, dynamic);
+    return ModuleMetadata.merge(dynamic.module as IClassConstructor, dynamic);
   }
 
   /** Combines the static declaration with the optional dynamic data. */
-  static #merge(moduleClass: IClassConstructor, dynamic: object | undefined): IResolvedModule {
+  private static merge(
+    moduleClass: IClassConstructor,
+    dynamic: object | undefined,
+  ): IResolvedModule {
     const result = MODULE_OPTIONS_METADATA.read(moduleClass, {
       kind: "class",
       inheritance: "own",
@@ -43,11 +46,11 @@ export class ModuleMetadata {
       throw new InvalidModuleError(moduleClass, "the class is not decorated with @Module");
     }
     const declared = result.value as object;
-    const providers = ModuleMetadata.#readLists(moduleClass, declared, dynamic, "providers");
-    const imports = ModuleMetadata.#readLists(moduleClass, declared, dynamic, "imports");
-    const exports = ModuleMetadata.#readLists(moduleClass, declared, dynamic, "exports");
-    const dynamicGlobal = ModuleMetadata.#readGlobal(moduleClass, dynamic);
-    const staticGlobal = ModuleMetadata.#readGlobal(moduleClass, declared);
+    const providers = ModuleMetadata.readLists(moduleClass, declared, dynamic, "providers");
+    const imports = ModuleMetadata.readLists(moduleClass, declared, dynamic, "imports");
+    const exports = ModuleMetadata.readLists(moduleClass, declared, dynamic, "exports");
+    const dynamicGlobal = ModuleMetadata.readGlobal(moduleClass, dynamic);
+    const staticGlobal = ModuleMetadata.readGlobal(moduleClass, declared);
     return {
       moduleClass,
       providers,
@@ -58,20 +61,20 @@ export class ModuleMetadata {
   }
 
   /** Concatenates the static and dynamic values of one list member. */
-  static #readLists(
+  private static readLists(
     moduleClass: IClassConstructor,
     declared: object,
     dynamic: object | undefined,
     key: string,
   ): unknown[] {
     return [
-      ...ModuleMetadata.#readList(moduleClass, declared, key),
-      ...ModuleMetadata.#readList(moduleClass, dynamic, key),
+      ...ModuleMetadata.readList(moduleClass, declared, key),
+      ...ModuleMetadata.readList(moduleClass, dynamic, key),
     ];
   }
 
   /** Reads an optional array member of untrusted module data. */
-  static #readList(
+  private static readList(
     moduleClass: IClassConstructor,
     source: object | undefined,
     key: string,
@@ -85,7 +88,7 @@ export class ModuleMetadata {
   }
 
   /** Reads the optional `global` flag of untrusted module data. */
-  static #readGlobal(
+  private static readGlobal(
     moduleClass: IClassConstructor,
     source: object | undefined,
   ): boolean | undefined {

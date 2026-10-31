@@ -4,7 +4,7 @@
  */
 export class ContextId {
   /** Sequence number distinguishing this id from every other id of the process, for diagnostics only. */
-  readonly sequence: number;
+  public readonly sequence: number;
 
   /** Wraps a sequence number; created by `ContainerContext`. */
   public constructor(sequence: number) {

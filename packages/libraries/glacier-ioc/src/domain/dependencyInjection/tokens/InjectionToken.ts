@@ -5,11 +5,11 @@
  */
 export class InjectionToken<T> {
   /** Compile-time carrier of the resolved value type; it has no runtime representation. */
-  declare readonly phantomType: T | undefined;
+  declare public readonly phantomType: T | undefined;
   /** Human-readable text included in container error messages. */
-  readonly description: string;
+  public readonly description: string;
   /** The unique symbol identifying this token inside containers and metadata. */
-  readonly symbol: symbol;
+  public readonly symbol: symbol;
 
   /** Creates a token with a fresh identity; the description is diagnostic only and never shared. */
   public constructor(description: string) {

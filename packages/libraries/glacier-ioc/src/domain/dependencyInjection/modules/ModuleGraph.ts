@@ -23,19 +23,19 @@ import { ModuleNode } from "./ModuleNode.js";
  */
 export class ModuleGraph {
   /** The module the container was created from. */
-  readonly root: ModuleNode;
+  public readonly root: ModuleNode;
   /** Every reachable module, each after the modules it imports (import cycles are reported as errors). */
-  readonly dependencyOrder: readonly ModuleNode[];
-  readonly #globalModules: readonly ModuleNode[];
-  readonly #scopes: ScopeAnalysis;
+  public readonly dependencyOrder: readonly ModuleNode[];
+  private readonly globalModules: readonly ModuleNode[];
+  private readonly scopes: ScopeAnalysis;
 
   private constructor(root: ModuleNode, dependencyOrder: readonly ModuleNode[]) {
     this.root = root;
     this.dependencyOrder = dependencyOrder;
-    this.#globalModules = dependencyOrder.filter((node) => node.isGlobal);
-    this.#scopes = ScopeAnalysis.create(
+    this.globalModules = dependencyOrder.filter((node) => node.isGlobal);
+    this.scopes = ScopeAnalysis.create(
       dependencyOrder.flatMap((node) => node.listRegistrations()),
-      this.#globalModules,
+      this.globalModules,
     );
   }
 
@@ -47,7 +47,7 @@ export class ModuleGraph {
     const problems: Error[] = [];
     const nodes = new Map<IModuleReference, ModuleNode>();
     const dependencyOrder: ModuleNode[] = [];
-    const rootNode = ModuleGraph.#visit(root, nodes, dependencyOrder, [], problems);
+    const rootNode = ModuleGraph.visit(root, nodes, dependencyOrder, [], problems);
     for (const node of dependencyOrder) {
       for (const token of node.findUnavailableExports()) {
         problems.push(
@@ -70,7 +70,7 @@ export class ModuleGraph {
 
   /** Returns the effective scope of a registration, with REQUEST bubbled up from its dependencies. */
   public profileOf(registration: IProviderRegistration): IScopeProfile {
-    return this.#scopes.profileOf(registration);
+    return this.scopes.profileOf(registration);
   }
 
   /** Finds the provider visible to a module: own, imports' exports, then global modules' exports. */
@@ -78,7 +78,7 @@ export class ModuleGraph {
     module: ModuleNode,
     token: ITokenReference,
   ): IProviderRegistration | undefined {
-    return module.findVisible(token, this.#globalModules);
+    return module.findVisible(token, this.globalModules);
   }
 
   /** Finds a provider anywhere in the container, preferring dependents over their dependencies. */
@@ -108,7 +108,7 @@ export class ModuleGraph {
    * Visits a module once, then its imports, appending the node after them; returns undefined on failure.
    * `importing` holds the modules currently being visited, so reaching one of them again is an import cycle.
    */
-  static #visit(
+  private static visit(
     reference: IModuleReference,
     nodes: Map<IModuleReference, ModuleNode>,
     dependencyOrder: ModuleNode[],
@@ -128,9 +128,9 @@ export class ModuleGraph {
       const node = new ModuleNode(reference, resolved.moduleClass, resolved.isGlobal);
       nodes.set(reference, node);
       node.register(ModuleRef, ModuleRef.PROVIDER);
-      ModuleGraph.#registerProviders(node, resolved.providers, problems);
+      ModuleGraph.registerProviders(node, resolved.providers, problems);
       for (const imported of resolved.imports) {
-        const importedNode = ModuleGraph.#visit(
+        const importedNode = ModuleGraph.visit(
           imported,
           nodes,
           dependencyOrder,
@@ -139,7 +139,7 @@ export class ModuleGraph {
         );
         if (importedNode !== undefined) node.addImport(importedNode);
       }
-      ModuleGraph.#declareExports(node, resolved.exports, problems);
+      ModuleGraph.declareExports(node, resolved.exports, problems);
       dependencyOrder.push(node);
       return node;
     } catch (error) {
@@ -150,7 +150,7 @@ export class ModuleGraph {
   }
 
   /** Validates and registers each declared provider, collecting the failures of invalid ones. */
-  static #registerProviders(
+  private static registerProviders(
     node: ModuleNode,
     declared: readonly unknown[],
     problems: Error[],
@@ -159,7 +159,7 @@ export class ModuleGraph {
       try {
         const provider = ProviderNormalization.normalize(candidate, position);
         if ("useClass" in provider) {
-          ModuleGraph.#inspectClass(provider.provide, provider.useClass);
+          ModuleGraph.inspectClass(provider.provide, provider.useClass);
         }
         node.register(provider.provide, provider);
       } catch (error) {
@@ -170,13 +170,13 @@ export class ModuleGraph {
   }
 
   /** Checks a class provider's constructor metadata and scope so resolution can read them without failing. */
-  static #inspectClass(provide: ITokenReference, implementation: IClassConstructor): void {
+  private static inspectClass(provide: ITokenReference, implementation: IClassConstructor): void {
     InjectionMetadata.readDependencies(implementation);
     ProviderScopes.assertValid(provide, InjectionMetadata.readScope(implementation));
   }
 
   /** Classifies exports as re-exports of imported modules or as provider tokens. */
-  static #declareExports(
+  private static declareExports(
     node: ModuleNode,
     exported: readonly IModuleExport[],
     problems: Error[],

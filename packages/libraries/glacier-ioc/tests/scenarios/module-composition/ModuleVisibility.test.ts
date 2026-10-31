@@ -48,7 +48,7 @@ describe("IOC-011 private and exported providers", () => {
 
   it("fails a dependency on a private provider of an imported module with its path", async () => {
     class NeedsSecret {
-      public constructor(readonly secret: Secret) {}
+      public constructor(public readonly secret: Secret) {}
     }
     class ImportingConsumer {}
     Module({ imports: [Provider], providers: [NeedsSecret] })(ImportingConsumer);

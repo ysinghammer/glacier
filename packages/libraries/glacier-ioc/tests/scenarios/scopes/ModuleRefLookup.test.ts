@@ -21,7 +21,7 @@ class Inner {}
 Module({ providers: [Hidden], exports: [] })(Inner);
 
 class Consumer {
-  public constructor(readonly moduleRef: ModuleRef) {}
+  public constructor(public readonly moduleRef: ModuleRef) {}
 }
 Injectable()(Consumer);
 ParameterTypes.emit(Consumer, [ModuleRef]);

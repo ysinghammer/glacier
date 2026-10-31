@@ -11,6 +11,15 @@ import { InstanceResolver } from "./InstanceResolver.js";
 import { LifecycleCoordinator } from "./LifecycleCoordinator.js";
 import { ModuleLookup } from "./ModuleLookup.js";
 
+/** Container-owned provider and lifecycle state must not enter object serialization. */
+interface IContainerState {
+  readonly graph: ModuleGraph;
+  readonly resolver: InstanceResolver;
+  readonly lifecycle: LifecycleCoordinator;
+  closing: Promise<void> | undefined;
+}
+const CONTAINER_STATES = new WeakMap<GlacierContainer, IContainerState>();
+
 /**
  * Dependency-injection container over a module graph resolving providers by scope: DEFAULT providers are
  * constructed once and shared, REQUEST providers once per context id, TRANSIENT ones on every `resolve`. The graph is validated eagerly in
@@ -18,19 +27,19 @@ import { ModuleLookup } from "./ModuleLookup.js";
  * async factories in dependency order, and runs their lifecycle hooks. `close` runs the shutdown hooks.
  */
 export class GlacierContainer {
-  readonly #graph: ModuleGraph;
-  readonly #resolver: InstanceResolver;
-  readonly #lifecycle: LifecycleCoordinator;
-  #closing: Promise<void> | undefined;
+  /** Retains receiver validation while keeping provider instances outside enumerable state. */
+  private get state(): IContainerState {
+    const state = CONTAINER_STATES.get(this);
+    if (state === undefined) throw new TypeError("Invalid container receiver");
+    return state;
+  }
 
   private constructor(
     graph: ModuleGraph,
     resolver: InstanceResolver,
     lifecycle: LifecycleCoordinator,
   ) {
-    this.#graph = graph;
-    this.#resolver = resolver;
-    this.#lifecycle = lifecycle;
+    CONTAINER_STATES.set(this, { graph, resolver, lifecycle, closing: undefined });
   }
 
   /**
@@ -51,7 +60,7 @@ export class GlacierContainer {
     const startupFailure = await lifecycle.initialize();
     if (startupFailure !== undefined) {
       const cleanupFailures = await lifecycle.shutdown();
-      throw GlacierContainer.#summarize([startupFailure, ...cleanupFailures]);
+      throw GlacierContainer.summarize([startupFailure, ...cleanupFailures]);
     }
     return new GlacierContainer(graph, resolver, lifecycle);
   }
@@ -68,7 +77,7 @@ export class GlacierContainer {
   public get<T extends object>(token: IConstructableClass<T>, options?: IGetOptions): T;
   public get(token: symbol, options?: IGetOptions): unknown;
   public get(token: ITokenReference, options: IGetOptions = {}): unknown {
-    return this.#resolver.get(token, this.#graph.root, options.strict ?? false);
+    return this.state.resolver.get(token, this.state.graph.root, options.strict ?? false);
   }
 
   /**
@@ -93,7 +102,12 @@ export class GlacierContainer {
     contextId?: ContextId,
     options: IGetOptions = {},
   ): Promise<unknown> {
-    return this.#resolver.resolve(token, this.#graph.root, options.strict ?? false, contextId);
+    return this.state.resolver.resolve(
+      token,
+      this.state.graph.root,
+      options.strict ?? false,
+      contextId,
+    );
   }
 
   /**
@@ -102,8 +116,8 @@ export class GlacierContainer {
    * the root.
    */
   public select(module: IModuleReference): ModuleLookup {
-    this.#resolver.assertOpen("select a module");
-    return new ModuleLookup(this.#resolver, this.#graph.select(module));
+    this.state.resolver.assertOpen("select a module");
+    return new ModuleLookup(this.state.resolver, this.state.graph.select(module));
   }
 
   /**
@@ -114,19 +128,19 @@ export class GlacierContainer {
    * `LifecycleHookError`, or with an `AggregateContainerError` when several hooks failed.
    */
   public close(): Promise<void> {
-    this.#closing ??= this.#shutDown();
-    return this.#closing;
+    this.state.closing ??= this.shutDown();
+    return this.state.closing;
   }
 
   /** Closes the resolver, runs the shutdown hooks and reports their failures. */
-  async #shutDown(): Promise<void> {
-    this.#resolver.close();
-    const failures = await this.#lifecycle.shutdown();
-    if (failures.length > 0) throw GlacierContainer.#summarize(failures);
+  private async shutDown(): Promise<void> {
+    this.state.resolver.close();
+    const failures = await this.state.lifecycle.shutdown();
+    if (failures.length > 0) throw GlacierContainer.summarize(failures);
   }
 
   /** Returns the single failure itself, or an aggregate when there are several. */
-  static #summarize(failures: readonly LifecycleHookError[]): Error {
+  private static summarize(failures: readonly LifecycleHookError[]): Error {
     const [only] = failures;
     if (failures.length === 1 && only !== undefined) return only;
     return new AggregateContainerError(failures);

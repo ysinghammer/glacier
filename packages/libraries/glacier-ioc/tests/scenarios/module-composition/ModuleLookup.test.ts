@@ -89,7 +89,7 @@ describe("IOC-016 module de-duplication", () => {
 
   it("shares one instance of a provider exported through several importers", async () => {
     class Counted {
-      static constructions = 0;
+      public static constructions = 0;
       public constructor() {
         Counted.constructions += 1;
       }

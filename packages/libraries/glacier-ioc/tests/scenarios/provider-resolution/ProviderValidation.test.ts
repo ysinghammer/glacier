@@ -105,7 +105,7 @@ describe("IOC-010 invalid provider shapes are rejected", () => {
 
   it("rejects a class whose constructor metadata is unavailable", async () => {
     class NeedsMetadata {
-      public constructor(readonly service: Service) {}
+      public constructor(public readonly service: Service) {}
     }
 
     const causes = await problemsOf(() => createWith(NeedsMetadata));

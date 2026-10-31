@@ -6,7 +6,7 @@ import type { IContainerErrorOptions } from "./IContainerErrorOptions.js";
 /** Raised when a provider scope is unsupported or conflicts with its dependents or dependencies. */
 export class InvalidScopeError extends ContainerError {
   /** Tokens from the requested one to the provider with the invalid scope. */
-  readonly dependencyPath: readonly ITokenReference[];
+  public readonly dependencyPath: readonly ITokenReference[];
 
   /** Creates the error from the dependency path and the reason the scope is invalid. */
   public constructor(

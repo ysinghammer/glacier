@@ -57,7 +57,7 @@ describe("IOC-028 async factories are resolved before dependents", () => {
   it("injects the awaited value into a class constructor", async () => {
     const answer = new InjectionToken<number>("answer");
     class Reader {
-      public constructor(readonly answer: number) {}
+      public constructor(public readonly answer: number) {}
     }
     Injectable()(Reader);
     ParameterTypes.emit(Reader, [Number]);

@@ -6,7 +6,7 @@ import type { IContainerErrorOptions } from "./IContainerErrorOptions.js";
 /** Raised when a provider or its injection metadata is malformed or cannot be interpreted. */
 export class InvalidProviderError extends ContainerError {
   /** The token of the provider (or class) that is invalid. */
-  readonly token: ITokenReference;
+  public readonly token: ITokenReference;
 
   /** Creates the error naming the offending token and the reason it is invalid. */
   public constructor(token: ITokenReference, reason: string, options?: IContainerErrorOptions) {

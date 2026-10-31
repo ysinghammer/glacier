@@ -8,11 +8,11 @@ import { LifecycleHooks } from "../../domain/dependencyInjection/lifecycle/Lifec
  * targets in that order; shutdown runs its phases over the reverse order.
  */
 export class LifecycleCoordinator {
-  readonly #targets: readonly object[];
+  private readonly targets: readonly object[];
 
   /** Creates a coordinator over instances listed in initialization order. */
   public constructor(targets: readonly object[]) {
-    this.#targets = targets;
+    this.targets = targets;
   }
 
   /**
@@ -22,7 +22,7 @@ export class LifecycleCoordinator {
   public async initialize(): Promise<LifecycleHookError | undefined> {
     const startup: readonly ILifecycleHookName[] = ["onModuleInit", "onContainerInit"];
     for (const hook of startup) {
-      const failures = await this.#runPhase(hook, this.#targets, true);
+      const failures = await this.runPhase(hook, this.targets, true);
       if (failures.length > 0) return failures[0];
     }
     return undefined;
@@ -34,7 +34,7 @@ export class LifecycleCoordinator {
    * the order it occurred as `LifecycleHookError`s, empty when shutdown succeeded.
    */
   public async shutdown(): Promise<readonly LifecycleHookError[]> {
-    const reversed = [...this.#targets].reverse();
+    const reversed = [...this.targets].reverse();
     const shutdown: readonly ILifecycleHookName[] = [
       "onModuleDestroy",
       "beforeContainerShutdown",
@@ -42,13 +42,13 @@ export class LifecycleCoordinator {
     ];
     const failures: LifecycleHookError[] = [];
     for (const hook of shutdown) {
-      failures.push(...(await this.#runPhase(hook, reversed, false)));
+      failures.push(...(await this.runPhase(hook, reversed, false)));
     }
     return failures;
   }
 
   /** Invokes one hook on each target in order; with `isStoppingOnFailure` it returns at the first failure. */
-  async #runPhase(
+  private async runPhase(
     hook: ILifecycleHookName,
     targets: readonly object[],
     isStoppingOnFailure: boolean,

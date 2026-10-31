@@ -7,11 +7,11 @@ import { ProviderScopes } from "./ProviderScopes.js";
 
 /** Computes the effective scope of every provider, bubbling REQUEST up through dependents. */
 export class ScopeAnalysis {
-  readonly #globalModules: readonly ModuleNode[];
-  readonly #profiles = new Map<IProviderRegistration, IScopeProfile>();
+  private readonly globalModules: readonly ModuleNode[];
+  private readonly profiles = new Map<IProviderRegistration, IScopeProfile>();
 
   private constructor(globalModules: readonly ModuleNode[]) {
-    this.#globalModules = globalModules;
+    this.globalModules = globalModules;
   }
 
   /**
@@ -32,22 +32,22 @@ export class ScopeAnalysis {
 
   /** Returns the effective scope of a registration, computing and remembering it on first use. */
   public profileOf(registration: IProviderRegistration): IScopeProfile {
-    const known = this.#profiles.get(registration);
+    const known = this.profiles.get(registration);
     if (known !== undefined) return known;
-    const profile = this.#compute(registration);
-    this.#profiles.set(registration, profile);
+    const profile = this.compute(registration);
+    this.profiles.set(registration, profile);
     return profile;
   }
 
-  #compute(registration: IProviderRegistration): IScopeProfile {
+  private compute(registration: IProviderRegistration): IScopeProfile {
     const { provider, module } = registration;
     const dependencies = ProviderDependencies.of(registration).flatMap((dependency) => {
-      const found = module.findVisible(dependency.token, this.#globalModules);
+      const found = module.findVisible(dependency.token, this.globalModules);
       return found === undefined ? [] : [this.profileOf(found)];
     });
     const declared =
       "useExisting" in provider
-        ? ScopeAnalysis.#aliasScope(dependencies)
+        ? ScopeAnalysis.aliasScope(dependencies)
         : ProviderScopes.declaredBy(provider);
     const isRequestBound =
       declared === "request" || dependencies.some((dependency) => dependency.isRequestBound);
@@ -56,7 +56,7 @@ export class ScopeAnalysis {
   }
 
   /** An alias is transient exactly when its target is, so it never caches a transient instance. */
-  static #aliasScope(targets: readonly IScopeProfile[]): IProviderScope {
+  private static aliasScope(targets: readonly IScopeProfile[]): IProviderScope {
     return targets.some((target) => target.lifetime === "transient") ? "transient" : "default";
   }
 }
