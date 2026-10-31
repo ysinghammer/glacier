@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { ContextKey } from "../../domain/contextPropagation/ContextKey.js";
-import { ContextNotActiveError } from "../../domain/contextPropagation/failures/ContextNotActive.error.js";
-import { ContextValueMissingError } from "../../domain/contextPropagation/failures/ContextValueMissing.error.js";
-import { DuplicateContextKeyError } from "../../domain/contextPropagation/failures/DuplicateContextKey.error.js";
+import { ContextNotActiveError } from "../../domain/contextPropagation/errors/ContextNotActive.error.js";
+import { ContextValueMissingError } from "../../domain/contextPropagation/errors/ContextValueMissing.error.js";
+import { DuplicateContextKeyError } from "../../domain/contextPropagation/errors/DuplicateContextKey.error.js";
 import type { IContextEntry } from "../../domain/contextPropagation/IContextEntry.js";
 
 type ContextLayer = ReadonlyMap<ContextKey<unknown>, unknown>;
