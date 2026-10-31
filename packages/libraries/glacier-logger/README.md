@@ -159,11 +159,16 @@ console mode, a DI container, nested contexts, per-context levels and wildcard r
 
 ## Layout (policy 0003)
 
-`src/logging/`, `src/serialization/`, `src/formatting/` and `src/transports/` are the capabilities. `formatting` reads
-the public `ILogEntry` contract of `logging` and uses `serialization` for safety; `transports` depends on `formatting`.
+Capabilities are organized under `src/domain/`, `src/application/`, and `src/infrastructure/`:
+`formatting`, `serialization`, and `logging` own their domain concepts; `logging` also has application
+and infrastructure layers, as do `transports` where applicable. `formatting` reads the public
+`ILogEntry` contract of `logging` and uses `serialization` for safety; `transports` depends on `formatting`.
 
-- `domain/`: levels, reserved keys, bindings invariants, call and entry types, formatters, serialisation. No I/O.
-- `application/`: `LoggerFactory`, `Logger`, configuration validation, outcomes, errors, buffering.
-- `application/ports/outbound/`: consumer-owned contracts such as `ITransport`, `IEntryFormatter` and `IClock`.
-- `infrastructure/adapters/outbound/`: Node stdout and file transports and the browser console transport.
+- `src/domain/logging/`: levels, reserved keys, bindings invariants, calls and entries.
+- `src/domain/formatting/` and `src/domain/serialization/`: formatters and safe serialization concepts.
+- `src/application/logging/`: `LoggerFactory`, `Logger`, configuration validation, outcomes and errors.
+- `src/application/logging/ports/outbound/`: consumer-owned contracts such as `ITransport`, `IEntryFormatter` and `IClock`.
+- `src/application/transports/`: buffering and transport application contracts.
+- `src/infrastructure/logging/adapters/outbound/`: environment diagnostics integration.
+- `src/infrastructure/transports/adapters/outbound/`: Node stdout and file transports and the browser console transport.
 - Type names for string-literal unions use the `I` prefix (`ILogLevel`).

@@ -80,7 +80,8 @@ There is one named OIDC scheme; protected operations require it and `ApiPublic()
 no security requirement. `ApiUserId()` cannot be documented without authentication. No scope/role
 decorators, token verification, discovery/JWKS calls, listener, file writer, UI or document route.
 
-The capabilities are organized under `src/request-handling/` and `src/openapi-generation/`.
+Request handling and OpenAPI generation are organized by layer under `src/domain/`,
+`src/application/`, and `src/infrastructure/`, each with its camelCase capability folder.
 OpenAPI consumes the deliberately curated request-handling metadata/registration contracts;
 request handling never imports OpenAPI. There is no `server.openApiDocument()`. The sole public
 entry is the package-root `index.ts`; capabilities have no inner barrels or public subpaths.

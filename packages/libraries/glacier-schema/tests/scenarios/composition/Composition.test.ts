@@ -21,7 +21,7 @@ import {
   SchemaDefinitionError,
   Schema,
 } from "../../../index.js";
-import { DerivedClasses } from "../../../src/domain/schema/DerivedClasses.js";
+import { DerivedClasses } from "../../../src/domain/schemaProcessing/schema/DerivedClasses.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
 function createUserClass(): new () => { name: string; email: string; age?: number; role: string } {

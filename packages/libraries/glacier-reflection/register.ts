@@ -1,3 +1,3 @@
-import { CompilerMetadataBridge } from "./src/infrastructure/adapters/inbound/CompilerMetadataBridge.adapter.js";
+import { CompilerMetadataBridge } from "./src/infrastructure/metadataReflection/adapters/inbound/CompilerMetadataBridge.adapter.js";
 
 CompilerMetadataBridge.activate();

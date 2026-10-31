@@ -204,8 +204,8 @@ export class DistributionContractProbe {
       for (const specifier of [
         "@glacier/reflection/dist/index.js",
         "@glacier/reflection/dist/register.js",
-        "@glacier/reflection/src/domain/definitions/ValueMetadataDefinition.js",
-        "@glacier/reflection/src/infrastructure/adapters/inbound/CompilerMetadataBridge.adapter.js",
+        "@glacier/reflection/src/domain/metadataReflection/definitions/ValueMetadataDefinition.js",
+        "@glacier/reflection/src/infrastructure/metadataReflection/adapters/inbound/CompilerMetadataBridge.adapter.js",
         "@glacier/reflection/package.json",
         "@glacier/reflection/compiler",
       ]) {
