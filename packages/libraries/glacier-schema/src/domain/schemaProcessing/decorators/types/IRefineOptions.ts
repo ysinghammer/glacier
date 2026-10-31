@@ -1,4 +1,4 @@
-import type { IIssueCode } from "../failures/IIssueCode.js";
+import type { IIssueCode } from "../../failures/IIssueCode.js";
 
 /** Options of the class-level `Refine` decorator. */
 export interface IRefineOptions {

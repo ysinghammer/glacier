@@ -1,6 +1,6 @@
-import type { IStringRules } from "../schema/IStringRules.js";
-import type { IValueFailure } from "./IValueFailure.js";
-import type { IValueOutcome } from "./IValueOutcome.js";
+import type { IStringRules } from "../schema/types/IStringRules.js";
+import type { IValueFailure } from "./types/IValueFailure.js";
+import type { IValueOutcome } from "./types/IValueOutcome.js";
 import { StringFormats } from "./StringFormats.js";
 
 /** Normalises and checks one string value; created once per field at compile time. */

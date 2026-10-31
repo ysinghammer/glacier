@@ -2,7 +2,7 @@ import type { IClass } from "@glacier/reflection";
 import { DesignTypeInference } from "../schema/DesignTypeInference.js";
 import { ElementTypes } from "../schema/ElementTypes.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
-import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
+import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
  * Property decorator declaring that the field is a nested instance of a decorated class, validated with

@@ -1,4 +1,4 @@
-import type { IEnumSource } from "./IEnumSource.js";
+import type { IEnumSource } from "./types/IEnumSource.js";
 
 type IEnumRecord = Readonly<Record<string, string | number>>;
 

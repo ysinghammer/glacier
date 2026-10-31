@@ -1,7 +1,7 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
-import type { IElementType } from "../schema/IElementType.js";
+import type { IElementType } from "../schema/types/IElementType.js";
 import { UnionSpecs } from "../schema/UnionSpecs.js";
-import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
+import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
  * Property decorator declaring a union without discriminator: the value must match at least one of `types`

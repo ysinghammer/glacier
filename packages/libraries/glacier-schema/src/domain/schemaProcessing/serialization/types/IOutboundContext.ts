@@ -1,4 +1,4 @@
-import type { IParseContext } from "../validation/IParseContext.js";
+import type { IParseContext } from "../../validation/types/IParseContext.js";
 
 /** Per-call recursion and DTO name provenance; neither source values nor metadata are mutated. */
 export interface IOutboundContext extends IParseContext {

@@ -1,8 +1,8 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 import { ElementTypes } from "../schema/ElementTypes.js";
-import type { IElementType } from "../schema/IElementType.js";
+import type { IElementType } from "../schema/types/IElementType.js";
 import { RuleDefinitionCheck } from "../schema/RuleDefinitionCheck.js";
-import type { ISizeOptions } from "./ISizeOptions.js";
+import type { ISizeOptions } from "./types/ISizeOptions.js";
 
 /**
  * Property decorator declaring that the field must be a plain object, used as a dictionary, whose values

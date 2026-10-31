@@ -1,12 +1,12 @@
-import type { ICollectionRules } from "../schema/ICollectionRules.js";
-import type { ISizeRules } from "../schema/ISizeRules.js";
-import type { IParseContext } from "./IParseContext.js";
-import type { IValueFailure } from "./IValueFailure.js";
-import type { IValueOutcome } from "./IValueOutcome.js";
-import { PlainObject } from "./PlainObject.js";
-import { TypeFailure } from "./TypeFailure.js";
-import type { IValueValidator } from "./ValueValidatorFactory.js";
-import type { IValueCoercer } from "./ValueCoercer.js";
+import type { ICollectionRules } from "../../schema/types/ICollectionRules.js";
+import type { ISizeRules } from "../../schema/types/ISizeRules.js";
+import type { IParseContext } from "../types/IParseContext.js";
+import type { IValueFailure } from "../types/IValueFailure.js";
+import type { IValueOutcome } from "../types/IValueOutcome.js";
+import { PlainObject } from "../PlainObject.js";
+import { TypeFailure } from "../TypeFailure.js";
+import type { IValueValidator } from "./ValueValidator.factory.js";
+import type { IValueCoercer } from "../ValueCoercer.js";
 
 type ICollectionLabel = "Array" | "Tuple" | "Set" | "Map" | "Record";
 

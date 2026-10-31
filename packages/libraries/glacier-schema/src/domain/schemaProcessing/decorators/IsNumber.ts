@@ -1,6 +1,6 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 import { RuleDefinitionCheck } from "../schema/RuleDefinitionCheck.js";
-import type { INumberOptions } from "./INumberOptions.js";
+import type { INumberOptions } from "./types/INumberOptions.js";
 
 /**
  * Property decorator declaring that the field must be a finite number. Accepts the constraints of its options (checked for consistency when decorating). Records metadata only; throws

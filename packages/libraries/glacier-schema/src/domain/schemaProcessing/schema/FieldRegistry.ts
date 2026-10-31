@@ -1,13 +1,13 @@
 import type { IClass } from "@glacier/reflection";
 import { FIELDS_METADATA } from "../metadata/FieldsMetadata.js";
-import type { ISchemaDecoratorOptions } from "../decorators/ISchemaDecoratorOptions.js";
+import type { ISchemaDecoratorOptions } from "../decorators/types/ISchemaDecoratorOptions.js";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { CompiledSchemaCache } from "./CompiledSchemaCache.js";
 import { DesignTypeConflict } from "./DesignTypeConflict.js";
-import type { IFieldDeclaration } from "./IFieldDeclaration.js";
-import type { IFieldDefinition } from "./IFieldDefinition.js";
-import type { IFieldModifiers } from "./IFieldModifiers.js";
-import type { ITypeSpec } from "./ITypeSpec.js";
+import type { IFieldDeclaration } from "./types/IFieldDeclaration.js";
+import type { IFieldDefinition } from "./types/IFieldDefinition.js";
+import type { IFieldModifiers } from "./types/IFieldModifiers.js";
+import type { ITypeSpec } from "./types/ITypeSpec.js";
 
 /** Writes and reads field declarations on top of `@glacier/reflection` metadata. */
 export class FieldRegistry {

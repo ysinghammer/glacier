@@ -5,16 +5,16 @@ import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 import { ClassRefinements } from "../schema/ClassRefinements.js";
 import type { IClassRefinement } from "../schema/ClassRefinements.js";
-import type { IFieldDefinition } from "../schema/IFieldDefinition.js";
+import type { IFieldDefinition } from "../schema/types/IFieldDefinition.js";
 import { SchemaCompiler } from "../schema/SchemaCompiler.js";
 import { UnionRegistry } from "../schema/UnionRegistry.js";
-import type { ITypeSpec } from "../schema/ITypeSpec.js";
-import type { IValueValidator } from "../validation/ValueValidatorFactory.js";
-import { ValueValidatorFactory } from "../validation/ValueValidatorFactory.js";
-import { CollectionValidatorFactory } from "../validation/CollectionValidatorFactory.js";
-import type { IValueOutcome } from "../validation/IValueOutcome.js";
-import type { IValueFailure } from "../validation/IValueFailure.js";
-import type { IOutboundContext } from "./IOutboundContext.js";
+import type { ITypeSpec } from "../schema/types/ITypeSpec.js";
+import type { IValueValidator } from "../validation/factories/ValueValidator.factory.js";
+import { ValueValidatorFactory } from "../validation/factories/ValueValidator.factory.js";
+import { CollectionValidatorFactory } from "../validation/factories/CollectionValidator.factory.js";
+import type { IValueOutcome } from "../validation/types/IValueOutcome.js";
+import type { IValueFailure } from "../validation/types/IValueFailure.js";
+import type { IOutboundContext } from "./types/IOutboundContext.js";
 import { JsonProjection } from "./JsonProjection.js";
 
 /** Cached outbound validator accepting unknown logical DTO data without input transformations. */

@@ -1,8 +1,8 @@
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { EnumValues } from "../schema/EnumValues.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
-import type { IEnumSource } from "../schema/IEnumSource.js";
-import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
+import type { IEnumSource } from "../schema/types/IEnumSource.js";
+import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
  * Property decorator declaring that the field must be one of the values of a TypeScript enum, a

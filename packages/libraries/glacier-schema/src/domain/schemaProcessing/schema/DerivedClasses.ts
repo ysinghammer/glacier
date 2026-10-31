@@ -4,8 +4,8 @@ import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { ClassRefinements } from "./ClassRefinements.js";
 import { CompiledSchemaCache } from "./CompiledSchemaCache.js";
 import { FieldRegistry } from "./FieldRegistry.js";
-import type { IFieldDeclaration } from "./IFieldDeclaration.js";
-import type { IFieldDefinition } from "./IFieldDefinition.js";
+import type { IFieldDeclaration } from "./types/IFieldDeclaration.js";
+import type { IFieldDefinition } from "./types/IFieldDefinition.js";
 import { UnionRegistry } from "./UnionRegistry.js";
 
 /** The mapped type helper that produced a derived class. */

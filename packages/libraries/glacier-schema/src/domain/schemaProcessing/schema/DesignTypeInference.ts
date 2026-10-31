@@ -1,7 +1,7 @@
 import { DESIGN_TYPE_METADATA } from "@glacier/reflection";
 import type { IClass, IRuntimeType } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
-import type { IDesignType } from "./IDesignType.js";
+import type { IDesignType } from "./types/IDesignType.js";
 
 const UNSUPPORTED_BUILT_INS: readonly IRuntimeType[] = [
   Object,

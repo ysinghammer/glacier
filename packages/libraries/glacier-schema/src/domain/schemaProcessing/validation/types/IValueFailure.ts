@@ -1,4 +1,4 @@
-import type { IIssueCode } from "../failures/IIssueCode.js";
+import type { IIssueCode } from "../../failures/IIssueCode.js";
 
 /** Why a value was rejected, before the field path and any decorator message override are applied. */
 export interface IValueFailure {

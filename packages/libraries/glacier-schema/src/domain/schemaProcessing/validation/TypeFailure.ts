@@ -1,4 +1,4 @@
-import type { IValueFailure } from "./IValueFailure.js";
+import type { IValueFailure } from "./types/IValueFailure.js";
 import { ReceivedType } from "./ReceivedType.js";
 
 /** Builds the standard rejection of a value of the wrong type. */

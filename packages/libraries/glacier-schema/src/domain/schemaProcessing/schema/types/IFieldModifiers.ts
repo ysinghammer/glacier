@@ -1,5 +1,5 @@
-import type { IDescribeOptions } from "../jsonSchema/IDescribeOptions.js";
-import type { IJsonSchemaFragment } from "../jsonSchema/IJsonSchemaFragment.js";
+import type { IDescribeOptions } from "../../jsonSchema/types/IDescribeOptions.js";
+import type { IJsonSchemaFragment } from "../../jsonSchema/types/IJsonSchemaFragment.js";
 import type { IRefinement } from "./IRefinement.js";
 import type { ITransformFunction } from "./ITransformFunction.js";
 

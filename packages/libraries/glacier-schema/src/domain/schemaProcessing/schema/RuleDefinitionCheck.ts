@@ -1,7 +1,7 @@
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
-import type { INumberRules } from "./INumberRules.js";
-import type { ISizeRules } from "./ISizeRules.js";
-import type { IStringRules } from "./IStringRules.js";
+import type { INumberRules } from "./types/INumberRules.js";
+import type { ISizeRules } from "./types/ISizeRules.js";
+import type { IStringRules } from "./types/IStringRules.js";
 import { StringFormats } from "../validation/StringFormats.js";
 
 /** Rejects constraint declarations that could never be satisfied or are malformed, when decorating. */

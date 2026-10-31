@@ -1,4 +1,4 @@
-import type { ITypeSpec } from "../schema/ITypeSpec.js";
+import type { ITypeSpec } from "../schema/types/ITypeSpec.js";
 import { PlainObject } from "./PlainObject.js";
 
 /** Converts a raw input value toward the declared type; unconvertible values are returned unchanged. */

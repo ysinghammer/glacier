@@ -1,5 +1,5 @@
 import { ListMetadataDefinition } from "@glacier/reflection";
-import type { IFieldDeclaration } from "../schema/IFieldDeclaration.js";
+import type { IFieldDeclaration } from "../schema/types/IFieldDeclaration.js";
 
 /**
  * Class-level list of declared fields in declaration order, accumulated ancestor-first. A subclass entry

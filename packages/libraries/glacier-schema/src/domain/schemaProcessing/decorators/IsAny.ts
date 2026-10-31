@@ -1,5 +1,5 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
-import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
+import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
  * Escape hatch property decorator accepting any value, including `undefined` (which leaves the key

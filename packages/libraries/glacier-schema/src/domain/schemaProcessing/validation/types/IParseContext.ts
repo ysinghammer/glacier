@@ -1,4 +1,4 @@
-import type { ISchemaParseOptions } from "../schema/ISchemaParseOptions.js";
+import type { ISchemaParseOptions } from "../../schema/types/ISchemaParseOptions.js";
 
 /** State carried through one parse call: the caller's options and how many class levels are already entered. */
 export interface IParseContext {

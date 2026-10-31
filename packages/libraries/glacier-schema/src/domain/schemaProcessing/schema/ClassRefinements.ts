@@ -1,6 +1,6 @@
 import type { IClass } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
-import type { IRefineOptions } from "../decorators/IRefineOptions.js";
+import type { IRefineOptions } from "../decorators/types/IRefineOptions.js";
 import { CompiledSchemaCache } from "./CompiledSchemaCache.js";
 
 /** A class-level refinement declared by `Refine`. */

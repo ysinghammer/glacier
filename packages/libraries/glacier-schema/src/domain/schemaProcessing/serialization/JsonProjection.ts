@@ -1,4 +1,4 @@
-import type { IJsonValue } from "./IJsonValue.js";
+import type { IJsonValue } from "./types/IJsonValue.js";
 import type { IResult } from "../failures/IResult.js";
 import type { ISchemaIssue } from "../failures/ISchemaIssue.js";
 import type { ISchemaIssueCode } from "../failures/ISchemaIssueCode.js";

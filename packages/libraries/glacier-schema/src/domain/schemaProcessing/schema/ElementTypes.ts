@@ -1,7 +1,7 @@
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import type { IClass } from "@glacier/reflection";
-import type { IElementType } from "./IElementType.js";
-import type { ITypeSpec } from "./ITypeSpec.js";
+import type { IElementType } from "./types/IElementType.js";
+import type { ITypeSpec } from "./types/ITypeSpec.js";
 
 /** Turns the element type argument of a decorator into a type specification. */
 export class ElementTypes {

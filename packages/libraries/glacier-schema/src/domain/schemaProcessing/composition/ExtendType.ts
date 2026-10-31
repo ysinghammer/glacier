@@ -1,7 +1,7 @@
 import type { IClass } from "@glacier/reflection";
 import { DerivedClasses } from "../schema/DerivedClasses.js";
-import type { IDerivedClass } from "./IDerivedClass.js";
-import type { IDerivedClassOptions } from "./IDerivedClassOptions.js";
+import type { IDerivedClass } from "./types/IDerivedClass.js";
+import type { IDerivedClassOptions } from "./types/IDerivedClassOptions.js";
 
 /**
  * Creates a class with the fields of `base` plus those of `extension`; an `extension` field replaces the

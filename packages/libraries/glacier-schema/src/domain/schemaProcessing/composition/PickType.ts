@@ -1,8 +1,8 @@
 import type { IClass } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { DerivedClasses } from "../schema/DerivedClasses.js";
-import type { IDerivedClass } from "./IDerivedClass.js";
-import type { IDerivedClassOptions } from "./IDerivedClassOptions.js";
+import type { IDerivedClass } from "./types/IDerivedClass.js";
+import type { IDerivedClassOptions } from "./types/IDerivedClassOptions.js";
 
 /**
  * Creates a class with only the listed fields of `source`, keeping their types and modifiers. Class-level

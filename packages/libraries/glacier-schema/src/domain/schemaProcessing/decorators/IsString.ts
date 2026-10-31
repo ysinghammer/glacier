@@ -1,6 +1,6 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 import { RuleDefinitionCheck } from "../schema/RuleDefinitionCheck.js";
-import type { IStringOptions } from "./IStringOptions.js";
+import type { IStringOptions } from "./types/IStringOptions.js";
 
 /**
  * Property decorator declaring that the field must be a string. Accepts the constraints of its options (checked for consistency when decorating). Records metadata only; throws

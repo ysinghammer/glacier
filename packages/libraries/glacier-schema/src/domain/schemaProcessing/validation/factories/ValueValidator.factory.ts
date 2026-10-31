@@ -1,14 +1,14 @@
-import type { ITypeSpec } from "../schema/ITypeSpec.js";
-import { CollectionValidatorFactory } from "./CollectionValidatorFactory.js";
-import type { IParseContext } from "./IParseContext.js";
-import type { IValueFailure } from "./IValueFailure.js";
-import type { IValueOutcome } from "./IValueOutcome.js";
-import { NestedSchemaValidator } from "./NestedSchemaValidator.js";
-import { NumberRuleChecker } from "./NumberRuleChecker.js";
-import { StringRuleChecker } from "./StringRuleChecker.js";
-import { TypeFailure } from "./TypeFailure.js";
-import { UnionValidatorFactory } from "./UnionValidatorFactory.js";
-import { ValueCoercer } from "./ValueCoercer.js";
+import type { ITypeSpec } from "../../schema/types/ITypeSpec.js";
+import { CollectionValidatorFactory } from "./CollectionValidator.factory.js";
+import type { IParseContext } from "../types/IParseContext.js";
+import type { IValueFailure } from "../types/IValueFailure.js";
+import type { IValueOutcome } from "../types/IValueOutcome.js";
+import { NestedSchemaValidator } from "../NestedSchemaValidator.js";
+import { NumberRuleChecker } from "../NumberRuleChecker.js";
+import { StringRuleChecker } from "../StringRuleChecker.js";
+import { TypeFailure } from "../TypeFailure.js";
+import { UnionValidatorFactory } from "./UnionValidator.factory.js";
+import { ValueCoercer } from "../ValueCoercer.js";
 
 /** Validates one value against a declared type; created once per field at compile time. */
 export type IValueValidator = (value: unknown, context: IParseContext) => IValueOutcome;

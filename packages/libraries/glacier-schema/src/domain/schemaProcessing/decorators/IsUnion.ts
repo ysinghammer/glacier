@@ -3,8 +3,8 @@ import { FieldRegistry } from "../schema/FieldRegistry.js";
 import { UnionRegistry } from "../schema/UnionRegistry.js";
 import { UnionSpecs } from "../schema/UnionSpecs.js";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
-import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
-import type { IUnionOptions } from "./IUnionOptions.js";
+import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
+import type { IUnionOptions } from "./types/IUnionOptions.js";
 
 /**
  * Decorator declaring a discriminated union with an explicit discriminator-to-class mapping. On a property

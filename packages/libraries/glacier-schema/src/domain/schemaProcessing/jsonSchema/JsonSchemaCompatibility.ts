@@ -1,9 +1,9 @@
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { JsonProjection } from "../serialization/JsonProjection.js";
-import type { ITypeSpec } from "../schema/ITypeSpec.js";
-import type { IJsonSchemaCompatibilityOptions } from "./IJsonSchemaCompatibilityOptions.js";
-import type { IJsonSchema } from "./IJsonSchema.js";
-import type { IJsonSchemaFragment } from "./IJsonSchemaFragment.js";
+import type { ITypeSpec } from "../schema/types/ITypeSpec.js";
+import type { IJsonSchemaCompatibilityOptions } from "./types/IJsonSchemaCompatibilityOptions.js";
+import type { IJsonSchema } from "./types/IJsonSchema.js";
+import type { IJsonSchemaFragment } from "./types/IJsonSchemaFragment.js";
 
 const DESCRIPTIVE_KEYWORDS = new Set([
   "title",

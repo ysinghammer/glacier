@@ -1,6 +1,6 @@
 import type { IClass } from "@glacier/reflection";
 import { DesignTypeInference } from "./DesignTypeInference.js";
-import type { ITypeSpec } from "./ITypeSpec.js";
+import type { ITypeSpec } from "./types/ITypeSpec.js";
 
 const EXPECTED_DESIGN_KIND: Readonly<Partial<Record<ITypeSpec["kind"], string>>> = {
   string: "string",

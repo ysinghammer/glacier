@@ -1,7 +1,7 @@
 import type { IClass } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { ClassAnnotations } from "../jsonSchema/ClassAnnotations.js";
-import type { IDescribeOptions } from "../jsonSchema/IDescribeOptions.js";
+import type { IDescribeOptions } from "../jsonSchema/types/IDescribeOptions.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 
 /**

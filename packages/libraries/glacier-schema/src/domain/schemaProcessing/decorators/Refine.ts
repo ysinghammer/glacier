@@ -1,7 +1,7 @@
 import type { IClass } from "@glacier/reflection";
 import { ClassRefinements } from "../schema/ClassRefinements.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
-import type { IRefineOptions } from "./IRefineOptions.js";
+import type { IRefineOptions } from "./types/IRefineOptions.js";
 
 /**
  * Property decorator rejecting a value that `test` does not approve, with the `custom` code and `message`

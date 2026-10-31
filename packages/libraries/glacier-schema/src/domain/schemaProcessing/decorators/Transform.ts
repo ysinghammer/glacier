@@ -1,5 +1,5 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
-import type { ITransformFunction } from "../schema/ITransformFunction.js";
+import type { ITransformFunction } from "../schema/types/ITransformFunction.js";
 
 /**
  * Property decorator running `transform` on the input value (after coercion, before validation), so the

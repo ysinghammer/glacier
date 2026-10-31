@@ -1,7 +1,7 @@
 import type { IClass } from "@glacier/reflection";
 import { DerivedClasses } from "../schema/DerivedClasses.js";
-import type { IDerivedClass } from "./IDerivedClass.js";
-import type { IDerivedClassOptions } from "./IDerivedClassOptions.js";
+import type { IDerivedClass } from "./types/IDerivedClass.js";
+import type { IDerivedClassOptions } from "./types/IDerivedClassOptions.js";
 
 /**
  * Creates a class with every field of `source` made optional, for update DTOs. Types, other modifiers and

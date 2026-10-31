@@ -1,4 +1,4 @@
-import type { IUnionVariants } from "../schema/IUnionVariants.js";
+import type { IUnionVariants } from "../../schema/types/IUnionVariants.js";
 
 /** Explicit mapping of a discriminated union. */
 export interface IUnionOptions {

@@ -1,5 +1,5 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
-import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
+import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
  * Property decorator declaring that the field must be a valid `Date` instance. Records metadata only; throws

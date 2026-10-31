@@ -1,7 +1,7 @@
 import type { IClass } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
-import type { IDescribeOptions } from "./IDescribeOptions.js";
-import type { IJsonSchemaFragment } from "./IJsonSchemaFragment.js";
+import type { IDescribeOptions } from "./types/IDescribeOptions.js";
+import type { IJsonSchemaFragment } from "./types/IJsonSchemaFragment.js";
 
 /** What `Describe` and `JsonSchema` declared directly on one class. */
 export interface IClassAnnotation {

@@ -1,6 +1,6 @@
-import type { INumberRules } from "../schema/INumberRules.js";
-import type { IValueFailure } from "./IValueFailure.js";
-import type { IValueOutcome } from "./IValueOutcome.js";
+import type { INumberRules } from "../schema/types/INumberRules.js";
+import type { IValueFailure } from "./types/IValueFailure.js";
+import type { IValueOutcome } from "./types/IValueOutcome.js";
 
 /** Checks one finite number; created once per field at compile time. */
 export type INumberRuleChecker = (value: number) => IValueOutcome;

@@ -1,5 +1,5 @@
 import type { IClass } from "@glacier/reflection";
-import type { IParseContext } from "../validation/IParseContext.js";
+import type { IParseContext } from "../validation/types/IParseContext.js";
 import type { IResult } from "../failures/IResult.js";
 
 /** Closure produced once per class that validates and transforms an input into an instance. */

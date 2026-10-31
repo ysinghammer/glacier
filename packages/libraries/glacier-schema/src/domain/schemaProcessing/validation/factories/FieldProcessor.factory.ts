@@ -1,9 +1,9 @@
-import type { IFieldDefinition } from "../schema/IFieldDefinition.js";
-import type { IRefinement } from "../schema/IRefinement.js";
-import type { IParseContext } from "./IParseContext.js";
-import type { IValueOutcome } from "./IValueOutcome.js";
-import { ValueCoercer } from "./ValueCoercer.js";
-import { ValueValidatorFactory } from "./ValueValidatorFactory.js";
+import type { IFieldDefinition } from "../../schema/types/IFieldDefinition.js";
+import type { IRefinement } from "../../schema/types/IRefinement.js";
+import type { IParseContext } from "../types/IParseContext.js";
+import type { IValueOutcome } from "../types/IValueOutcome.js";
+import { ValueCoercer } from "../ValueCoercer.js";
+import { ValueValidatorFactory } from "./ValueValidator.factory.js";
 
 /** Runs the whole per-field pipeline on a raw input value; created once per field at compile time. */
 export type IFieldProcessor = (raw: unknown, context: IParseContext) => IValueOutcome;

@@ -1,10 +1,10 @@
-import type { IValueFailure } from "./IValueFailure.js";
-import type { IOneOfOption } from "./IOneOfOption.js";
-import type { IParseContext } from "./IParseContext.js";
-import type { IValueOutcome } from "./IValueOutcome.js";
-import { ReceivedType } from "./ReceivedType.js";
-import { TypeFailure } from "./TypeFailure.js";
-import type { IValueValidator } from "./ValueValidatorFactory.js";
+import type { IValueFailure } from "../types/IValueFailure.js";
+import type { IOneOfOption } from "../types/IOneOfOption.js";
+import type { IParseContext } from "../types/IParseContext.js";
+import type { IValueOutcome } from "../types/IValueOutcome.js";
+import { ReceivedType } from "../ReceivedType.js";
+import { TypeFailure } from "../TypeFailure.js";
+import type { IValueValidator } from "./ValueValidator.factory.js";
 
 /** Builds the validators of discriminated and non-discriminated unions. */
 export class UnionValidatorFactory {

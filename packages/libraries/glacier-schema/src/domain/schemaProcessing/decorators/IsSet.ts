@@ -1,8 +1,8 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 import { ElementTypes } from "../schema/ElementTypes.js";
-import type { IElementType } from "../schema/IElementType.js";
+import type { IElementType } from "../schema/types/IElementType.js";
 import { RuleDefinitionCheck } from "../schema/RuleDefinitionCheck.js";
-import type { ICollectionOptions } from "./ICollectionOptions.js";
+import type { ICollectionOptions } from "./types/ICollectionOptions.js";
 
 /**
  * Property decorator declaring that the field must be a `Set` whose elements all match `element`: a

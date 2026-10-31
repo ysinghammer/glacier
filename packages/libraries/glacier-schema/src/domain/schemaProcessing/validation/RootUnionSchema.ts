@@ -1,8 +1,8 @@
 import type { ICompiledSchema } from "../schema/CompiledSchemaCache.js";
-import type { ITypeSpec } from "../schema/ITypeSpec.js";
+import type { ITypeSpec } from "../schema/types/ITypeSpec.js";
 import type { IClassUnion } from "../schema/UnionRegistry.js";
 import { NestedSchemaValidator } from "./NestedSchemaValidator.js";
-import { UnionValidatorFactory } from "./UnionValidatorFactory.js";
+import { UnionValidatorFactory } from "./factories/UnionValidator.factory.js";
 
 /** Builds the compiled schema of a class decorated with `IsUnion`. */
 export class RootUnionSchema {

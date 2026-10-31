@@ -2,7 +2,7 @@ import type { IClass } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import type { ICompiledSchema } from "../schema/CompiledSchemaCache.js";
 import { SchemaCompiler } from "../schema/SchemaCompiler.js";
-import type { IValueValidator } from "./ValueValidatorFactory.js";
+import type { IValueValidator } from "./factories/ValueValidator.factory.js";
 import { TypeFailure } from "./TypeFailure.js";
 
 /** Builds the validator of a field whose value is another decorated class. */

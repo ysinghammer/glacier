@@ -1,9 +1,9 @@
 import type { IClass } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
-import type { IUnionOptions } from "../decorators/IUnionOptions.js";
+import type { IUnionOptions } from "../decorators/types/IUnionOptions.js";
 import { ElementTypes } from "./ElementTypes.js";
-import type { IElementType } from "./IElementType.js";
-import type { ITypeSpec } from "./ITypeSpec.js";
+import type { IElementType } from "./types/IElementType.js";
+import type { ITypeSpec } from "./types/ITypeSpec.js";
 
 /** Turns the arguments of the union decorators into type specifications. */
 export class UnionSpecs {

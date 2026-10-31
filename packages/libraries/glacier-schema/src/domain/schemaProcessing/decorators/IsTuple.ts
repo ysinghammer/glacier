@@ -1,8 +1,8 @@
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 import { ElementTypes } from "../schema/ElementTypes.js";
-import type { IElementType } from "../schema/IElementType.js";
-import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
+import type { IElementType } from "../schema/types/IElementType.js";
+import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
  * Property decorator declaring that the field must be an array with exactly one element per entry of

@@ -1,7 +1,7 @@
 import type { IClass } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { ClassAnnotations } from "../jsonSchema/ClassAnnotations.js";
-import type { IJsonSchemaFragment } from "../jsonSchema/IJsonSchemaFragment.js";
+import type { IJsonSchemaFragment } from "../jsonSchema/types/IJsonSchemaFragment.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 
 /**

@@ -1,16 +1,16 @@
 import type { IClass, IConstructableClass } from "@glacier/reflection";
 import { SchemaCompiler } from "../../domain/schemaProcessing/schema/SchemaCompiler.js";
-import type { ISchemaParseOptions } from "../../domain/schemaProcessing/schema/ISchemaParseOptions.js";
+import type { ISchemaParseOptions } from "../../domain/schemaProcessing/schema/types/ISchemaParseOptions.js";
 import type { IResult } from "../../domain/schemaProcessing/failures/IResult.js";
 import { SchemaError } from "../../domain/schemaProcessing/failures/SchemaError.error.js";
 import { SCHEMA_ERROR_BRAND } from "../../domain/schemaProcessing/failures/SchemaErrorBrand.js";
-import type { IJsonSchema } from "../../domain/schemaProcessing/jsonSchema/IJsonSchema.js";
-import type { IJsonSchemaOptions } from "../../domain/schemaProcessing/jsonSchema/IJsonSchemaOptions.js";
+import type { IJsonSchema } from "../../domain/schemaProcessing/jsonSchema/types/IJsonSchema.js";
+import type { IJsonSchemaOptions } from "../../domain/schemaProcessing/jsonSchema/types/IJsonSchemaOptions.js";
 import { JsonSchemaGenerator } from "../../domain/schemaProcessing/jsonSchema/JsonSchemaGenerator.js";
 import { OutboundCompiler } from "../../domain/schemaProcessing/serialization/OutboundCompiler.js";
 import { JsonProjection } from "../../domain/schemaProcessing/serialization/JsonProjection.js";
-import type { IJsonValue } from "../../domain/schemaProcessing/serialization/IJsonValue.js";
-import type { IJsonSchemaCompatibilityOptions } from "../../domain/schemaProcessing/jsonSchema/IJsonSchemaCompatibilityOptions.js";
+import type { IJsonValue } from "../../domain/schemaProcessing/serialization/types/IJsonValue.js";
+import type { IJsonSchemaCompatibilityOptions } from "../../domain/schemaProcessing/jsonSchema/types/IJsonSchemaCompatibilityOptions.js";
 import { JsonSchemaCompatibility } from "../../domain/schemaProcessing/jsonSchema/JsonSchemaCompatibility.js";
 
 /** Public preparation, input validation, outbound JSON projection and directional schema generation. */

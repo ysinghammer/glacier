@@ -1,7 +1,7 @@
 import type { IClass } from "@glacier/reflection";
 import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { CompiledSchemaCache } from "./CompiledSchemaCache.js";
-import type { ITypeSpec } from "./ITypeSpec.js";
+import type { ITypeSpec } from "./types/ITypeSpec.js";
 
 /** Union recorded on a class by `IsUnion` used as a class decorator. */
 export interface IClassUnion {

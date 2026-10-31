@@ -1,6 +1,6 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
-import type { ILiteralValue } from "../schema/ITypeSpec.js";
-import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
+import type { ILiteralValue } from "../schema/types/ITypeSpec.js";
+import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
  * Property decorator declaring that the field must strictly equal one string, number, boolean, bigint
