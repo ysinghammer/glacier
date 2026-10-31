@@ -9,7 +9,7 @@ Creates commits that satisfy the repository's commitlint rules (`commitlint.conf
 
 ## Preconditions
 
-1. Commit only with explicit user authorization (or an approved task/story plan that authorizes it). Without
+1. Commit only with explicit user authorization. Without
    authorization, stop and ask; never treat absent authorization as consent.
 2. Read the policies in `.policies/` and inspect `git status` and `git diff` before staging.
 3. Work on the change's integration branch named `<type>/<lowercase-kebab-description>` where type is `feature`,
@@ -25,18 +25,13 @@ Creates commits that satisfy the repository's commitlint rules (`commitlint.conf
 
 - One commit per logical group of changes.
 - Each task produces its own product-change commit.
-- Each story ends with a story completion commit that records the evidence in its body. If no owned tracked change
-  remains, use an explicitly authorized empty commit with `task-000`:
-  `git commit --allow-empty`.
-- `task-000` is reserved for story integration/completion, never for an implementation task.
-- Local status updates in `.plan/` never replace task or story commits.
-- Preserve task/story commit history on integration; do not squash it away or rewrite existing commits.
+- Each phase ends with a commit that records the evidence in its body. 
 - Never bypass hooks (`--no-verify`, `HUSKY=0`).
 
 ## Subject format
 
 ```text
-<type>(<scope>): story-<NNN> task-<NNN> <imperative lowercase description>
+<type>(<scope>): <imperative lowercase description>
 ```
 
 - **type**: a Conventional Commit type from `@commitlint/config-conventional`: `feat`, `fix`, `docs`, `style`,
@@ -45,16 +40,14 @@ Creates commits that satisfy the repository's commitlint rules (`commitlint.conf
   skills) or a package directory name without the `glacier-` prefix (e.g. `packages/libraries/glacier-reflection`
   → `reflection`). Never use several scopes or the delimiters `,` `/` `\`. The valid list is derived from
   `pnpm-workspace.yaml`; check `commitlint.config.ts` if unsure.
-- **story/task references**: lowercase, zero-padded, three digits, e.g. `story-001 task-002`. Canonical plan IDs
-  stay uppercase (`STORY-001/TASK-002`) inside plans only, not in the subject.
 - Keep the whole header within commitlint's limit (100 characters by default), no trailing period, lowercase
   description.
 
 Examples:
 
 ```text
-feat(reflection): story-001 task-002 add public metadata lookup
-chore(workspace): story-001 task-000 record story completion
+feat(reflection): add public metadata lookup
+chore(workspace): record story completion
 ```
 
 ## Body format
