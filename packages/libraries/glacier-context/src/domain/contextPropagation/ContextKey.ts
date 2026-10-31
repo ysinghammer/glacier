@@ -1,23 +1,36 @@
 import type { IContextEntry } from "./IContextEntry.js";
 
 /**
- * Typed identity of one context value. A key is identified by the instance itself, never by its description,
- * so two keys with the same description never collide.
+ * Typed identity for a context value; the instance, not its diagnostic description, determines key identity.
+ * @template T - Type of value that may be paired with this key.
  */
 export class ContextKey<T> {
-  /** Human-readable name used in diagnostics only. */
+  /** Human-readable diagnostic label; it does not affect key identity and cannot be changed after creation. */
   public readonly description: string;
 
+  /**
+   * Initializes a key with its diagnostic label. Use {@link ContextKey.create} to construct keys.
+   * @param description - Diagnostic label retained by this key; it does not determine identity.
+   */
   private constructor(description: string) {
     this.description = description;
   }
 
-  /** Creates a new key of value type `T`, distinct from every other key even with an equal description. */
+  /**
+   * Creates a fresh key whose instance identity is distinct from every other key.
+   * @template T - Type of value associated with the new key.
+   * @param description - Human-readable diagnostic label; equality does not affect key identity.
+   * @returns A fresh key associated with values of type T.
+   */
   public static create<T>(description: string): ContextKey<T> {
     return new ContextKey<T>(description);
   }
 
-  /** Pairs this key with a value of its own type for `GlacierContext.run`; a mismatching value fails to compile. */
+  /**
+   * Pairs this key with a value for use as a `GlacierContext.run` entry.
+   * @param value - Value paired with this key; its type must be T.
+   * @returns An entry pairing this key and value without cloning or freezing the value.
+   */
   public with(value: T): IContextEntry {
     return { key: this, value };
   }

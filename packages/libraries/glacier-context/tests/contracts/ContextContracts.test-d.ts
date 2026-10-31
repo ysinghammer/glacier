@@ -19,6 +19,7 @@ const wrongKey: ContextKey<number> = traceIdKey;
 // @ts-expect-error the constructor is private, keys come from create
 new ContextKey<string>("direct");
 
+/** Captures inferred public API types for compile-time context contract checks. */
 export type Contracts = [
   typeof required,
   typeof optional,

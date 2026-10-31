@@ -1,5 +1,5 @@
-/** Options shared by every context error; the cause is preserved unchanged when supplied. */
+/** Optional metadata accepted by context errors to preserve an underlying cause. */
 export interface IContextErrorOptions {
-  /** The underlying failure being wrapped, kept observable through `Error.cause`. */
+  /** Optional underlying failure, preserved unchanged as `Error.cause` when provided; readonly after creation. */
   readonly cause?: unknown;
 }
