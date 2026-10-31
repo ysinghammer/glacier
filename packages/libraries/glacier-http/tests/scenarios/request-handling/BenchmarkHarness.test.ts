@@ -5,6 +5,29 @@ import { BenchmarkClient } from "../../support/benchmarks/BenchmarkClient.js";
 import { HttpServer } from "../../../index.js";
 
 describe("fixed-work benchmark correctness without timing gates", () => {
+  it("temporary Express baseline passes the identical real-process rejection/body/log checks", async () => {
+    const result = await BenchmarkHarness.run(
+      new URL("../../artifacts/benchmarks/ExpressBenchmark.js", import.meta.url),
+      2,
+      8,
+      4,
+      2,
+    );
+    expect(result).toMatchObject({
+      verification: [401, 400, 400, 415],
+      warmup: { correct: 4, incorrect: 0, transportErrors: 0 },
+      results: [
+        {
+          client: { correct: 8, incorrect: 0, transportErrors: 0 },
+          server: { logs: 16, diagnostics: 0 },
+        },
+        {
+          client: { correct: 8, incorrect: 0, transportErrors: 0 },
+          server: { logs: 24, diagnostics: 0 },
+        },
+      ],
+    });
+  });
   it("separate compiled server/client processes consume projected GET/POST bodies and drain logs", async () => {
     const result = await BenchmarkHarness.run(
       new URL("../../artifacts/benchmarks/GlacierBenchmark.js", import.meta.url),
