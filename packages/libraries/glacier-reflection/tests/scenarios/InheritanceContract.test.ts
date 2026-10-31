@@ -10,7 +10,7 @@ describe("declared inheritance contracts", () => {
   it("matches parameter positions without claiming equivalent signatures or leaking other positions", () => {
     class Base {
       constructor(public dependency: string) {}
-      run(input: unknown): unknown {
+      public run(input: unknown): unknown {
         return input;
       }
     }
@@ -18,7 +18,7 @@ describe("declared inheritance contracts", () => {
       constructor(public count: number) {
         super("base");
       }
-      override run(input: number): number {
+      public override run(input: number): number {
         return input;
       }
     }

@@ -10,10 +10,10 @@ import {
 describe("legacy decorator public contract", () => {
   it("normalizes callbacks to direct locations and returns void without replacing descriptors", () => {
     class Consumer {
-      get accessor(): string {
+      public get accessor(): string {
         throw new Error("getter invoked");
       }
-      method(input: string): string {
+      public method(input: string): string {
         return input;
       }
     }
@@ -111,12 +111,12 @@ describe("legacy decorator public contract", () => {
 
   it("inherits parameter annotations by location only and replaces repeated direct annotations", () => {
     class Base {
-      method(input: string): string {
+      public method(input: string): string {
         return input;
       }
     }
     class Derived extends Base {
-      override method(): string {
+      public override method(): string {
         return "";
       }
     }

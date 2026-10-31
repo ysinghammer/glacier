@@ -6,22 +6,22 @@ import { MetadataBoundaryError } from "../failures/MetadataBoundary.error.js";
 /** Translates legacy invocation shapes to constructor-owned metadata locations. */
 export class MetadataDecorator {
   /** Inspects only canonical descriptors, never consumer getters or constructor bodies. */
-  static normalize(arguments_: readonly unknown[]): {
+  public static normalize(arguments_: readonly unknown[]): {
     readonly owner: IClass;
     readonly address: IDynamicClassMetadataAddress;
   } {
     const [target, suppliedMember, extra] = arguments_;
     const member = typeof suppliedMember === "number" ? String(suppliedMember) : suppliedMember;
-    const targetInfo = MetadataDecorator.#target(target);
+    const targetInfo = MetadataDecorator.target(target);
     if (arguments_.length === 1 && targetInfo.side === "static")
       return { owner: targetInfo.owner, address: { kind: "class" } };
-    MetadataDecorator.#validateArity(arguments_.length);
+    MetadataDecorator.validateArity(arguments_.length);
     if (typeof extra === "number")
-      return MetadataDecorator.#parameter(targetInfo.owner, targetInfo.side, member, extra);
-    return MetadataDecorator.#member(targetInfo.owner, targetInfo.side, member, extra);
+      return MetadataDecorator.parameter(targetInfo.owner, targetInfo.side, member, extra);
+    return MetadataDecorator.member(targetInfo.owner, targetInfo.side, member, extra);
   }
 
-  static #target(target: unknown): {
+  private static target(target: unknown): {
     readonly owner: IClass;
     readonly side: "instance" | "static";
   } {
@@ -33,11 +33,11 @@ export class MetadataDecorator {
     throw new MetadataBoundaryError("invalid-decorator-target");
   }
 
-  static #validateArity(length: number): void {
+  private static validateArity(length: number): void {
     if (length < 2 || length > 3) throw new MetadataBoundaryError("invalid-decorator-location");
   }
 
-  static #parameter(
+  private static parameter(
     owner: IClass,
     side: "instance" | "static",
     member: unknown,
@@ -50,7 +50,7 @@ export class MetadataDecorator {
     throw new MetadataBoundaryError("invalid-decorator-location");
   }
 
-  static #member(
+  private static member(
     owner: IClass,
     side: "instance" | "static",
     member: unknown,

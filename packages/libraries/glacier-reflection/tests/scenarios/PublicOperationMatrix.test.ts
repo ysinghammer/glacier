@@ -37,7 +37,7 @@ type IMatrixDefinition<TDeclaration, TValue> = Omit<
 /** Registers independent public-operation cases without sharing target declarations between tests. */
 class PublicOperationMatrix {
   /** Runs one operation matrix case outside its nested test registration callbacks. */
-  static #runOperation<TDeclaration, TValue>(
+  private static runOperation<TDeclaration, TValue>(
     operation:
       | "set"
       | "setDynamic"
@@ -242,7 +242,7 @@ class PublicOperationMatrix {
       ] as const;
       for (const operation of operations) {
         it(`${operation}: success, own/inherited boundaries and atomic validation`, () =>
-          PublicOperationMatrix.#runOperation(
+          PublicOperationMatrix.runOperation(
             operation,
             create,
             baseValue,

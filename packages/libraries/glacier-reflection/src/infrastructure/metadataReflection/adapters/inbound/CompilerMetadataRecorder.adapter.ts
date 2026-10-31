@@ -24,7 +24,7 @@ type ICompilerDeclaration =
 /** Checks the sole untyped input protocol without changing ordinary value-definition semantics. */
 export class CompilerMetadataRecorder {
   /** Validates supported keys and snapshots every dense parameter entry before returning success. */
-  static prepare(key: unknown, value: unknown): ICompilerDeclaration {
+  public static prepare(key: unknown, value: unknown): ICompilerDeclaration {
     if (key !== "design:type" && key !== "design:paramtypes" && key !== "design:returntype") {
       return { isValid: false, code: "unsupported-compiler-key" };
     }
@@ -50,7 +50,7 @@ export class CompilerMetadataRecorder {
   }
 
   /** Validates the complete class/member address before invoking an ordinary atomic set. */
-  static record(
+  public static record(
     declaration: Extract<ICompilerDeclaration, { readonly isValid: true }>,
     arguments_: readonly unknown[],
   ):

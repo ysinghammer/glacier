@@ -11,7 +11,7 @@ interface IMetadataTarget {
 /** Inspects canonical class descriptors without invoking consumer code. */
 export class MetadataTarget {
   /** Resolves constructors or, on read paths only, ordinary instance prototypes. */
-  static normalize(
+  public static normalize(
     target: unknown,
     isMutation: boolean,
   ): IMetadataTarget | IMetadataAddressRejection {
@@ -36,7 +36,7 @@ export class MetadataTarget {
   }
 
   /** Checks constructability and matching own data descriptors, without calling the target. */
-  static isClass(target: unknown): target is IClass {
+  public static isClass(target: unknown): target is IClass {
     if (typeof target !== "function") return false;
     const prototype: unknown = Object.getOwnPropertyDescriptor(target, "prototype")?.value;
     if (typeof prototype !== "object" || prototype === null) return false;
@@ -55,7 +55,7 @@ export class MetadataTarget {
   }
 
   /** Finds an own constructor data descriptor whose prototype is exactly this object. */
-  static classOfPrototype(prototype: object): IClass | undefined {
+  public static classOfPrototype(prototype: object): IClass | undefined {
     const constructor: unknown = Object.getOwnPropertyDescriptor(prototype, "constructor")?.value;
     if (!MetadataTarget.isClass(constructor)) return undefined;
     const canonical: unknown = Object.getOwnPropertyDescriptor(constructor, "prototype")?.value;
@@ -63,7 +63,7 @@ export class MetadataTarget {
   }
 
   /** Enumerates class ancestry only; own-only queries never inspect ancestors. */
-  static *owners(owner: IClass, inheritance: "own" | "inherited"): Iterable<IClass> {
+  public static *owners(owner: IClass, inheritance: "own" | "inherited"): Iterable<IClass> {
     yield owner;
     if (inheritance === "own") return;
     let ancestor: unknown = Object.getPrototypeOf(owner);

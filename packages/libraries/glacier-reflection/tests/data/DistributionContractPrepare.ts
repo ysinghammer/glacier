@@ -96,7 +96,7 @@ export class DistributionContractPrepare {
     const manifest: unknown = JSON.parse(
       await readFile(new URL("package.json", packageDirectory), "utf8"),
     );
-    const { root, registration } = DistributionContractPrepare.#validateManifest(manifest);
+    const { root, registration } = DistributionContractPrepare.validateManifest(manifest);
     const resolution = spawnSync(
       process.execPath,
       [
@@ -121,7 +121,7 @@ export class DistributionContractPrepare {
       ["shared-metadata", "DistributionSharedMetadata"],
     ] as const) {
       // The retained entry imports only registration; a separate root-only observer reads its real records in the same graph.
-      await DistributionContractPrepare.#writeBuildConfig(name, entry, consumer);
+      await DistributionContractPrepare.writeBuildConfig(name, entry, consumer);
       this.command([
         "exec",
         "vite",
@@ -147,11 +147,11 @@ export class DistributionContractPrepare {
     );
   }
 
-  static #validateManifest(value: unknown): {
+  private static validateManifest(value: unknown): {
     readonly root: IDistributionEntry;
     readonly registration: IDistributionEntry;
   } {
-    if (!DistributionContractPrepare.#isRecord(value))
+    if (!DistributionContractPrepare.isRecord(value))
       throw new Error(
         "Independent consumer requires a root export map and no runtime dependencies",
       );
@@ -163,7 +163,7 @@ export class DistributionContractPrepare {
       throw new Error(
         "Independent consumer requires a root export map and no runtime dependencies",
       );
-    if (!DistributionContractPrepare.#isRecord(value.exports))
+    if (!DistributionContractPrepare.isRecord(value.exports))
       throw new Error("The distribution must expose exactly its root and registration entry");
     const exports = value.exports;
     if (Object.keys(exports).length !== 2 || !("." in exports) || !("./register" in exports))
@@ -175,12 +175,8 @@ export class DistributionContractPrepare {
     )
       throw new Error("Exact generated entries and registration-only effects must be declared");
     return {
-      root: DistributionContractPrepare.#entry(
-        exports["."],
-        "./dist/index.js",
-        "./dist/index.d.ts",
-      ),
-      registration: DistributionContractPrepare.#entry(
+      root: DistributionContractPrepare.entry(exports["."], "./dist/index.js", "./dist/index.d.ts"),
+      registration: DistributionContractPrepare.entry(
         exports["./register"],
         "./dist/register.js",
         "./dist/register.d.ts",
@@ -188,12 +184,16 @@ export class DistributionContractPrepare {
     };
   }
 
-  static #isRecord(value: unknown): value is Record<string, unknown> {
+  private static isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
-  static #entry(value: unknown, expectedImport: string, expectedTypes: string): IDistributionEntry {
-    if (!DistributionContractPrepare.#isRecord(value))
+  private static entry(
+    value: unknown,
+    expectedImport: string,
+    expectedTypes: string,
+  ): IDistributionEntry {
+    if (!DistributionContractPrepare.isRecord(value))
       throw new Error("Exact generated entries and registration-only effects must be declared");
     if (
       value.import !== expectedImport ||
@@ -204,7 +204,7 @@ export class DistributionContractPrepare {
     return { import: expectedImport, types: expectedTypes };
   }
 
-  static async #writeBuildConfig(name: string, entry: string, consumer: URL): Promise<void> {
+  private static async writeBuildConfig(name: string, entry: string, consumer: URL): Promise<void> {
     const retained = name === "retained";
     const entries = retained
       ? {

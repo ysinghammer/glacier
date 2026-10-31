@@ -111,7 +111,7 @@ describe("instances are read-only aliases for canonical class declarations", () 
       constructor() {
         constructions += 1;
       }
-      get field(): string {
+      public get field(): string {
         getterCalls += 1;
         throw new Error("getter invoked");
       }

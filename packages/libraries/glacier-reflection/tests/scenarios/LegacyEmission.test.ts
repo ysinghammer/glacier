@@ -14,19 +14,19 @@ type ILegacyCase = readonly [IDynamicClassMetadataAddress | undefined, string];
 
 /** Splits compiler-emission checks by address and inheritance while asserting only public metadata operations. */
 class LegacyEmissionAssertions {
-  static expectedDefinitions(
+  public static expectedDefinitions(
     cases: readonly ILegacyCase[],
     fixture: ReturnType<typeof LegacyLocations.create>,
   ): ReadonlyMap<string, ReadonlySet<object>> {
     return new Map(
       cases.map(([address, value]) => {
-        const definitions = LegacyEmissionAssertions.#compilerDefinitions(address, value);
+        const definitions = LegacyEmissionAssertions.compilerDefinitions(address, value);
         return [value, new Set([fixture.metadata, ...definitions])] as const;
       }),
     );
   }
 
-  static #compilerDefinitions(
+  private static compilerDefinitions(
     address: IDynamicClassMetadataAddress | undefined,
     value: string,
   ): object[] {
@@ -45,7 +45,7 @@ class LegacyEmissionAssertions {
     return definitions;
   }
 
-  static verifyCases(
+  public static verifyCases(
     cases: readonly ILegacyCase[],
     fixture: ReturnType<typeof LegacyLocations.create>,
     expected: ReadonlyMap<string, ReadonlySet<object>>,
@@ -57,11 +57,11 @@ class LegacyEmissionAssertions {
         value,
       });
       for (const inheritance of ["own", "inherited"] as const)
-        LegacyEmissionAssertions.#verifyCase(fixture, address, value, inheritance, expected);
+        LegacyEmissionAssertions.verifyCase(fixture, address, value, inheritance, expected);
     }
   }
 
-  static #verifyCase(
+  private static verifyCase(
     fixture: ReturnType<typeof LegacyLocations.create>,
     address: IDynamicClassMetadataAddress | undefined,
     value: string,
@@ -79,7 +79,7 @@ class LegacyEmissionAssertions {
     });
   }
 
-  static verifyLocations(
+  public static verifyLocations(
     cases: readonly ILegacyCase[],
     fixture: ReturnType<typeof LegacyLocations.create>,
     expected: ReadonlyMap<string, ReadonlySet<object>>,
@@ -89,11 +89,11 @@ class LegacyEmissionAssertions {
       if (!locations.isValid) throw new Error(locations.code);
       expect(locations.addresses).toHaveLength(cases.length);
       for (const address of locations.addresses)
-        LegacyEmissionAssertions.#verifyLocation(fixture, address, inheritance, expected);
+        LegacyEmissionAssertions.verifyLocation(fixture, address, inheritance, expected);
     }
   }
 
-  static #verifyLocation(
+  private static verifyLocation(
     fixture: ReturnType<typeof LegacyLocations.create>,
     address: IDynamicClassMetadataAddress,
     inheritance: "own" | "inherited",
@@ -113,7 +113,7 @@ class LegacyEmissionAssertions {
     expect(new Set(discovered.definitions)).toEqual(expected.get(read.value));
   }
 
-  static verifyProtected(fixture: ReturnType<typeof LegacyLocations.create>): void {
+  public static verifyProtected(fixture: ReturnType<typeof LegacyLocations.create>): void {
     const cases: readonly [IDynamicClassMetadataAddress, string][] = [
       [{ kind: "constructor-parameter", position: 0 }, "protected-constructor"],
       [{ kind: "member", member: "method" }, "private-method"],

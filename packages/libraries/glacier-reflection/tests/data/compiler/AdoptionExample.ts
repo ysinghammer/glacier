@@ -120,7 +120,7 @@ export class AdoptionExample {
     @label.decorator("consumer")
     class Consumer {
       public constructor(
-        @dependency.decorator(repositoryIdentity) readonly repository: IRepository,
+        @dependency.decorator(repositoryIdentity) public readonly repository: IRepository,
       ) {}
     }
     const explicit = dependency.read(Consumer, {

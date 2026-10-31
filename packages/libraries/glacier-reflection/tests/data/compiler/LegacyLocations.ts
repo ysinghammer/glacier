@@ -14,7 +14,7 @@ export interface ILegacyLocations {
 
 /** Builds genuine legacy annotations without constructing any consumer. */
 export class LegacyLocations {
-  static create(): ILegacyLocations {
+  public static create(): ILegacyLocations {
     const metadata = new ValueMetadataDefinition<string>("legacy");
     const key = Symbol("member");
     const methodKey = Symbol("method");

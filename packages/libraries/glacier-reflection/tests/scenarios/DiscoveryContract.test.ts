@@ -10,7 +10,7 @@ import {
 
 /** Keeps loop-heavy assertions out of the scenario callbacks while checking public operations unchanged. */
 class DiscoveryContractAssertions {
-  static joinedTarget(
+  public static joinedTarget(
     target: object,
     inheritance: "own" | "inherited",
     leaf: object,
@@ -23,7 +23,7 @@ class DiscoveryContractAssertions {
     if (!definitions.isValid) throw new Error(definitions.code);
     expect(new Set(definitions.definitions)).toEqual(new Set([list, record]));
     expect(definitions.definitions).toHaveLength(2);
-    DiscoveryContractAssertions.#joinedDefinition(
+    DiscoveryContractAssertions.joinedDefinition(
       target,
       inheritance,
       leaf,
@@ -31,7 +31,7 @@ class DiscoveryContractAssertions {
       item,
       definitions,
     );
-    DiscoveryContractAssertions.#joinedDefinition(
+    DiscoveryContractAssertions.joinedDefinition(
       target,
       inheritance,
       leaf,
@@ -57,7 +57,7 @@ class DiscoveryContractAssertions {
       expect(recordRead.value["item"]).toBe(item);
   }
 
-  static #joinedDefinition(
+  private static joinedDefinition(
     target: object,
     inheritance: "own" | "inherited",
     leaf: object,
@@ -75,7 +75,7 @@ class DiscoveryContractAssertions {
     expect(new Set(locations.addresses)).toEqual(new Set(expected));
     expect(locations.addresses).toHaveLength(expected.length);
     for (const address of locations.addresses)
-      DiscoveryContractAssertions.#joinedAddress(
+      DiscoveryContractAssertions.joinedAddress(
         definition,
         target,
         inheritance,
@@ -85,7 +85,7 @@ class DiscoveryContractAssertions {
       );
   }
 
-  static #joinedAddress(
+  private static joinedAddress(
     definition: ListMetadataDefinition<object> | RecordMetadataDefinition<object>,
     target: object,
     inheritance: "own" | "inherited",
@@ -104,7 +104,7 @@ class DiscoveryContractAssertions {
     );
   }
 
-  static middleAddress(
+  public static middleAddress(
     definition: ValueMetadataDefinition<string | undefined>,
     target: object,
     address: IDiscoveredMetadataAddress,
@@ -119,7 +119,7 @@ class DiscoveryContractAssertions {
     ).toEqual({ isValid: true, definitions: [definition] });
   }
 
-  static middleAddresses(
+  public static middleAddresses(
     definition: ValueMetadataDefinition<string | undefined>,
     target: object,
     addresses: readonly IDiscoveredMetadataAddress[],
@@ -128,7 +128,7 @@ class DiscoveryContractAssertions {
       DiscoveryContractAssertions.middleAddress(definition, target, address);
   }
 
-  static targetAddresses(
+  public static targetAddresses(
     definition: ValueMetadataDefinition<string | undefined>,
     target: object,
     leaf: object,
@@ -137,11 +137,11 @@ class DiscoveryContractAssertions {
     const result = definition.locations(target);
     if (!result.isValid) throw new Error(result.code);
     const expected =
-      target === leaf ? canonical : DiscoveryContractAssertions.#instanceAddresses(canonical);
+      target === leaf ? canonical : DiscoveryContractAssertions.instanceAddresses(canonical);
     expect(new Set(result.addresses)).toEqual(new Set(expected));
     expect(result.addresses).toHaveLength(expected.length);
     for (const address of result.addresses)
-      DiscoveryContractAssertions.#canonicalAddress(definition, target, address);
+      DiscoveryContractAssertions.canonicalAddress(definition, target, address);
     expect(definition.locations(target, { inheritance: "own" })).toEqual({
       isValid: true,
       addresses: [{ kind: "class" }],
@@ -149,10 +149,10 @@ class DiscoveryContractAssertions {
     const own = definition.locations(target, { inheritance: "own" });
     if (!own.isValid) throw new Error(own.code);
     for (const address of own.addresses)
-      DiscoveryContractAssertions.#ownAddress(definition, target, address);
+      DiscoveryContractAssertions.ownAddress(definition, target, address);
   }
 
-  static #instanceAddresses(
+  private static instanceAddresses(
     canonical: readonly IDiscoveredMetadataAddress[],
   ): IDiscoveredMetadataAddress[] {
     return canonical.filter(
@@ -162,7 +162,7 @@ class DiscoveryContractAssertions {
     );
   }
 
-  static #canonicalAddress(
+  private static canonicalAddress(
     definition: ValueMetadataDefinition<string | undefined>,
     target: object,
     address: IDiscoveredMetadataAddress,
@@ -182,7 +182,7 @@ class DiscoveryContractAssertions {
     });
   }
 
-  static #ownAddress(
+  private static ownAddress(
     definition: ValueMetadataDefinition<string | undefined>,
     target: object,
     address: IDiscoveredMetadataAddress,

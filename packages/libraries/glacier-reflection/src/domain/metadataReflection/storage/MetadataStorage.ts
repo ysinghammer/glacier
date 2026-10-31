@@ -7,42 +7,42 @@ import { MetadataTarget } from "../targets/MetadataTarget.js";
 
 /** Typed class-local declarations and a weak class-local identity/address index. */
 export class MetadataStorage<T> {
-  static #index = new WeakMap<
+  private static index = new WeakMap<
     IClass,
     Map<IMetadataDefinitionIdentity, readonly IDiscoveredMetadataAddress[]>
   >();
-  #declarations = new WeakMap<IClass, Map<IDiscoveredMetadataAddress, T>>();
+  private declarations = new WeakMap<IClass, Map<IDiscoveredMetadataAddress, T>>();
 
   /** Replaces one complete direct declaration after normalization has succeeded. */
-  set(
+  public set(
     owner: IClass,
     identity: IMetadataDefinitionIdentity,
     address: IDiscoveredMetadataAddress,
     value: T,
   ): void {
-    let declarations = this.#declarations.get(owner);
+    let declarations = this.declarations.get(owner);
     if (declarations === undefined) {
       declarations = new Map();
-      this.#declarations.set(owner, declarations);
+      this.declarations.set(owner, declarations);
     }
-    const existing = this.#find(declarations, address);
+    const existing = this.find(declarations, address);
     declarations.set(existing ?? address, value);
-    let index = MetadataStorage.#index.get(owner);
+    let index = MetadataStorage.index.get(owner);
     if (index === undefined) {
       index = new Map();
-      MetadataStorage.#index.set(owner, index);
+      MetadataStorage.index.set(owner, index);
     }
     index.set(identity, [...declarations.keys()]);
   }
 
   /** Reads the nearest declaration, retaining presence independently from its value. */
-  read(
+  public read(
     owner: IClass,
     address: IDiscoveredMetadataAddress,
     inheritance: "own" | "inherited",
   ): IMetadataRead<T> {
     for (const current of MetadataTarget.owners(owner, inheritance)) {
-      const declarations = this.#declarations.get(current);
+      const declarations = this.declarations.get(current);
       if (declarations === undefined) continue;
       for (const [storedAddress, value] of declarations) {
         if (MetadataAddress.equals(storedAddress, address)) {
@@ -54,7 +54,7 @@ export class MetadataStorage<T> {
   }
 
   /** Collects present contributions nearest-first without confusing undefined with absence. */
-  contributions(
+  public contributions(
     owner: IClass,
     address: IDiscoveredMetadataAddress,
     inheritance: "own" | "inherited",
@@ -72,21 +72,21 @@ export class MetadataStorage<T> {
   }
 
   /** Removes only a direct entry, cleaning the class-local discovery index. */
-  delete(
+  public delete(
     owner: IClass,
     identity: IMetadataDefinitionIdentity,
     address: IDiscoveredMetadataAddress,
   ): boolean {
-    const declarations = this.#declarations.get(owner);
+    const declarations = this.declarations.get(owner);
     if (declarations === undefined) return false;
-    const existing = this.#find(declarations, address);
+    const existing = this.find(declarations, address);
     if (existing === undefined) return false;
     declarations.delete(existing);
-    const index = MetadataStorage.#index.get(owner);
+    const index = MetadataStorage.index.get(owner);
     if (declarations.size === 0) {
-      this.#declarations.delete(owner);
+      this.declarations.delete(owner);
       index?.delete(identity);
-      if (index?.size === 0) MetadataStorage.#index.delete(owner);
+      if (index?.size === 0) MetadataStorage.index.delete(owner);
     } else {
       index?.set(identity, [...declarations.keys()]);
     }
@@ -94,14 +94,14 @@ export class MetadataStorage<T> {
   }
 
   /** Returns frozen canonical address snapshots, optionally filtering instance aliases. */
-  locations(
+  public locations(
     owner: IClass,
     inheritance: "own" | "inherited",
     isInstance: boolean,
   ): readonly IDiscoveredMetadataAddress[] {
     const addresses: IDiscoveredMetadataAddress[] = [];
     for (const current of MetadataTarget.owners(owner, inheritance)) {
-      const declarations = this.#declarations.get(current);
+      const declarations = this.declarations.get(current);
       if (declarations === undefined) continue;
       for (const address of declarations.keys()) {
         if (isInstance && !MetadataAddress.supportsInstance(address)) continue;
@@ -114,14 +114,14 @@ export class MetadataStorage<T> {
   }
 
   /** Returns a frozen array of actual identities at an exact canonical location. */
-  static definitions(
+  public static definitions(
     owner: IClass,
     address: IDiscoveredMetadataAddress,
     inheritance: "own" | "inherited",
   ): readonly IMetadataDefinitionIdentity[] {
     const definitions = new Set<IMetadataDefinitionIdentity>();
     for (const current of MetadataTarget.owners(owner, inheritance)) {
-      const index = MetadataStorage.#index.get(current);
+      const index = MetadataStorage.index.get(current);
       if (index === undefined) continue;
       for (const [identity, addresses] of index) {
         if (addresses.some((existing) => MetadataAddress.equals(existing, address))) {
@@ -133,7 +133,7 @@ export class MetadataStorage<T> {
   }
 
   /** Finds the existing key for an equivalent normalized caller address. */
-  #find(
+  private find(
     declarations: Map<IDiscoveredMetadataAddress, T>,
     address: IDiscoveredMetadataAddress,
   ): IDiscoveredMetadataAddress | undefined {

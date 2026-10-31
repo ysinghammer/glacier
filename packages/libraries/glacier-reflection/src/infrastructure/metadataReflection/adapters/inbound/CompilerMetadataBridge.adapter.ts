@@ -5,7 +5,7 @@ import { CompilerMetadataRecorder } from "./CompilerMetadataRecorder.adapter.js"
 /** The explicit register entry installs only the legacy protocol; physical copies never share activation. */
 export class CompilerMetadataBridge {
   /** Fails without touching occupied descriptors or unrelated Reflect operations. */
-  static activate(): void {
+  public static activate(): void {
     let reflectObject: unknown;
     try {
       reflectObject = globalThis.Reflect;

@@ -29,9 +29,9 @@ export abstract class MetadataDefinitionOperations<
   in out TDeclaration,
   in out TValue,
 > implements IMetadataDefinitionIdentity {
-  readonly name: string;
-  #storage = new MetadataStorage<TValue>();
-  abstract readonly kind: IMetadataKind;
+  public readonly name: string;
+  private storage = new MetadataStorage<TValue>();
+  public abstract readonly kind: IMetadataKind;
   /** Retains a descriptive label without registering or sharing identities. */
   protected constructor(name: string) {
     this.name = name;
@@ -51,7 +51,7 @@ export abstract class MetadataDefinitionOperations<
    * Returns a typed atomic rejection for invalid targets/addresses/positions.
    * Accumulating outer containers snapshot before storage; snapshot exceptions remain thrown.
    */
-  set<C extends IClass>(
+  public set<C extends IClass>(
     target: C,
     value: TDeclaration,
     address?: IClassMetadataAddress<NoInfer<C>>,
@@ -63,7 +63,7 @@ export abstract class MetadataDefinitionOperations<
    * Validates address shape and safe nonnegative integer positions, not member existence or tuple bounds.
    * Instances and inheritance options reject without mutation; inspection/snapshot exceptions propagate.
    */
-  setDynamic(
+  public setDynamic(
     target: IClass,
     value: TDeclaration,
     address?: IDynamicClassMetadataAddress,
@@ -73,7 +73,7 @@ export abstract class MetadataDefinitionOperations<
     const normalized = MetadataAddress.normalize(address, true, false);
     if (!normalized.isValid) return normalized;
     const prepared = this.prepare(value);
-    this.#storage.set(normalizedTarget.owner, this, normalized.address, prepared);
+    this.storage.set(normalizedTarget.owner, this, normalized.address, prepared);
     return { isValid: true };
   }
   /**
@@ -82,7 +82,7 @@ export abstract class MetadataDefinitionOperations<
    * Validate isValid before isPresent: present undefined is distinct from absence.
    * Instance addresses exclude static members and individual constructor parameters.
    */
-  read<R extends object>(
+  public read<R extends object>(
     target: R,
     address?: IMetadataReadAddress<NoInfer<R>> & IMetadataLookup,
   ): IMetadataRead<TValue> {
@@ -93,7 +93,7 @@ export abstract class MetadataDefinitionOperations<
    * Makes no finite-key, tuple-bound or signature-equivalence guarantee; parameter inheritance is positional.
    * Instance static/constructor-parameter requests reject rather than appear absent.
    */
-  readDynamic(
+  public readDynamic(
     target: object,
     address?: IDynamicClassMetadataAddress & IMetadataLookup,
   ): IMetadataRead<TValue> {
@@ -102,7 +102,7 @@ export abstract class MetadataDefinitionOperations<
     const normalized = MetadataAddress.normalize(address, false, normalizedTarget.isInstance);
     if (!normalized.isValid) return normalized;
     return this.resolve(
-      this.#storage.contributions(
+      this.storage.contributions(
         normalizedTarget.owner,
         normalized.address,
         normalized.inheritance,
@@ -114,7 +114,7 @@ export abstract class MetadataDefinitionOperations<
    * Checks validated presence at a checked location in inherited (default) or own mode.
    * Undefined and empty accumulating declarations count as present; invalid inputs are not absence.
    */
-  has<R extends object>(
+  public has<R extends object>(
     target: R,
     address?: IMetadataReadAddress<NoInfer<R>> & IMetadataLookup,
   ): IMetadataPresenceResult {
@@ -124,7 +124,7 @@ export abstract class MetadataDefinitionOperations<
    * Checks presence at a dynamic location, retaining runtime target/address restrictions.
    * Invalid inputs return rejection; exceptional inspection failures remain thrown.
    */
-  hasDynamic(
+  public hasDynamic(
     target: object,
     address?: IDynamicClassMetadataAddress & IMetadataLookup,
   ): IMetadataPresenceResult {
@@ -136,7 +136,7 @@ export abstract class MetadataDefinitionOperations<
    * Deletes only this definition's direct constructor declaration, never an ancestor.
    * Returns validated isDeleted; removal may reveal inherited metadata. Instances reject.
    */
-  delete<C extends IClass>(
+  public delete<C extends IClass>(
     target: C,
     address?: IClassMetadataAddress<NoInfer<C>>,
   ): IMetadataDeletionResult {
@@ -146,14 +146,17 @@ export abstract class MetadataDefinitionOperations<
    * Deletes a dynamic constructor location without finite-key/tuple guarantees.
    * Rejected inputs leave declarations unchanged; no inheritance/reset/suppression option exists.
    */
-  deleteDynamic(target: IClass, address?: IDynamicClassMetadataAddress): IMetadataDeletionResult {
+  public deleteDynamic(
+    target: IClass,
+    address?: IDynamicClassMetadataAddress,
+  ): IMetadataDeletionResult {
     const normalizedTarget = MetadataTarget.normalize(target, true);
     if (!normalizedTarget.isValid) return normalizedTarget;
     const normalized = MetadataAddress.normalize(address, true, false);
     if (!normalized.isValid) return normalized;
     return {
       isValid: true,
-      isDeleted: this.#storage.delete(normalizedTarget.owner, this, normalized.address),
+      isDeleted: this.storage.delete(normalizedTarget.owner, this, normalized.address),
     };
   }
   /**
@@ -163,14 +166,14 @@ export abstract class MetadataDefinitionOperations<
    * Arrays/target-free canonical records are shallow-frozen with unspecified ordering.
    * Use readDynamic for returned records, explicitly carrying own mode into the read if needed.
    */
-  locations(target: object, lookup?: IMetadataLookup): IMetadataLocationsResult {
+  public locations(target: object, lookup?: IMetadataLookup): IMetadataLocationsResult {
     const normalizedTarget = MetadataTarget.normalize(target, false);
     if (!normalizedTarget.isValid) return normalizedTarget;
     const normalizedLookup = MetadataAddress.lookup(lookup);
     if (!normalizedLookup.isValid) return normalizedLookup;
     return {
       isValid: true,
-      addresses: this.#storage.locations(
+      addresses: this.storage.locations(
         normalizedTarget.owner,
         normalizedLookup.mode,
         normalizedTarget.isInstance,
@@ -184,13 +187,13 @@ export abstract class MetadataDefinitionOperations<
    * Legacy callback typing cannot prove source keys or tuple bounds; invalid invocation throws
    * MetadataBoundaryError and exceptional inspection/snapshot failures remain observable.
    */
-  decorator(value: TDeclaration): ILegacyMetadataDecorator {
+  public decorator(value: TDeclaration): ILegacyMetadataDecorator {
     const prepared = this.prepare(value);
     return (...arguments_: unknown[]): void => {
       const { owner, address } = MetadataDecorator.normalize(arguments_);
       const normalized = MetadataAddress.normalize(address, true, false);
       if (!normalized.isValid) throw new MetadataBoundaryError("invalid-decorator-location");
-      this.#storage.set(owner, this, normalized.address, prepared);
+      this.storage.set(owner, this, normalized.address, prepared);
     };
   }
 }

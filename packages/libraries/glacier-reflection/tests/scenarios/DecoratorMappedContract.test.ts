@@ -16,17 +16,17 @@ describe("mapped package-root legacy decorator contract", () => {
       constructor() {
         executionCount++;
       }
-      get accessor(): string {
+      public get accessor(): string {
         executionCount++;
         return "";
       }
-      set accessor(_value: string) {
+      public set accessor(_value: string) {
         executionCount++;
       }
-      method(input: string): string {
+      public method(input: string): string {
         return input;
       }
-      static method(input: string): string {
+      public static method(input: string): string {
         return input;
       }
     }

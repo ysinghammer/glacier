@@ -10,13 +10,13 @@ export class RecordMetadataDefinition<in out T> extends MetadataDefinitionOperat
   Readonly<Record<string, T>>,
   Readonly<Record<string, T | undefined>>
 > {
-  #brand: undefined;
-  readonly kind: "record";
+  private brand: undefined;
+  public readonly kind: "record";
   /** Creates a fresh identity with whole-entry nearest replacement on conflicts. */
   constructor(name: string) {
     super(name);
     this.kind = "record";
-    void this.#brand;
+    void this.brand;
   }
   /** Snapshots only own enumerable string entries, retaining contained value identities. */
   protected override prepare(

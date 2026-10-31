@@ -9,13 +9,13 @@ export class ListMetadataDefinition<in out T> extends MetadataDefinitionOperatio
   readonly T[],
   readonly T[]
 > {
-  #brand: undefined;
-  readonly kind: "list";
+  private brand: undefined;
+  public readonly kind: "list";
   /** Creates a fresh identity for homogeneous readonly contributions. */
   constructor(name: string) {
     super(name);
     this.kind = "list";
-    void this.#brand;
+    void this.brand;
   }
   /** Copies and shallow-freezes the contribution without cloning contained values. */
   protected override prepare(value: readonly T[]): readonly T[] {

@@ -13,7 +13,7 @@ export class MetadataDiscoveryOperations {
    * Own mode restricts to direct declarations; present undefined/empty collections remain discoverable.
    * Returns a shallow-frozen identity array or a typed address rejection, without ordering promises.
    */
-  static definitions<R extends object>(
+  public static definitions<R extends object>(
     target: R,
     address?: IMetadataReadAddress<NoInfer<R>> & IMetadataLookup,
   ): IMetadataDefinitionsResult {
@@ -25,7 +25,7 @@ export class MetadataDiscoveryOperations {
    * Instance aliases permit only class and instance-side locations; static/constructor parameters reject.
    * Inspection exceptions propagate; no getters or consumer constructors are invoked.
    */
-  static definitionsDynamic(
+  public static definitionsDynamic(
     target: object,
     address?: IDynamicClassMetadataAddress & IMetadataLookup,
   ): IMetadataDefinitionsResult {

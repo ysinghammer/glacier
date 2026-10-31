@@ -12,14 +12,14 @@ type ISourceCoverage = ReturnType<
 
 /** Keeps native and Vite-transformed V8 offsets separate until the built-in source conversion. */
 class ReflectionCoverageProvider extends V8CoverageProvider {
-  #isNativeConversion = false;
+  private isNativeConversion = false;
 
   /** Includes compiled equivalents of every configured production file, without expanding or hiding sources. */
   public override isIncluded(filename: string, root?: string): boolean {
     const generated = relative(resolve(this.ctx.config.root, "dist"), filename);
     if (generated.endsWith(".js") && !generated.startsWith(`..${sep}`) && generated !== "..") {
       return (
-        this.#isNativeConversion &&
+        this.isNativeConversion &&
         super.isIncluded(resolve(this.ctx.config.root, generated.replace(/\.js$/, ".ts")), root)
       );
     }
@@ -38,7 +38,7 @@ class ReflectionCoverageProvider extends V8CoverageProvider {
       return result;
     }
     const map: unknown = JSON.parse(await readFile(`${url}.map`, "utf8"));
-    if (result == null || !ReflectionCoverageProvider.#isSourceMap(map))
+    if (result == null || !ReflectionCoverageProvider.isSourceMap(map))
       throw new Error(`Invalid compiler source map: ${url}`);
     const sourceMap = {
       version: 3,
@@ -59,7 +59,7 @@ class ReflectionCoverageProvider extends V8CoverageProvider {
     return { ...result, map: sourceMap };
   }
 
-  static #isSourceMap(map: unknown): map is {
+  private static isSourceMap(map: unknown): map is {
     readonly version: 3;
     readonly file: string;
     readonly sourceRoot: "";
@@ -94,7 +94,7 @@ class ReflectionCoverageProvider extends V8CoverageProvider {
     map.merge = (input) => {
       const incoming = super.createCoverageMap();
       incoming.merge(input);
-      if (this.#isNativeConversion) {
+      if (this.isNativeConversion) {
         for (const filename of incoming.files()) {
           if (map.files().includes(filename)) {
             ReflectionCoverageProvider.normalizeSpans(
@@ -176,11 +176,11 @@ class ReflectionCoverageProvider extends V8CoverageProvider {
         await options.onFinished(project, environment);
         if (nativeScripts.length !== 0) {
           options.onFileRead({ result: nativeScripts } as CoverageType);
-          this.#isNativeConversion = true;
+          this.isNativeConversion = true;
           try {
             await options.onFinished(project, environment);
           } finally {
-            this.#isNativeConversion = false;
+            this.isNativeConversion = false;
             nativeScripts = [];
           }
         }

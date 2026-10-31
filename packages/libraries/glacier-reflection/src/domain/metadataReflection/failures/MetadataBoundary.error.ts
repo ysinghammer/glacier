@@ -6,7 +6,7 @@ import type { IMetadataBoundaryErrorCode } from "./IMetadataBoundaryErrorCode.js
  * Foreign handlers remain unchanged; this class provides no reset, uninstall or coexistence mechanism.
  */
 export class MetadataBoundaryError extends Error {
-  readonly code: IMetadataBoundaryErrorCode;
+  public readonly code: IMetadataBoundaryErrorCode;
 
   /** Retains the safe category and any explicitly supplied exceptional cause. */
   constructor(code: IMetadataBoundaryErrorCode, options?: ErrorOptions) {

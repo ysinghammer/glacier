@@ -30,32 +30,32 @@ export class DistributionContractProbe {
   /** Each mode executes in a new native Node process; unknown modes and unexpected errors fail. */
   public static async run(mode: string): Promise<unknown> {
     if (["absent", "unavailable", "null", "throwing"].includes(mode))
-      return this.#unavailableReflect(mode);
-    if (mode === "type-only") return this.#typeOnly();
-    if (mode === "retained") return this.#retained();
-    if (mode === "shared-metadata") return this.#sharedMetadata();
-    if (mode === "ordinary-metadata") return this.#ordinaryMetadata();
-    if (mode === "root-only" || mode === "root-only-foreign") return this.#rootOnly(mode);
-    if (mode.startsWith("foreign-")) return this.#foreign(mode);
-    if (mode === "locked-empty" || mode === "nonextensible") return this.#lockedReflect(mode);
-    if (mode === "subpaths") return this.#subpaths();
-    if (mode === "missed-emission") return this.#missedEmission();
-    return this.#registered(mode);
+      return this.unavailableReflect(mode);
+    if (mode === "type-only") return this.typeOnly();
+    if (mode === "retained") return this.retained();
+    if (mode === "shared-metadata") return this.sharedMetadata();
+    if (mode === "ordinary-metadata") return this.ordinaryMetadata();
+    if (mode === "root-only" || mode === "root-only-foreign") return this.rootOnly(mode);
+    if (mode.startsWith("foreign-")) return this.foreign(mode);
+    if (mode === "locked-empty" || mode === "nonextensible") return this.lockedReflect(mode);
+    if (mode === "subpaths") return this.subpaths();
+    if (mode === "missed-emission") return this.missedEmission();
+    return this.registered(mode);
   }
 
-  static async #unavailableReflect(mode: string): Promise<unknown> {
+  private static async unavailableReflect(mode: string): Promise<unknown> {
     const original = Object.getOwnPropertyDescriptor(globalThis, "Reflect");
     if (original === undefined) throw new Error("Missing native Reflect descriptor");
     const cause = new Error("private native inspection diagnostic");
     let calls = 0;
-    this.#installUnavailableReflect(mode, cause, () => calls++);
+    this.installUnavailableReflect(mode, cause, () => calls++);
     const before = Object.getOwnPropertyDescriptor(globalThis, "Reflect");
     try {
       await import("@glacier/reflection");
       const rootInactive =
         calls === 0 &&
         this.sameDescriptor(before, Object.getOwnPropertyDescriptor(globalThis, "Reflect"));
-      const failure = await this.#registrationFailure("@glacier/reflection/register");
+      const failure = await this.registrationFailure("@glacier/reflection/register");
       return {
         rootInactive,
         code: failure.code,
@@ -72,7 +72,7 @@ export class DistributionContractProbe {
     }
   }
 
-  static #installUnavailableReflect(mode: string, cause: Error, onRead: () => void): void {
+  private static installUnavailableReflect(mode: string, cause: Error, onRead: () => void): void {
     if (mode === "absent") {
       if (!Reflect.deleteProperty(globalThis, "Reflect")) throw new Error("Reflect setup failed");
       return;
@@ -93,7 +93,7 @@ export class DistributionContractProbe {
     });
   }
 
-  static async #registrationFailure(
+  private static async registrationFailure(
     specifier: string,
   ): Promise<{ readonly code: unknown; readonly message: string; readonly cause: unknown }> {
     try {
@@ -105,7 +105,7 @@ export class DistributionContractProbe {
     }
   }
 
-  static async #typeOnly(): Promise<unknown> {
+  private static async typeOnly(): Promise<unknown> {
     const before = Object.getOwnPropertyDescriptor(Reflect, "metadata");
     await import("./DistributionTypeOnly.js");
     return {
@@ -114,7 +114,7 @@ export class DistributionContractProbe {
     };
   }
 
-  static async #retained(): Promise<unknown> {
+  private static async retained(): Promise<unknown> {
     const retained = await import("./bundle/retained.js");
     const observer = await import("./bundle/retained-observer.js");
     return {
@@ -129,19 +129,19 @@ export class DistributionContractProbe {
     };
   }
 
-  static async #sharedMetadata(): Promise<unknown> {
+  private static async sharedMetadata(): Promise<unknown> {
     const shared = await import("./bundle/shared-metadata.js");
     return this.encode(shared.DistributionSharedMetadata.observations());
   }
 
-  static async #ordinaryMetadata(): Promise<unknown> {
+  private static async ordinaryMetadata(): Promise<unknown> {
     const ordinary = await import("./bundle/ordinary-metadata.js");
     return ordinary.DistributionOrdinaryMetadata.observations();
   }
 
-  static async #rootOnly(mode: string): Promise<unknown> {
+  private static async rootOnly(mode: string): Promise<unknown> {
     let getterCalls = 0;
-    if (mode === "root-only-foreign") this.#installForeignAccessor(() => getterCalls++);
+    if (mode === "root-only-foreign") this.installForeignAccessor(() => getterCalls++);
     const before = Object.getOwnPropertyDescriptor(Reflect, "metadata");
     const bundle = await import("./bundle/root-only.js");
     return {
@@ -152,15 +152,15 @@ export class DistributionContractProbe {
     };
   }
 
-  static async #foreign(mode: string): Promise<unknown> {
+  private static async foreign(mode: string): Promise<unknown> {
     let calls = 0;
-    this.#installForeign(mode, () => calls++);
+    this.installForeign(mode, () => calls++);
     const before = Object.getOwnPropertyDescriptor(Reflect, "metadata");
     await import("@glacier/reflection");
     const rootInactive =
       calls === 0 &&
       this.sameDescriptor(before, Object.getOwnPropertyDescriptor(Reflect, "metadata"));
-    const failure = await this.#registrationFailure("@glacier/reflection/register");
+    const failure = await this.registrationFailure("@glacier/reflection/register");
     return {
       rootInactive,
       code: failure.code,
@@ -169,9 +169,9 @@ export class DistributionContractProbe {
     };
   }
 
-  static #installForeign(mode: string, onRead: () => void): void {
+  private static installForeign(mode: string, onRead: () => void): void {
     if (mode === "foreign-accessor") {
-      this.#installForeignAccessor(onRead);
+      this.installForeignAccessor(onRead);
       return;
     }
     if (["foreign-writable", "foreign-locked", "foreign-nonfunction"].includes(mode)) {
@@ -187,7 +187,7 @@ export class DistributionContractProbe {
     throw new Error("Unknown foreign distribution mode");
   }
 
-  static #installForeignAccessor(onRead: () => void): void {
+  private static installForeignAccessor(onRead: () => void): void {
     Object.defineProperty(Reflect, "metadata", {
       configurable: true,
       get() {
@@ -197,15 +197,15 @@ export class DistributionContractProbe {
     });
   }
 
-  static async #lockedReflect(mode: string): Promise<unknown> {
-    this.#installLockedReflect(mode);
+  private static async lockedReflect(mode: string): Promise<unknown> {
+    this.installLockedReflect(mode);
     const before = Object.getOwnPropertyDescriptor(Reflect, "metadata");
     await import("@glacier/reflection");
     const rootInactive = this.sameDescriptor(
       before,
       Object.getOwnPropertyDescriptor(Reflect, "metadata"),
     );
-    const failure = await this.#registrationFailure("@glacier/reflection/register");
+    const failure = await this.registrationFailure("@glacier/reflection/register");
     return {
       rootInactive,
       code: failure.code,
@@ -214,7 +214,7 @@ export class DistributionContractProbe {
     };
   }
 
-  static #installLockedReflect(mode: string): void {
+  private static installLockedReflect(mode: string): void {
     if (mode === "nonextensible") {
       Object.preventExtensions(Reflect);
       return;
@@ -226,7 +226,7 @@ export class DistributionContractProbe {
     });
   }
 
-  static async #subpaths(): Promise<string[]> {
+  private static async subpaths(): Promise<string[]> {
     const rejected: string[] = [];
     const specifiers = [
       "@glacier/reflection/dist/index.js",
@@ -248,7 +248,7 @@ export class DistributionContractProbe {
     return rejected;
   }
 
-  static async #missedEmission(): Promise<unknown> {
+  private static async missedEmission(): Promise<unknown> {
     const fixture = await import("./UnregisteredCompilerFixture.js");
     const before = fixture.UnregisteredCompilerFixture.read();
     await import("@glacier/reflection/register");
@@ -257,7 +257,7 @@ export class DistributionContractProbe {
     return { before, after, later: this.encode(recorded.RecordedCompilerFixture.read()) };
   }
 
-  static async #registered(mode: string): Promise<unknown> {
+  private static async registered(mode: string): Promise<unknown> {
     if (mode === "register-first") await import("@glacier/reflection/register");
     const beforeRoot = Object.getOwnPropertyDescriptor(Reflect, "metadata");
     const root = await import("@glacier/reflection");
@@ -278,7 +278,7 @@ export class DistributionContractProbe {
       return this.encode(fixture.RecordedCompilerFixture.read());
     }
     if (mode === "duplicate") {
-      return this.#duplicate(descriptor, handler);
+      return this.duplicate(descriptor, handler);
     }
     const recorded = await import("./RecordedCompilerFixture.js");
     const originalRecords = recorded.RecordedCompilerFixture.read();
@@ -317,7 +317,7 @@ export class DistributionContractProbe {
     };
   }
 
-  static async #duplicate(
+  private static async duplicate(
     descriptor: PropertyDescriptor | undefined,
     handler: unknown,
   ): Promise<unknown> {
@@ -330,7 +330,7 @@ export class DistributionContractProbe {
       Object.getOwnPropertyDescriptor(Reflect, "metadata"),
     );
     const registrationEntry = "./duplicate/register.js";
-    const failure = await this.#registrationFailure(registrationEntry);
+    const failure = await this.registrationFailure(registrationEntry);
     const repeatedRecords = recorded.RecordedCompilerFixture.read();
     return {
       rootPreserved,
@@ -341,13 +341,13 @@ export class DistributionContractProbe {
         Object.getOwnPropertyDescriptor(Reflect, "metadata"),
       ),
       recordsPreserved: originalRecords.every((read, index) =>
-        this.#sameRecord(read, repeatedRecords[index]),
+        this.sameRecord(read, repeatedRecords[index]),
       ),
       declarations: this.encode(repeatedRecords),
     };
   }
 
-  static #sameRecord(first: unknown, second: unknown): boolean {
+  private static sameRecord(first: unknown, second: unknown): boolean {
     if (first === null || typeof first !== "object" || !("value" in first)) return false;
     if (second === null || typeof second !== "object" || !("value" in second)) return false;
     return first.value === second.value;

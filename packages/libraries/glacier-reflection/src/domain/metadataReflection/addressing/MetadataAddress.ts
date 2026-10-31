@@ -17,7 +17,7 @@ type IAllowedMetadataAddress =
 /** Validates exact address combinations before storage or lookup. */
 export class MetadataAddress {
   /** Copies address fields, canonicalizing numeric names and omitted member sides. */
-  static normalize(
+  public static normalize(
     input: unknown,
     isMutation: boolean,
     isInstance: boolean,
@@ -28,10 +28,10 @@ export class MetadataAddress {
     if (typeof input !== "object" || input === null || !("kind" in input)) {
       return { isValid: false, code: "invalid-address" };
     }
-    return MetadataAddress.#normalizeObject(input, isMutation, isInstance);
+    return MetadataAddress.normalizeObject(input, isMutation, isInstance);
   }
 
-  static #normalizeObject(
+  private static normalizeObject(
     input: object,
     isMutation: boolean,
     isInstance: boolean,
@@ -39,15 +39,15 @@ export class MetadataAddress {
     const kind = Reflect.get(input, "kind");
     const inheritance = MetadataAddress.lookup(input, isMutation, true);
     if (!inheritance.isValid) return inheritance;
-    const allowed = MetadataAddress.#allowedFields(kind, isMutation);
-    if (allowed === undefined || !MetadataAddress.#hasOnlyAllowedFields(input, allowed.fields))
+    const allowed = MetadataAddress.allowedFields(kind, isMutation);
+    if (allowed === undefined || !MetadataAddress.hasOnlyAllowedFields(input, allowed.fields))
       return { isValid: false, code: "invalid-address" };
     if (allowed.kind === "class") {
       return { isValid: true, address: { kind: allowed.kind }, inheritance: inheritance.mode };
     }
     if (allowed.kind === "constructor-parameter") {
       if (isInstance) return { isValid: false, code: "instance-address-not-supported" };
-      const position = MetadataAddress.#position(input);
+      const position = MetadataAddress.position(input);
       if (!position.isValid) return position;
       return {
         isValid: true,
@@ -58,9 +58,9 @@ export class MetadataAddress {
     const position =
       allowed.kind === "member"
         ? { isValid: true as const, value: 0 }
-        : MetadataAddress.#position(input);
+        : MetadataAddress.position(input);
     if (!position.isValid) return position;
-    return MetadataAddress.#memberAddress(
+    return MetadataAddress.memberAddress(
       input,
       allowed.kind,
       position.value,
@@ -69,7 +69,10 @@ export class MetadataAddress {
     );
   }
 
-  static #allowedFields(kind: unknown, isMutation: boolean): IAllowedMetadataAddress | undefined {
+  private static allowedFields(
+    kind: unknown,
+    isMutation: boolean,
+  ): IAllowedMetadataAddress | undefined {
     if (
       kind !== "class" &&
       kind !== "member" &&
@@ -84,7 +87,7 @@ export class MetadataAddress {
     return { kind, fields: allowed };
   }
 
-  static #hasOnlyAllowedFields(input: object, allowed: readonly string[]): boolean {
+  private static hasOnlyAllowedFields(input: object, allowed: readonly string[]): boolean {
     for (const key of Reflect.ownKeys(input))
       if (typeof key !== "string" || !allowed.includes(key)) return false;
     for (const field of ["side", "member", "position", "inheritance"])
@@ -92,7 +95,7 @@ export class MetadataAddress {
     return true;
   }
 
-  static #position(
+  private static position(
     input: object,
   ): { readonly isValid: true; readonly value: number } | IMetadataAddressRejection {
     if (!("position" in input)) return { isValid: false, code: "invalid-address" };
@@ -102,7 +105,7 @@ export class MetadataAddress {
     return { isValid: true, value: position };
   }
 
-  static #memberAddress(
+  private static memberAddress(
     input: object,
     kind: "member" | "method-parameter",
     position: number,
@@ -135,7 +138,7 @@ export class MetadataAddress {
   }
 
   /** Validates the separately supplied locations mode or an embedded read mode. */
-  static lookup(
+  public static lookup(
     input: unknown,
     isMutation = false,
     isEmbedded = false,
@@ -156,7 +159,10 @@ export class MetadataAddress {
   }
 
   /** Compares canonical location identity without stringifying symbol keys. */
-  static equals(first: IDiscoveredMetadataAddress, second: IDiscoveredMetadataAddress): boolean {
+  public static equals(
+    first: IDiscoveredMetadataAddress,
+    second: IDiscoveredMetadataAddress,
+  ): boolean {
     if (first.kind !== second.kind) return false;
     if (first.kind === "class" && second.kind === "class") return true;
     if (first.kind === "constructor-parameter" && second.kind === "constructor-parameter") {
@@ -175,7 +181,7 @@ export class MetadataAddress {
   }
 
   /** Selects only class and instance-side locations for instance aliases. */
-  static supportsInstance(address: IDiscoveredMetadataAddress): boolean {
+  public static supportsInstance(address: IDiscoveredMetadataAddress): boolean {
     return (
       address.kind === "class" ||
       (address.kind !== "constructor-parameter" && address.side === "instance")
