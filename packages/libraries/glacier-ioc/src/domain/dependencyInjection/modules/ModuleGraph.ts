@@ -2,7 +2,7 @@ import { AggregateContainerError } from "../errors/AggregateContainer.error.js";
 import { CircularDependencyError } from "../errors/CircularDependency.error.js";
 import { DependencyValidation } from "./DependencyValidation.js";
 import { InvalidModuleError } from "../errors/InvalidModule.error.js";
-import { InjectionMetadata } from "../metadata/types/InjectionMetadata.js";
+import { InjectionMetadata } from "../metadata/InjectionMetadata.js";
 import type { IScopeProfile } from "../scopes/IScopeProfile.js";
 import { ModuleRef } from "../scopes/ModuleRef.js";
 import { ProviderScopes } from "../scopes/ProviderScopes.js";

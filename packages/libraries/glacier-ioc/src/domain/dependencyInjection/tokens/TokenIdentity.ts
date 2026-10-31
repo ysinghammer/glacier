@@ -1,4 +1,4 @@
-import { InjectionToken } from "./types/InjectionToken.js";
+import { InjectionToken } from "./InjectionToken.js";
 import type { IToken } from "./types/IToken.js";
 import type { ITokenReference } from "./types/ITokenReference.js";
 

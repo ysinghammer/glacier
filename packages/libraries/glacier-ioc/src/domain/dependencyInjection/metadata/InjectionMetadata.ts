@@ -1,12 +1,12 @@
 import { DESIGN_PARAMETER_TYPES_METADATA } from "@glacier/reflection";
 import type { IClass, IRuntimeType } from "@glacier/reflection";
-import { InvalidProviderError } from "../../errors/InvalidProvider.error.js";
-import type { IToken } from "../../tokens/types/IToken.js";
-import type { IConstructorDependency } from "./IConstructorDependency.js";
-import type { IProviderScope } from "./IProviderScope.js";
+import { InvalidProviderError } from "../errors/InvalidProvider.error.js";
+import type { IToken } from "../tokens/types/IToken.js";
+import type { IConstructorDependency } from "./types/IConstructorDependency.js";
+import type { IProviderScope } from "./types/IProviderScope.js";
 import { INJECT_TOKEN_METADATA } from "./InjectTokenMetadata.js";
 import { INJECTABLE_SCOPE_METADATA } from "./InjectableScopeMetadata.js";
-import { OPTIONAL_PARAMETER_METADATA } from "../OptionalParameterMetadata.js";
+import { OPTIONAL_PARAMETER_METADATA } from "./OptionalParameterMetadata.js";
 
 const DEFAULT_SCOPE: IProviderScope = "default";
 

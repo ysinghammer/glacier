@@ -1,7 +1,7 @@
 import { InvalidProviderError } from "../errors/InvalidProvider.error.js";
 import { InvalidScopeError } from "../errors/InvalidScope.error.js";
 import { ProviderScopes } from "../scopes/ProviderScopes.js";
-import { InjectionToken } from "../tokens/types/InjectionToken.js";
+import { InjectionToken } from "../tokens/InjectionToken.js";
 import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import type { IClassConstructor } from "./types/IClassConstructor.js";
 import type { INormalizedProvider } from "./types/INormalizedProvider.js";

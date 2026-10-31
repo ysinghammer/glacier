@@ -1,5 +1,5 @@
 import type { IConstructorDependency } from "../metadata/types/IConstructorDependency.js";
-import { InjectionMetadata } from "../metadata/types/InjectionMetadata.js";
+import { InjectionMetadata } from "../metadata/InjectionMetadata.js";
 import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import { TokenIdentity } from "../tokens/TokenIdentity.js";
 import type { IProviderRegistration } from "./types/IProviderRegistration.js";

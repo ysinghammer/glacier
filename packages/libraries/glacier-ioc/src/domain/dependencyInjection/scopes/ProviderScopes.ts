@@ -1,6 +1,6 @@
 import { InvalidScopeError } from "../errors/InvalidScope.error.js";
 import type { IProviderScope } from "../metadata/types/IProviderScope.js";
-import { InjectionMetadata } from "../metadata/types/InjectionMetadata.js";
+import { InjectionMetadata } from "../metadata/InjectionMetadata.js";
 import type { INormalizedProvider } from "../providers/types/INormalizedProvider.js";
 import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 

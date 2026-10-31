@@ -1,8 +1,8 @@
-export { InjectionToken } from "./src/domain/dependencyInjection/tokens/types/InjectionToken.js";
+export { InjectionToken } from "./src/domain/dependencyInjection/tokens/InjectionToken.js";
 export { Injectable } from "./src/domain/dependencyInjection/decorators/Injectable.js";
 export { Inject } from "./src/domain/dependencyInjection/decorators/Inject.js";
 export { Optional } from "./src/domain/dependencyInjection/decorators/Optional.js";
-export { InjectionMetadata } from "./src/domain/dependencyInjection/metadata/types/InjectionMetadata.js";
+export { InjectionMetadata } from "./src/domain/dependencyInjection/metadata/InjectionMetadata.js";
 export { ContainerError } from "./src/domain/dependencyInjection/errors/ContainerError.error.js";
 export { UnknownDependencyError } from "./src/domain/dependencyInjection/errors/UnknownDependency.error.js";
 export { CircularDependencyError } from "./src/domain/dependencyInjection/errors/CircularDependency.error.js";

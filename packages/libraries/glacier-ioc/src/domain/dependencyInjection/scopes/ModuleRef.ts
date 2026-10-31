@@ -1,7 +1,7 @@
 import type { IConstructableClass } from "@glacier/reflection";
 import type { IGetOptions } from "../modules/types/IGetOptions.js";
 import type { IValueProvider } from "../providers/types/IValueProvider.js";
-import type { InjectionToken } from "../tokens/types/InjectionToken.js";
+import type { InjectionToken } from "../tokens/InjectionToken.js";
 import type { ContextId } from "./ContextId.js";
 
 /**

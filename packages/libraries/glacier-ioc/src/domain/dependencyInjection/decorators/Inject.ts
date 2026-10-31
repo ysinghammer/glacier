@@ -1,5 +1,5 @@
-import { INJECT_TOKEN_METADATA } from "../metadata/types/InjectTokenMetadata.js";
-import { InjectionToken } from "../tokens/types/InjectionToken.js";
+import { INJECT_TOKEN_METADATA } from "../metadata/InjectTokenMetadata.js";
+import { InjectionToken } from "../tokens/InjectionToken.js";
 import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 
 /**

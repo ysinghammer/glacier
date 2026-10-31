@@ -4,7 +4,7 @@ import { LifecycleHooks } from "../../domain/dependencyInjection/lifecycle/Lifec
 import { InvalidScopeError } from "../../domain/dependencyInjection/errors/InvalidScope.error.js";
 import { UnknownDependencyError } from "../../domain/dependencyInjection/errors/UnknownDependency.error.js";
 import type { IConstructorDependency } from "../../domain/dependencyInjection/metadata/types/IConstructorDependency.js";
-import { InjectionMetadata } from "../../domain/dependencyInjection/metadata/types/InjectionMetadata.js";
+import { InjectionMetadata } from "../../domain/dependencyInjection/metadata/InjectionMetadata.js";
 import type { IProviderRegistration } from "../../domain/dependencyInjection/modules/types/IProviderRegistration.js";
 import type { ModuleGraph } from "../../domain/dependencyInjection/modules/ModuleGraph.js";
 import type { ModuleNode } from "../../domain/dependencyInjection/modules/ModuleNode.js";

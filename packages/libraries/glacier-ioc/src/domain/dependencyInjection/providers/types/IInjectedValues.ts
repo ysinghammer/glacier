@@ -1,5 +1,5 @@
 import type { IClassConstructor } from "./IClassConstructor.js";
-import type { InjectionToken } from "../../tokens/types/InjectionToken.js";
+import type { InjectionToken } from "../../tokens/InjectionToken.js";
 import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 
 type IInjectedValue<TToken> =

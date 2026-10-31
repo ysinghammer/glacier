@@ -2,7 +2,7 @@ import type { IConstructableClass } from "@glacier/reflection";
 import { ModuleGraph } from "../../domain/dependencyInjection/modules/ModuleGraph.js";
 import type { IModuleReference } from "../../domain/dependencyInjection/modules/types/IModuleReference.js";
 import type { ContextId } from "../../domain/dependencyInjection/scopes/ContextId.js";
-import type { InjectionToken } from "../../domain/dependencyInjection/tokens/types/InjectionToken.js";
+import type { InjectionToken } from "../../domain/dependencyInjection/tokens/InjectionToken.js";
 import type { ITokenReference } from "../../domain/dependencyInjection/tokens/types/ITokenReference.js";
 import type { IGetOptions } from "../../domain/dependencyInjection/modules/types/IGetOptions.js";
 import { AggregateContainerError } from "../../domain/dependencyInjection/errors/AggregateContainer.error.js";
