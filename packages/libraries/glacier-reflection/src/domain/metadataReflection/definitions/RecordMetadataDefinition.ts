@@ -1,5 +1,5 @@
 import { MetadataDefinitionOperations } from "./MetadataDefinitionOperations.js";
-import type { IMetadataRead } from "./IMetadataRead.js";
+import type { IMetadataRead } from "./types/IMetadataRead.js";
 /**
  * A distinct invariant homogeneous dictionary definition; read entries may be absent.
  * Own enumerable string entries accumulate ancestor-first; conflicts replace whole entries, never deep-merge.

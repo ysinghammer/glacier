@@ -1,5 +1,5 @@
-import type { IClass } from "../targets/IClass.js";
-import type { IDynamicClassMetadataAddress } from "../addressing/IDynamicClassMetadataAddress.js";
+import type { IClass } from "../targets/types/IClass.js";
+import type { IDynamicClassMetadataAddress } from "../addressing/types/IDynamicClassMetadataAddress.js";
 import { MetadataTarget } from "../targets/MetadataTarget.js";
 import { MetadataBoundaryError } from "../failures/MetadataBoundary.error.js";
 

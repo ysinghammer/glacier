@@ -1,7 +1,7 @@
-import type { IClass } from "../targets/IClass.js";
-import type { IDiscoveredMetadataAddress } from "../addressing/IDiscoveredMetadataAddress.js";
-import type { IMetadataDefinitionIdentity } from "../definitions/IMetadataDefinitionIdentity.js";
-import type { IMetadataRead } from "../definitions/IMetadataRead.js";
+import type { IClass } from "../targets/types/IClass.js";
+import type { IDiscoveredMetadataAddress } from "../addressing/types/IDiscoveredMetadataAddress.js";
+import type { IMetadataDefinitionIdentity } from "../definitions/types/IMetadataDefinitionIdentity.js";
+import type { IMetadataRead } from "../definitions/types/IMetadataRead.js";
 import { MetadataAddress } from "../addressing/MetadataAddress.js";
 import { MetadataTarget } from "../targets/MetadataTarget.js";
 

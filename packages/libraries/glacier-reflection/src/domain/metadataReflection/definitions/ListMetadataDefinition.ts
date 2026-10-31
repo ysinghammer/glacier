@@ -1,5 +1,5 @@
 import { MetadataDefinitionOperations } from "./MetadataDefinitionOperations.js";
-import type { IMetadataRead } from "./IMetadataRead.js";
+import type { IMetadataRead } from "./types/IMetadataRead.js";
 /**
  * A distinct invariant definition for homogeneous ancestor-first list accumulation.
  * Duplicates remain; each set replaces only the direct contribution. Empty lists do not reset ancestors.

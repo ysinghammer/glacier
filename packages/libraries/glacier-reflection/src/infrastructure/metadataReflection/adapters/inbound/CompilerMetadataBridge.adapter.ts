@@ -1,4 +1,4 @@
-import type { ICompilerMetadataDecorator } from "../../../../domain/metadataReflection/compilerMetadata/ICompilerMetadataDecorator.js";
+import type { ICompilerMetadataDecorator } from "../../../../domain/metadataReflection/compilerMetadata/types/ICompilerMetadataDecorator.js";
 import { MetadataBoundaryError } from "../../../../domain/metadataReflection/failures/MetadataBoundary.error.js";
 import { CompilerMetadataRecorder } from "./CompilerMetadataRecorder.adapter.js";
 

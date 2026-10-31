@@ -1,5 +1,5 @@
-import type { IMetadataAddressRejection } from "../addressing/IMetadataAddressRejection.js";
-import type { IMetadataDefinitionIdentity } from "../definitions/IMetadataDefinitionIdentity.js";
+import type { IMetadataAddressRejection } from "../../addressing/types/IMetadataAddressRejection.js";
+import type { IMetadataDefinitionIdentity } from "../../definitions/types/IMetadataDefinitionIdentity.js";
 /** Valid address discovery returns distinct definition identities, not names. */
 export type IMetadataDefinitionsResult =
   | IMetadataAddressRejection

@@ -1,5 +1,5 @@
 import { ValueMetadataDefinition } from "../definitions/ValueMetadataDefinition.js";
-import type { IRuntimeType } from "./IRuntimeType.js";
+import type { IRuntimeType } from "./types/IRuntimeType.js";
 
 /**
  * Ordinary whole-array replacement definition for design:paramtypes, never an accumulating list.

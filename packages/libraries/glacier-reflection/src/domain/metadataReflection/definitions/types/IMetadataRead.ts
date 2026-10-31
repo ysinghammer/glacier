@@ -1,4 +1,4 @@
-import type { IMetadataAddressRejection } from "../addressing/IMetadataAddressRejection.js";
+import type { IMetadataAddressRejection } from "../../addressing/types/IMetadataAddressRejection.js";
 /** Presence distinguishes absent declarations from present undefined values. */
 export type IMetadataRead<T> =
   | IMetadataAddressRejection

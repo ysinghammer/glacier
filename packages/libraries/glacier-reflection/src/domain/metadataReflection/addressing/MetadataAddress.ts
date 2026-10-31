@@ -1,5 +1,5 @@
-import type { IDiscoveredMetadataAddress } from "./IDiscoveredMetadataAddress.js";
-import type { IMetadataAddressRejection } from "./IMetadataAddressRejection.js";
+import type { IDiscoveredMetadataAddress } from "./types/IDiscoveredMetadataAddress.js";
+import type { IMetadataAddressRejection } from "./types/IMetadataAddressRejection.js";
 
 /** An independent normalized address and lookup mode, never the caller's record. */
 interface INormalizedMetadataAddress {

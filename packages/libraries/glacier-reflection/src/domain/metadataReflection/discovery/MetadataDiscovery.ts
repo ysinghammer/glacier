@@ -1,7 +1,7 @@
-import type { IMetadataReadAddress } from "../addressing/IMetadataReadAddress.js";
-import type { IMetadataLookup } from "../addressing/IMetadataLookup.js";
-import type { IDynamicClassMetadataAddress } from "../addressing/IDynamicClassMetadataAddress.js";
-import type { IMetadataDefinitionsResult } from "./IMetadataDefinitionsResult.js";
+import type { IMetadataReadAddress } from "../addressing/types/IMetadataReadAddress.js";
+import type { IMetadataLookup } from "../addressing/types/IMetadataLookup.js";
+import type { IDynamicClassMetadataAddress } from "../addressing/types/IDynamicClassMetadataAddress.js";
+import type { IMetadataDefinitionsResult } from "./types/IMetadataDefinitionsResult.js";
 import { MetadataDiscoveryOperations } from "./MetadataDiscoveryOperations.js";
 /**
  * Contract of the frozen, nonconstructible operation record; consumers use typeof MetadataDiscovery.

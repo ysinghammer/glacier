@@ -1,7 +1,7 @@
-import type { IMetadataReadAddress } from "../addressing/IMetadataReadAddress.js";
-import type { IMetadataLookup } from "../addressing/IMetadataLookup.js";
-import type { IDynamicClassMetadataAddress } from "../addressing/IDynamicClassMetadataAddress.js";
-import type { IMetadataDefinitionsResult } from "./IMetadataDefinitionsResult.js";
+import type { IMetadataReadAddress } from "../addressing/types/IMetadataReadAddress.js";
+import type { IMetadataLookup } from "../addressing/types/IMetadataLookup.js";
+import type { IDynamicClassMetadataAddress } from "../addressing/types/IDynamicClassMetadataAddress.js";
+import type { IMetadataDefinitionsResult } from "./types/IMetadataDefinitionsResult.js";
 import { MetadataTarget } from "../targets/MetadataTarget.js";
 import { MetadataAddress } from "../addressing/MetadataAddress.js";
 import { MetadataStorage } from "../storage/MetadataStorage.js";
