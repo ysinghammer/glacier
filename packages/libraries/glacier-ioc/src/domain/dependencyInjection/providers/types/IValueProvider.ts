@@ -1,4 +1,4 @@
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 
 /** Provider that returns a ready-made value exactly as supplied, including `undefined`. */
 export interface IValueProvider<T = unknown> {

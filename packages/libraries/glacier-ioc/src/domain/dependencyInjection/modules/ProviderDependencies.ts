@@ -1,8 +1,8 @@
-import type { IConstructorDependency } from "../metadata/IConstructorDependency.js";
-import { InjectionMetadata } from "../metadata/InjectionMetadata.js";
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import type { IConstructorDependency } from "../metadata/types/IConstructorDependency.js";
+import { InjectionMetadata } from "../metadata/types/InjectionMetadata.js";
+import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import { TokenIdentity } from "../tokens/TokenIdentity.js";
-import type { IProviderRegistration } from "./IProviderRegistration.js";
+import type { IProviderRegistration } from "./types/IProviderRegistration.js";
 
 /** Lists what a registered provider needs in order to be constructed. */
 export class ProviderDependencies {

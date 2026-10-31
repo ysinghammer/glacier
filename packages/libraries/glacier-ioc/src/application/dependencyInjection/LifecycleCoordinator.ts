@@ -1,5 +1,5 @@
-import { LifecycleHookError } from "../../domain/dependencyInjection/failures/LifecycleHook.error.js";
-import type { ILifecycleHookName } from "../../domain/dependencyInjection/lifecycle/ILifecycleHookName.js";
+import { LifecycleHookError } from "../../domain/dependencyInjection/errors/LifecycleHook.error.js";
+import type { ILifecycleHookName } from "../../domain/dependencyInjection/lifecycle/types/ILifecycleHookName.js";
 import { LifecycleHooks } from "../../domain/dependencyInjection/lifecycle/LifecycleHooks.js";
 
 /**

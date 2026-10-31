@@ -1,4 +1,4 @@
-import type { IToken } from "../tokens/IToken.js";
+import type { IToken } from "../../tokens/types/IToken.js";
 
 /** One constructor parameter of an injectable class after explicit and implicit tokens are merged. */
 export interface IConstructorDependency {

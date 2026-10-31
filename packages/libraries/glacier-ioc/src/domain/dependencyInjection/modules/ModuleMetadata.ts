@@ -1,9 +1,9 @@
-import { InvalidModuleError } from "../failures/InvalidModule.error.js";
+import { InvalidModuleError } from "../errors/InvalidModule.error.js";
 import { MODULE_OPTIONS_METADATA } from "../metadata/ModuleOptionsMetadata.js";
-import type { IClassConstructor } from "../providers/IClassConstructor.js";
-import type { IModuleExport } from "./IModuleExport.js";
-import type { IResolvedModule } from "./IResolvedModule.js";
-import type { IModuleReference } from "./IModuleReference.js";
+import type { IClassConstructor } from "../providers/types/IClassConstructor.js";
+import type { IModuleExport } from "./types/IModuleExport.js";
+import type { IResolvedModule } from "./types/IResolvedModule.js";
+import type { IModuleReference } from "./types/IModuleReference.js";
 
 const DYNAMIC_PLACEHOLDER = Symbol("dynamic module");
 

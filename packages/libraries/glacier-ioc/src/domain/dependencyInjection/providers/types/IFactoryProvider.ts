@@ -1,5 +1,5 @@
-import type { IProviderScope } from "../metadata/IProviderScope.js";
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import type { IProviderScope } from "../../metadata/types/IProviderScope.js";
+import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 import type { IInjectedValues } from "./IInjectedValues.js";
 
 /**

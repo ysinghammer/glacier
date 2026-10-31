@@ -1,5 +1,5 @@
-import type { INormalizedProvider } from "../providers/INormalizedProvider.js";
-import type { ModuleNode } from "./ModuleNode.js";
+import type { INormalizedProvider } from "../../providers/types/INormalizedProvider.js";
+import type { ModuleNode } from "../ModuleNode.js";
 
 /** One provider as registered by one module; its identity keys the shared instance of that registration. */
 export interface IProviderRegistration {

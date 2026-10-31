@@ -1,4 +1,4 @@
-import type { IProviderScope } from "../metadata/IProviderScope.js";
+import type { IProviderScope } from "../metadata/types/IProviderScope.js";
 
 /** The effective lifetime of one registered provider after scope bubbling. */
 export interface IScopeProfile {

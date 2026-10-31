@@ -1,5 +1,5 @@
 import { ContainerError } from "./ContainerError.error.js";
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import { TokenDescription } from "../tokens/TokenDescription.js";
 
 /** Raised when a factory provider throws or rejects while its value is created; the failure is the `cause`. */

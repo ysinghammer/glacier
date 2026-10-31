@@ -1,4 +1,4 @@
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 
 /** Provider that aliases one token to another so both resolve to the same instance. */
 export interface IExistingProvider {

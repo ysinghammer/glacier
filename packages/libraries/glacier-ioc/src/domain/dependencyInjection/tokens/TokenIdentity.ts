@@ -1,6 +1,6 @@
-import { InjectionToken } from "./InjectionToken.js";
-import type { IToken } from "./IToken.js";
-import type { ITokenReference } from "./ITokenReference.js";
+import { InjectionToken } from "./types/InjectionToken.js";
+import type { IToken } from "./types/IToken.js";
+import type { ITokenReference } from "./types/ITokenReference.js";
 
 /** Maps token references to the plain token that keys provider lookups. */
 export class TokenIdentity {

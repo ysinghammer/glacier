@@ -1,5 +1,5 @@
-import type { IProviderScope } from "../metadata/IProviderScope.js";
-import type { IProviderRegistration } from "../modules/IProviderRegistration.js";
+import type { IProviderScope } from "../metadata/types/IProviderScope.js";
+import type { IProviderRegistration } from "../modules/types/IProviderRegistration.js";
 import type { ModuleNode } from "../modules/ModuleNode.js";
 import { ProviderDependencies } from "../modules/ProviderDependencies.js";
 import type { IScopeProfile } from "./IScopeProfile.js";

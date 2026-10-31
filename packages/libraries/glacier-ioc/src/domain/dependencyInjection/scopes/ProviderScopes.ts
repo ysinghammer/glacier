@@ -1,8 +1,8 @@
-import { InvalidScopeError } from "../failures/InvalidScope.error.js";
-import type { IProviderScope } from "../metadata/IProviderScope.js";
-import { InjectionMetadata } from "../metadata/InjectionMetadata.js";
-import type { INormalizedProvider } from "../providers/INormalizedProvider.js";
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import { InvalidScopeError } from "../errors/InvalidScope.error.js";
+import type { IProviderScope } from "../metadata/types/IProviderScope.js";
+import { InjectionMetadata } from "../metadata/types/InjectionMetadata.js";
+import type { INormalizedProvider } from "../providers/types/INormalizedProvider.js";
+import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 
 const PROVIDER_SCOPES: readonly IProviderScope[] = ["default", "transient", "request"];
 

@@ -1,5 +1,5 @@
-import type { IInjectableOptions } from "../metadata/IInjectableOptions.js";
-import { INJECTABLE_SCOPE_METADATA } from "../metadata/InjectableScopeMetadata.js";
+import type { IInjectableOptions } from "../metadata/types/IInjectableOptions.js";
+import { INJECTABLE_SCOPE_METADATA } from "../metadata/types/InjectableScopeMetadata.js";
 
 /**
  * Class decorator that marks a class as a provider and declares its scope (default `"default"`).

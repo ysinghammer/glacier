@@ -1,4 +1,4 @@
-import type { IClassConstructor } from "../providers/IClassConstructor.js";
+import type { IClassConstructor } from "../../providers/types/IClassConstructor.js";
 import type { IModuleOptions } from "./IModuleOptions.js";
 
 /**

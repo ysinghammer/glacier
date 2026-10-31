@@ -1,5 +1,5 @@
-import type { ITokenReference } from "../tokens/ITokenReference.js";
-import type { IFactoryProvider } from "./IFactoryProvider.js";
+import type { ITokenReference } from "../tokens/types/ITokenReference.js";
+import type { IFactoryProvider } from "./types/IFactoryProvider.js";
 
 /** Builders that give provider declarations stronger compile-time checking than a bare object literal. */
 export class Providers {

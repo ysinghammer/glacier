@@ -1,4 +1,4 @@
-import type { ILifecycleHookName } from "./ILifecycleHookName.js";
+import type { ILifecycleHookName } from "./types/ILifecycleHookName.js";
 
 /** Duck-typed discovery and invocation of lifecycle hooks on provider instances. */
 export class LifecycleHooks {

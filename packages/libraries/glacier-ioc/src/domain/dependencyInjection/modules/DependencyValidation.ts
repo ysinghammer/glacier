@@ -1,6 +1,6 @@
-import { CircularDependencyError } from "../failures/CircularDependency.error.js";
-import { UnknownDependencyError } from "../failures/UnknownDependency.error.js";
-import type { IProviderRegistration } from "./IProviderRegistration.js";
+import { CircularDependencyError } from "../errors/CircularDependency.error.js";
+import { UnknownDependencyError } from "../errors/UnknownDependency.error.js";
+import type { IProviderRegistration } from "./types/IProviderRegistration.js";
 import type { ModuleNode } from "./ModuleNode.js";
 import { ProviderDependencies } from "./ProviderDependencies.js";
 

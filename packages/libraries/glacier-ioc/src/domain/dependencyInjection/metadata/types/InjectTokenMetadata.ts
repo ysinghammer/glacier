@@ -1,5 +1,5 @@
 import { ValueMetadataDefinition } from "@glacier/reflection";
-import type { IToken } from "../tokens/IToken.js";
+import type { IToken } from "../../tokens/types/IToken.js";
 
 /** Constructor-parameter declaration written by `@Inject`; own lookup only. */
 export const INJECT_TOKEN_METADATA = new ValueMetadataDefinition<IToken>(

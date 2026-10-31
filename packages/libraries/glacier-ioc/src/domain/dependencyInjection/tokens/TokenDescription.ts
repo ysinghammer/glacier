@@ -1,5 +1,5 @@
-import { InjectionToken } from "./InjectionToken.js";
-import type { ITokenReference } from "./ITokenReference.js";
+import { InjectionToken } from "./types/InjectionToken.js";
+import type { ITokenReference } from "./types/ITokenReference.js";
 
 const PATH_SEPARATOR = " -> ";
 const ANONYMOUS_CLASS_DESCRIPTION = "<anonymous class>";

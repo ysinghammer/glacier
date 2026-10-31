@@ -1,10 +1,10 @@
 import type { IConstructableClass } from "@glacier/reflection";
 import type { ModuleNode } from "../../domain/dependencyInjection/modules/ModuleNode.js";
-import type { InjectionToken } from "../../domain/dependencyInjection/tokens/InjectionToken.js";
-import type { ITokenReference } from "../../domain/dependencyInjection/tokens/ITokenReference.js";
+import type { InjectionToken } from "../../domain/dependencyInjection/tokens/types/InjectionToken.js";
+import type { ITokenReference } from "../../domain/dependencyInjection/tokens/types/ITokenReference.js";
 import type { ContextId } from "../../domain/dependencyInjection/scopes/ContextId.js";
 import { ModuleRef } from "../../domain/dependencyInjection/scopes/ModuleRef.js";
-import type { IGetOptions } from "../../domain/dependencyInjection/modules/IGetOptions.js";
+import type { IGetOptions } from "../../domain/dependencyInjection/modules/types/IGetOptions.js";
 import type { InstanceResolver } from "./InstanceResolver.js";
 
 /**

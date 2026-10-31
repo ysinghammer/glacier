@@ -1,5 +1,5 @@
 import { MODULE_OPTIONS_METADATA } from "../metadata/ModuleOptionsMetadata.js";
-import type { IModuleOptions } from "../modules/IModuleOptions.js";
+import type { IModuleOptions } from "../modules/types/IModuleOptions.js";
 
 /**
  * Class decorator declaring a module: its `providers`, `imports`, `exports` and whether it is `global`.

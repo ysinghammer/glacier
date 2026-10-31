@@ -1,4 +1,4 @@
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import { TokenDescription } from "../tokens/TokenDescription.js";
 import { ContainerError } from "./ContainerError.error.js";
 import type { IContainerErrorOptions } from "./IContainerErrorOptions.js";

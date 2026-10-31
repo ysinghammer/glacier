@@ -1,4 +1,4 @@
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 import type { IModuleReference } from "./IModuleReference.js";
 
 /**

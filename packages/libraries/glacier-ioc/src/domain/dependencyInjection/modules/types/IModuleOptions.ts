@@ -1,4 +1,4 @@
-import type { IProvider } from "../providers/IProvider.js";
+import type { IProvider } from "../../providers/types/IProvider.js";
 import type { IModuleExport } from "./IModuleExport.js";
 import type { IModuleReference } from "./IModuleReference.js";
 

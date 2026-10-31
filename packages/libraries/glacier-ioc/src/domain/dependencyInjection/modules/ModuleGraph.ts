@@ -1,19 +1,19 @@
-import { AggregateContainerError } from "../failures/AggregateContainer.error.js";
-import { CircularDependencyError } from "../failures/CircularDependency.error.js";
+import { AggregateContainerError } from "../errors/AggregateContainer.error.js";
+import { CircularDependencyError } from "../errors/CircularDependency.error.js";
 import { DependencyValidation } from "./DependencyValidation.js";
-import { InvalidModuleError } from "../failures/InvalidModule.error.js";
-import { InjectionMetadata } from "../metadata/InjectionMetadata.js";
+import { InvalidModuleError } from "../errors/InvalidModule.error.js";
+import { InjectionMetadata } from "../metadata/types/InjectionMetadata.js";
 import type { IScopeProfile } from "../scopes/IScopeProfile.js";
 import { ModuleRef } from "../scopes/ModuleRef.js";
 import { ProviderScopes } from "../scopes/ProviderScopes.js";
 import { ScopeAnalysis } from "../scopes/ScopeAnalysis.js";
-import type { IClassConstructor } from "../providers/IClassConstructor.js";
+import type { IClassConstructor } from "../providers/types/IClassConstructor.js";
 import { ProviderNormalization } from "../providers/ProviderNormalization.js";
-import type { IProviderRegistration } from "./IProviderRegistration.js";
-import type { ITokenReference } from "../tokens/ITokenReference.js";
+import type { IProviderRegistration } from "./types/IProviderRegistration.js";
+import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import { TokenDescription } from "../tokens/TokenDescription.js";
-import type { IModuleExport } from "./IModuleExport.js";
-import type { IModuleReference } from "./IModuleReference.js";
+import type { IModuleExport } from "./types/IModuleExport.js";
+import type { IModuleReference } from "./types/IModuleReference.js";
 import { ModuleMetadata } from "./ModuleMetadata.js";
 import { ModuleNode } from "./ModuleNode.js";
 

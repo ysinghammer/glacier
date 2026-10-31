@@ -1,10 +1,10 @@
-import type { INormalizedProvider } from "../providers/INormalizedProvider.js";
-import type { IClassConstructor } from "../providers/IClassConstructor.js";
+import type { INormalizedProvider } from "../providers/types/INormalizedProvider.js";
+import type { IClassConstructor } from "../providers/types/IClassConstructor.js";
 import { TokenIdentity } from "../tokens/TokenIdentity.js";
-import type { IToken } from "../tokens/IToken.js";
-import type { ITokenReference } from "../tokens/ITokenReference.js";
-import type { IModuleReference } from "./IModuleReference.js";
-import type { IProviderRegistration } from "./IProviderRegistration.js";
+import type { IToken } from "../tokens/types/IToken.js";
+import type { ITokenReference } from "../tokens/types/ITokenReference.js";
+import type { IModuleReference } from "./types/IModuleReference.js";
+import type { IProviderRegistration } from "./types/IProviderRegistration.js";
 
 /**
  * One module instance of the graph: its own providers, imported modules and export declarations.

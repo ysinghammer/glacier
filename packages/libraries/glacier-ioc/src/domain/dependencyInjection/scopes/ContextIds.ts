@@ -1,4 +1,4 @@
-import { ContextIdMisuseError } from "../failures/ContextIdMisuse.error.js";
+import { ContextIdMisuseError } from "../errors/ContextIdMisuse.error.js";
 import { ContainerContext } from "./ContainerContext.js";
 import { ContextId } from "./ContextId.js";
 
