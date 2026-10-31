@@ -13,6 +13,7 @@ import type { IDescribeOptions } from "./IDescribeOptions.js";
 import type { IJsonSchema } from "./IJsonSchema.js";
 import type { IJsonSchemaFragment } from "./IJsonSchemaFragment.js";
 import type { IJsonSchemaTarget } from "./IJsonSchemaTarget.js";
+import type { IJsonSchemaDirection } from "./IJsonSchemaDirection.js";
 
 type IUnionSpec = Extract<ITypeSpec, { kind: "union" }>;
 type IKeywords = Record<string, unknown>;
@@ -38,10 +39,16 @@ const REFERENCE_PREFIXES: Readonly<Record<IJsonSchemaTarget, string>> = {
  */
 export class JsonSchemaGenerator {
   readonly #target: IJsonSchemaTarget;
+  readonly #direction: IJsonSchemaDirection;
   readonly #owners = new Map<string, IClass>();
   readonly #definitions = new Map<string, IJsonSchema>();
 
-  public constructor(target: IJsonSchemaTarget) {
+  /** Selects a supported dialect and direction without freezing metadata; invalid options throw definition errors. */
+  public constructor(target: IJsonSchemaTarget, direction: IJsonSchemaDirection = "input") {
+    if (direction !== "input" && direction !== "output") {
+      throw new SchemaDefinitionError('JSON Schema direction must be "input" or "output"');
+    }
+    this.#direction = direction;
     if (!(target in REFERENCE_PREFIXES)) {
       throw new SchemaDefinitionError(
         `toJsonSchema target must be "draft-2020-12" or "openapi-3.1", received ${JSON.stringify(target)}`,
@@ -106,18 +113,30 @@ export class JsonSchemaGenerator {
 
   #object(target: IClass): IJsonSchema {
     const fields = FieldRegistry.readAll(target);
+    if (this.#direction === "output") {
+      const keys = new Set<string>();
+      for (const field of fields) {
+        const key = JsonSchemaGenerator.#keyOf(field);
+        if (keys.has(key))
+          throw new SchemaDefinitionError(`Duplicate projected key ${key} in ${target.name}`);
+        keys.add(key);
+      }
+    }
     const properties = Object.fromEntries(
       fields.map((field) => [JsonSchemaGenerator.#keyOf(field), this.#field(field)]),
     );
     const required = fields
       .filter(
-        ({ modifiers }) => modifiers.optional !== true && modifiers.defaultValue === undefined,
+        ({ modifiers }) =>
+          modifiers.optional !== true &&
+          (this.#direction === "output" || modifiers.defaultValue === undefined),
       )
       .map((field) => JsonSchemaGenerator.#keyOf(field));
     return JsonSchemaGenerator.#compact({
       type: "object",
       properties,
       required: required.length === 0 ? undefined : required,
+      additionalProperties: this.#direction === "output" ? false : undefined,
     });
   }
 
@@ -167,12 +186,24 @@ export class JsonSchemaGenerator {
       case "boolean":
         return { type: "boolean" };
       case "bigint":
-        return { type: "integer" };
+        return this.#direction === "output" ? { not: {} } : { type: "integer" };
       case "date":
         return { type: "string", format: "date-time" };
       case "literal":
+        if (
+          this.#direction === "output" &&
+          (typeof spec.value === "bigint" ||
+            (typeof spec.value === "number" && !Number.isFinite(spec.value)))
+        )
+          return { not: {} };
         return JsonSchemaGenerator.#literal(spec.value);
       case "enum":
+        if (this.#direction === "output") {
+          const values = spec.values.filter(
+            (value) => typeof value === "string" || Number.isFinite(value),
+          );
+          return values.length === 0 ? { not: {} } : { enum: values };
+        }
         return { enum: [...spec.values] };
       case "any":
         return {};
@@ -200,6 +231,12 @@ export class JsonSchemaGenerator {
         };
       // A map has string keys in JSON, so it reads like a record.
       case "map":
+        return JsonSchemaGenerator.#compact({
+          type: "object",
+          propertyNames: this.#direction === "output" ? this.#spec(spec.key) : undefined,
+          additionalProperties: this.#spec(spec.value),
+          ...JsonSchemaGenerator.#properties(spec.rules),
+        });
       case "record":
         return JsonSchemaGenerator.#compact({
           type: "object",

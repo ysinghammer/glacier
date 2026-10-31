@@ -7,9 +7,44 @@ import { SCHEMA_ERROR_BRAND } from "../domain/failures/SchemaErrorBrand.js";
 import type { IJsonSchema } from "../domain/json-schema/IJsonSchema.js";
 import type { IJsonSchemaOptions } from "../domain/json-schema/IJsonSchemaOptions.js";
 import { JsonSchemaGenerator } from "../domain/json-schema/JsonSchemaGenerator.js";
+import { OutboundCompiler } from "../domain/serialization/OutboundCompiler.js";
+import { JsonProjection } from "../domain/serialization/JsonProjection.js";
+import type { IJsonValue } from "../domain/serialization/IJsonValue.js";
 
-/** Entry point for validating input against decorated classes and generating their JSON Schema. */
+/** Public preparation, input validation, outbound JSON projection and directional schema generation. */
 export class Schema {
+  /**
+   * Synchronously prepares input/output processing and freezes reachable schema metadata and ancestors.
+   * Resolves lazy metadata references but never runs constructors, defaults, transforms or refinements.
+   * Idempotent; malformed definitions throw SchemaDefinitionError. Failed preparation does not unfreeze
+   * metadata: recover with corrected, fresh class declarations, not registry reset operations.
+   */
+  public static prepare<T extends object>(target: IConstructableClass<T>): void {
+    OutboundCompiler.prepare(target);
+  }
+
+  /**
+   * Validates unknown logical DTO data and returns detached renamed JSON or typed issues. Reads only
+   * declared data descriptors, strips extras and runs field/class refinements on constructor-free DTOs.
+   * No defaults, coercion, transforms or string normalization run. Dates/collections project to JSON;
+   * unsafe descriptors, cycles and non-JSON values fail without calling getters or consumer toJSON.
+   * Definition failures throw; diagnostic messages/params are private detail for transport redaction.
+   */
+  public static safeSerialize<T extends object>(
+    target: IConstructableClass<T>,
+    value: unknown,
+  ): IResult<IJsonValue> {
+    Schema.prepare(target);
+    const names = new WeakMap<object, ReadonlyMap<string, string>>();
+    const result = OutboundCompiler.compile(target)(value, {
+      options: {},
+      depth: 0,
+      active: new Set(),
+      names,
+    });
+    if (!result.ok) return result;
+    return JsonProjection.copy(result.value, names, true);
+  }
   /**
    * Validates `input` against the decorated class and returns an instance or every issue found, without
    * throwing for invalid input. The instance is created without calling the constructor, only declared
@@ -42,8 +77,9 @@ export class Schema {
   /**
    * Generates the JSON Schema of one decorated class and every class it references. `draft-2020-12` returns
    * `{ $schema, $ref, $defs }`; `openapi-3.1` returns `{ $ref, components: { schemas } }`. Definitions are keyed by
-   * class name or `Describe({ name })`; properties use `Rename` aliases, and optional or defaulted fields are not
-   * `required`. `Refine` and `Transform` are not expressible and are skipped, as are string flags other than none
+   * class name or `Describe({ name })`; properties use `Rename` aliases. Input (default) excludes optional/defaulted
+   * fields from `required`; output excludes only optional fields and closes projected DTO objects. Output bigint
+   * and nonfinite literals have an unsatisfiable schema. `Refine` and `Transform` are skipped, as are string flags other than none
    * and `u`. A discriminated union becomes `oneOf` with a `discriminator` mapping and `IsOneOf` becomes `oneOf`.
    * Pure: it does not freeze or compile the class. Throws `SchemaDefinitionError` for an unknown target, colliding
    * or empty definition names, or fields with modifiers but no type.
@@ -52,7 +88,9 @@ export class Schema {
     target: abstract new (...arguments_: never[]) => T,
     options: IJsonSchemaOptions,
   ): IJsonSchema {
-    return new JsonSchemaGenerator(options.target).generate(target as unknown as IClass);
+    return new JsonSchemaGenerator(options.target, options.direction).generate(
+      target as unknown as IClass,
+    );
   }
 
   /**

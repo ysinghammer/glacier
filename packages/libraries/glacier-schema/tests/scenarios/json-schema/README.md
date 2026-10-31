@@ -1,5 +1,11 @@
 # JSON Schema
 
+Additional public contract: [directions and limits](../../../README.md#direction-and-representational-limits).
+SCH-137 is proved by the directional tests in [DirectionalSchemas.test.ts](DirectionalSchemas.test.ts):
+default/input equality, output requiredness, closed projections, references and JSON collection types.
+SCH-138 in that file proves known Date, override and overlapping-union contradictions without claiming
+complete runtime/document equivalence or external meta-schema validation.
+
 Lets consumers publish the shape of a decorated class to API documentation and client tooling.
 `Schema.toJsonSchema(Class, { target })` turns one class and every class it references into JSON Schema 2020-12
 (`draft-2020-12`, a `$ref` to the root plus `$defs`) or the OpenAPI 3.1 component layout (`openapi-3.1`, a `$ref` to

@@ -49,6 +49,7 @@ export class ValueValidatorFactory {
         return CollectionValidatorFactory.array(
           ValueValidatorFactory.create(type.element),
           type.rules,
+          ValueCoercer.create(type.element),
         );
       case "tuple":
         return CollectionValidatorFactory.tuple(type.elements.map(ValueValidatorFactory.create));

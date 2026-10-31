@@ -6,6 +6,7 @@ import type { IValueOutcome } from "./IValueOutcome.js";
 import { PlainObject } from "./PlainObject.js";
 import { TypeFailure } from "./TypeFailure.js";
 import type { IValueValidator } from "./ValueValidatorFactory.js";
+import type { IValueCoercer } from "./ValueCoercer.js";
 
 type ICollectionLabel = "Array" | "Tuple" | "Set" | "Map" | "Record";
 
@@ -19,10 +20,26 @@ interface IDuplicate {
 export class CollectionValidatorFactory {
   /**
    * Returns a validator for arrays: type, then size, then every element, then uniqueness when requested.
-   * The accepted value is a new array of the validated elements.
+   * The accepted value is a new array of the validated elements. Explicit singleton promotion wraps present
+   * scalars only; the optional element coercer runs on promoted values only when scalar coercion is enabled.
    */
-  public static array(element: IValueValidator, rules: ICollectionRules): IValueValidator {
+  public static array(
+    element: IValueValidator,
+    rules: ICollectionRules,
+    coerceElement?: IValueCoercer,
+  ): IValueValidator {
     return (value, context) => {
+      if (
+        context.options.coerceSingletonArrays === true &&
+        value !== undefined &&
+        value !== null &&
+        typeof value !== "object"
+      )
+        value = [
+          context.options.coerce === true && coerceElement !== undefined
+            ? coerceElement(value)
+            : value,
+        ];
       if (!Array.isArray(value))
         return CollectionValidatorFactory.#reject(TypeFailure.invalidType("array", value));
       const items: readonly unknown[] = value;

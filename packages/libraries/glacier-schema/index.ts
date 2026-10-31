@@ -1,4 +1,7 @@
 export { Schema } from "./src/application/Schema.js";
+export type { IJsonValue } from "./src/domain/serialization/IJsonValue.js";
+export type { IJsonObject } from "./src/domain/serialization/IJsonObject.js";
+export type { IJsonSchemaDirection } from "./src/domain/json-schema/IJsonSchemaDirection.js";
 export { SchemaError } from "./src/domain/failures/SchemaError.error.js";
 export { SchemaDefinitionError } from "./src/domain/failures/SchemaDefinition.error.js";
 export { IsString } from "./src/domain/decorators/IsString.js";
