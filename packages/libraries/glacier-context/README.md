@@ -36,8 +36,10 @@ export function handleRequest(request: IncomingRequest): Promise<Response> {
 }
 
 export class PaymentsClient {
+  public constructor(private readonly http: HttpClient) {}
+
   public charge(amount: number): Promise<ChargeResult> {
-    return this.#http.post("/charges", {
+    return this.http.post("/charges", {
       headers: { "x-trace-id": GlacierContext.get(TraceIdKey) },
       body: { amount },
     });

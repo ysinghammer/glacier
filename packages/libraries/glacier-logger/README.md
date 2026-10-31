@@ -50,7 +50,7 @@ export class UserService {
     this.logger = created.logger;
   }
 
-  create(userId: number): void {
+  public create(userId: number): void {
     const logger = this.logger.child({ requestId: "r-1" });
     logger.info({ message: "user created", userId });
     logger.error({ err: new Error("lookup failed"), userId });
@@ -126,13 +126,13 @@ Implement `ITransport`. `write` receives the entry and a delivery that renders i
 import type { ILogEntry, ITransport, ITransportDelivery } from "@glacier/logger";
 
 export class MemoryTransport implements ITransport {
-  readonly lines: string[] = [];
+  public readonly lines: string[] = [];
 
-  write(_entry: ILogEntry, delivery: ITransportDelivery): void {
+  public write(_entry: ILogEntry, delivery: ITransportDelivery): void {
     this.lines.push(delivery.text());
   }
 
-  async flush(): Promise<void> {}
+  public async flush(): Promise<void> {}
 }
 ```
 

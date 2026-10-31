@@ -45,16 +45,16 @@ interface IUserQuery {
 /** An adapter with dependencies unavailable during document generation. */
 @ApiController("/users", { tags: ["users"] })
 class UsersController {
-  readonly #users: IUserQuery;
+  private readonly users: IUserQuery;
   /** Application composition supplies the service only when creating runtime controllers. */
   public constructor(users: IUserQuery) {
-    this.#users = users;
+    this.users = users;
   }
   /** Runtime declaration and documentation share one response contract. */
   @ApiGet("/current", { summary: "Read the current user" })
   @ApiResponse({ status: 200, type: UserDto, description: "The selected user" })
   public read(): HttpResponse<UserDto> {
-    return HttpResponse.json(this.#users.read());
+    return HttpResponse.json(this.users.read());
   }
 }
 
@@ -195,8 +195,8 @@ import {
 
 /** Boundary schema; HTTP creates validated DTO-shaped values without running constructors. */
 class UpdateDto {
-  @IsInt() count!: number;
-  @IsString() label!: string;
+  @IsInt() public count!: number;
+  @IsString() public label!: string;
 }
 
 /** Application-owned adapter; authorization belongs in its application operation. */
