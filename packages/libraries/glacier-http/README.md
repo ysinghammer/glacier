@@ -6,7 +6,7 @@ start resources or activate compiler reflection. TypeScript and pnpm are workspa
 
 ## Current implementation boundary
 
-This is the phase-05 request pipeline, **not the completed production-ready v1 framework**.
+This is the phase-06 request pipeline, **not the completed production-ready v1 framework**.
 It provides explicit GET/POST/PUT/PATCH/DELETE handlers, all request binders, external
 authentication with method-level public opt-out, bounded JSON bodies, strict repeatable
 response contracts, HEAD/OPTIONS and Expect handling, alongside immutable cookies/requests.
@@ -17,11 +17,11 @@ silently overwrite. Every parameter has an explicit binder and every success sta
 an explicit `ApiResponse`. `void`/`undefined` means 204 only when declared; JSON endpoints
 cannot silently succeed without a body. Controllers remain shared application-owned instances.
 
-Static business mappings, metadata-only response logging and bounded log draining are implemented.
-Complete configurable lifecycle/normalization limits, transport shutdown hardening and OpenAPI
-remain deferred. `HttpEndpointMetadata.read(Class)` and `server.registration` are deliberate
+Static business mappings, metadata-only response logging, configurable limits and bounded native
+transport/request/log draining are implemented. OpenAPI remains deferred.
+`HttpEndpointMetadata.read(Class)` and `server.registration` are deliberate
 immutable public documentation contracts, with no instances/listeners/callbacks or OpenAPI dependency.
-Use sequential lifecycle calls; concurrent startup/shutdown hardening is not yet provided.
+Concurrent close calls share one promise; closing during startup cancels the one-use listener.
 No Express dependency, benchmark, browser compatibility or deployed-service E2E claim.
 
 ## Explicit composition
@@ -226,10 +226,10 @@ Unmatched parsed requests remain loggable.
 
 Responses are sent before logging runs. Async logging never delays transmission: pending work
 is capped by `pendingResponseLogs` (default 1000); excess records are not enqueued and overflow
-is diagnosed. Thrown/rejected logging is supervised once. `close()` waits for transport stop,
-then drains logs within `shutdownTimeoutMs` (default 10000); timeout diagnoses and rejects close,
-while late settlements remain supervised. Consumer promises cannot be forcibly cancelled.
-This budget currently bounds **logging drain**, not complete transport shutdown (phase 06).
+is diagnosed. Thrown/rejected logging is supervised once. `close()` uses one `shutdownTimeoutMs`
+budget for transport, active request work (including disconnected hooks), and subsequent logging.
+Timeout diagnoses and rejects close, while late settlements remain supervised.
+Consumer promises cannot be forcibly cancelled.
 Throwing or async diagnostics produce only nonrecursive fixed process warnings; private exception
 values are never included in fallback output. TypeScript cannot enforce synchronous void callbacks,
 so runtime observes invalid async diagnostics too.
@@ -264,8 +264,53 @@ so runtime observes invalid async diagnostics too.
   key depth to 5. Query DTO binding explicitly enables singleton-array promotion.
 - Request IDs are cryptographic UUIDs, generated independently of client headers and sent as
   X-Request-Id on parsed framework responses. Cooperative disconnect notification is provided;
-  arbitrary consumer promises cannot be forcibly cancelled. Full shutdown cancellation/draining
-  and lifecycle concurrency are deferred.
+  arbitrary consumer promises cannot be forcibly cancelled. Forced shutdown also aborts signals.
+
+## Resource lifecycle and finite limits
+
+`create` validates and snapshots composition without starting resources. `listen` is one-use,
+supports port zero and native host defaults, and reports startup failures to the caller and
+`onError` with startup context. Invalid port/host arguments do not consume startup. Bind failure
+and cancellation release owned listener work; closed or previously started instances cannot restart.
+`address()` returns only the actual current binding. `close()` is idempotent before, during and
+after startup, including retaining the same rejection after a failed shutdown.
+
+| `limits` option       |   Default |
+| --------------------- | --------: |
+| `bodyBytes`           | 1,048,576 |
+| `headerBytes`         |    16,384 |
+| `requestTargetBytes`  |     8,192 |
+| `queryPairs`          |       100 |
+| `queryDepth`          |         5 |
+| `headersTimeoutMs`    |    10,000 |
+| `requestTimeoutMs`    |    30,000 |
+| `shutdownTimeoutMs`   |    10,000 |
+| `pendingResponseLogs` |     1,000 |
+
+All values are positive safe integers at most 2,147,483,647, with no zero/infinite disabling
+switch. Explicit header timeout cannot exceed request timeout; omitted header timeout is capped
+by a smaller configured request timeout. Native receive checks run at intervals no larger than
+one second or the configured receive timeouts. Timers require a responsive Node event loop:
+these are finite resource budgets, not hard real-time guarantees against blocking consumer code.
+
+Native parser/header excess yields identity-free 431, malformed transport yields 400 or safe
+closure, and incomplete headers can yield 408. Parsed target/body excess yields 414/413 where
+the transport remains writable; complex/malformed queries yield 400. Header fields are never
+silently truncated by Node's default count limit. Only chunked transfer coding is accepted.
+If earlier work exists on a socket, parser errors close it rather than append an error status
+into an in-flight body. There is no request-ID/auth/log promise for unparseable transport input.
+
+Same-socket requests are sequenced. Rejected unread/partial/excess bodies close rather than
+draining unrestricted data or dispatching a pipelined successor. Fully consumed schema-invalid
+input can safely retain keep-alive framing. Expect preflight sends 100 only for an accepted body
+read, never for rejection or a bodyless endpoint.
+
+Close stops new acceptance immediately, drains transport and active work before pending logs,
+then resolves so application composition can dispose dependencies. At the deadline it aborts
+cooperative request signals, destroys owned sockets, diagnoses and rejects. A rejected close
+does **not** establish that arbitrary controller/auth/log promises stopped using dependencies;
+the application must coordinate those consumers before disposal. Even late failures stay supervised.
+HTTP never invokes controller/service lifecycle methods or installs process signal handlers.
 
 ## Verification
 
@@ -294,3 +339,7 @@ emitted default-parameter positions, incompatible UserId rejection and construct
 statuses, static options, immutable registration/log/problem types and hook shapes.
 [`CompiledErrors`](tests/data/compiler/CompiledErrors.ts) proves genuine controller/endpoint error
 decorators and logging exclusion through a compiled public-root consumer.
+
+[`ServerLifecycle`](tests/contracts/ServerLifecycle.test-d.ts) checks readonly finite-limit and
+listen/address/close types separately. Real lifecycle, framing, deadline and cooperative cancellation
+evidence is linked in the request-handling scenario index.

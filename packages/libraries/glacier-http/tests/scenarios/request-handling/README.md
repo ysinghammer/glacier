@@ -1,8 +1,8 @@
 # Request handling
 
 Safe transport values and explicit listener ownership let applications inspect normalized
-credentials without exposing mutable Node handles. The phase-05 request pipeline is described
-in the [package README](../../../README.md); hardened transport lifecycle/OpenAPI work is not claimed.
+credentials without exposing mutable Node handles. The phase-06 request pipeline is described
+in the [package README](../../../README.md); OpenAPI work is not claimed.
 
 | Contract                 | Preconditions, action and observable outcome                                                                                                                                                                     | Runtime evidence                                                                                                                                                         |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -22,6 +22,10 @@ in the [package README](../../../README.md); hardened transport lifecycle/OpenAP
 | Problem privacy          | Send controller/auth/output/routing failures; only invocation errors map, 401 retains challenge, RFC 9457 fields correlate IDs without exception or schema values                                                | [ProblemDetails](ProblemDetails.test.ts), [RequestBinding](RequestBinding.test.ts), [ResponseContracts](ResponseContracts.test.ts)                                       |
 | Response accounting      | Consume or disconnect real sockets; exactly-once frozen identity/status/handed-off bytes exclude sensitive fields, route exclusions retain diagnostics and unmatched logging                                     | [ResponseLogging](ResponseLogging.test.ts)                                                                                                                               |
 | Logging supervision      | Inject slow/thrown/rejected hooks; responses finish without awaiting logs, finite capacity/overflow/recovery and bounded draining are observable, diagnostics never recurse or leak warnings                     | [LoggingFailures](LoggingFailures.test.ts), [MinimalServer](MinimalServer.test.ts)                                                                                       |
+| Resource lifecycle       | Create/listen/close concurrently and fail a real bind; one-use startup cleanup, actual addresses and idempotent close preserve application controller ownership                                                  | [ServerLifecycle](ServerLifecycle.test.ts), [MinimalServer](MinimalServer.test.ts)                                                                                       |
+| Configured limits        | Invalid finite bounds fail construction; real target/query/header boundaries yield safe errors without silent header truncation or fabricated parser identity                                                    | [RequestLimits](RequestLimits.test.ts), [RequestNormalization](RequestNormalization.test.ts)                                                                             |
+| Cancellation and framing | Actual partial headers/bodies expire; controller work is not receive-deadlined, disconnects cooperate, malformed and rejected bodies cannot corrupt a keep-alive successor                                       | [Disconnects](Disconnects.test.ts), [RequestLimits](RequestLimits.test.ts), [ExpectContinue](ExpectContinue.test.ts)                                                     |
+| Whole shutdown budget    | Stop new sockets/work, drain responses before dependent logs, bound stalled sockets and disconnected promises, notify cooperative consumers and report timeout/late failures                                     | [GracefulShutdown](GracefulShutdown.test.ts), [LoggingFailures](LoggingFailures.test.ts)                                                                                 |
 
 [ReadonlyRequests](../../contracts/ReadonlyRequests.test-d.ts) and
 [DecoratorBindings](../../contracts/DecoratorBindings.test-d.ts) are type-only checking,
@@ -29,4 +33,6 @@ not runtime coverage. [CompiledBindings](../../data/compiler/CompiledBindings.ts
 genuine legacy compiler emissions and public-root distribution APIs, executed by Authentication.
 [ErrorsAndLogging](../../contracts/ErrorsAndLogging.test-d.ts) verifies erased error/log/registration
 contracts separately. [CompiledErrors](../../data/compiler/CompiledErrors.ts) proves genuine mapping
-and exclusion decorators, executed by ErrorMappings. Hardened transport lifecycle and OpenAPI remain deferred.
+and exclusion decorators, executed by ErrorMappings.
+[ServerLifecycle](../../contracts/ServerLifecycle.test-d.ts) checks erased lifecycle/limit contracts.
+OpenAPI remains deferred.

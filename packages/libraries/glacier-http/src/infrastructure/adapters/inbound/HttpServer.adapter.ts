@@ -2,6 +2,8 @@ import { createServer, STATUS_CODES } from "node:http";
 import type { IncomingMessage, ServerResponse, Server } from "node:http";
 import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
+import type { Socket } from "node:net";
+import type { Duplex } from "node:stream";
 import { Schema, SchemaError, SchemaDefinitionError } from "@glacier/schema";
 import { PreparedRoutes } from "../../../application/PreparedRoutes.js";
 import { RequestBinding } from "../../../application/RequestBinding.js";
@@ -33,6 +35,12 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const MAX_NODE_RECEIVE_LIMIT = 2_147_483_647;
 const DEFAULT_PENDING_RESPONSE_LOGS = 1_000;
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
+const DEFAULT_HEADER_BYTES = 16_384;
+const DEFAULT_TARGET_BYTES = 8_192;
+const DEFAULT_QUERY_PAIRS = 100;
+const DEFAULT_QUERY_DEPTH = 5;
+const DEFAULT_HEADERS_TIMEOUT_MS = 10_000;
+const MAX_RECEIVE_CHECK_INTERVAL_MS = 1_000;
 
 /** Explicit one-use Node HTTP/1.1 lifecycle with no import-time resources or controller ownership. */
 export class HttpServer {
@@ -44,6 +52,17 @@ export class HttpServer {
   readonly #challenge: string | undefined;
   readonly #bodyBytes: number;
   readonly #requestTimeoutMs: number;
+  readonly #headerBytes: number;
+  readonly #targetBytes: number;
+  readonly #queryPairs: number;
+  readonly #queryDepth: number;
+  readonly #headersTimeoutMs: number;
+  readonly #shutdownTimeoutMs: number;
+  readonly #sockets = new Set<Socket>();
+  readonly #active = new Map<AbortController, Promise<void>>();
+  readonly #chains = new WeakMap<Duplex, Promise<void>>();
+  readonly #rejectedSockets = new WeakSet<Duplex>();
+  readonly #listenAbort = new AbortController();
   #server: Server | undefined;
   #hasListened = false;
   #isClosed = false;
@@ -53,24 +72,35 @@ export class HttpServer {
   private constructor(options: IHttpServerOptions) {
     if (!Array.isArray(options.controllers) || typeof options.onError !== "function")
       throw new TypeError("Invalid server options");
+    if (
+      options.limits !== undefined &&
+      (typeof options.limits !== "object" ||
+        options.limits === null ||
+        Array.isArray(options.limits))
+    )
+      throw new TypeError("Invalid server limits");
+    for (const limit of Object.values(options.limits ?? {})) {
+      if (!Number.isSafeInteger(limit) || limit <= 0 || limit > MAX_NODE_RECEIVE_LIMIT)
+        throw new TypeError("Invalid server limit");
+    }
     this.#routes = new PreparedRoutes(
       [...options.controllers],
       options.authentication !== undefined,
     );
     this.#bodyBytes = options.limits?.bodyBytes ?? DEFAULT_BODY_BYTES;
     this.#requestTimeoutMs = options.limits?.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    this.#headerBytes = options.limits?.headerBytes ?? DEFAULT_HEADER_BYTES;
+    this.#targetBytes = options.limits?.requestTargetBytes ?? DEFAULT_TARGET_BYTES;
+    this.#queryPairs = options.limits?.queryPairs ?? DEFAULT_QUERY_PAIRS;
+    this.#queryDepth = options.limits?.queryDepth ?? DEFAULT_QUERY_DEPTH;
+    this.#headersTimeoutMs =
+      options.limits?.headersTimeoutMs ??
+      Math.min(DEFAULT_HEADERS_TIMEOUT_MS, this.#requestTimeoutMs);
     const pendingResponseLogs =
       options.limits?.pendingResponseLogs ?? DEFAULT_PENDING_RESPONSE_LOGS;
-    const shutdownTimeoutMs = options.limits?.shutdownTimeoutMs ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
-    for (const limit of [
-      this.#bodyBytes,
-      this.#requestTimeoutMs,
-      pendingResponseLogs,
-      shutdownTimeoutMs,
-    ]) {
-      if (!Number.isSafeInteger(limit) || limit <= 0 || limit > MAX_NODE_RECEIVE_LIMIT)
-        throw new TypeError("Invalid body receive limit");
-    }
+    this.#shutdownTimeoutMs = options.limits?.shutdownTimeoutMs ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
+    if (this.#headersTimeoutMs > this.#requestTimeoutMs)
+      throw new TypeError("Header receive limit exceeds request receive limit");
     if (options.onResponseLog !== undefined && typeof options.onResponseLog !== "function")
       throw new TypeError("Invalid response logging hook");
     this.#registration = Object.freeze({
@@ -83,14 +113,9 @@ export class HttpServer {
       errorMappings: ErrorMappings.prepare(options.errorMappings ?? []),
       hasAuthentication: options.authentication !== undefined,
     });
-    this.#logs = new ResponseLogs(
-      options.onResponseLog,
-      pendingResponseLogs,
-      shutdownTimeoutMs,
-      (error, context) => {
-        this.#diagnose(error, context);
-      },
-    );
+    this.#logs = new ResponseLogs(options.onResponseLog, pendingResponseLogs, (error, context) => {
+      this.#diagnose(error, context);
+    });
     const authentication = options.authentication;
     if (authentication !== undefined) {
       if (
@@ -135,25 +160,74 @@ export class HttpServer {
     if (this.#hasListened || this.#isClosed) throw new Error("HTTP server is one-use");
     if (!Number.isInteger(options.port) || options.port < 0 || options.port > 65535)
       throw new TypeError("Invalid listen port");
+    if (
+      options.host !== undefined &&
+      (typeof options.host !== "string" || options.host.length === 0)
+    )
+      throw new TypeError("Invalid listen host");
     this.#hasListened = true;
-    const server = createServer((request, response) => {
-      void this.#handle(request, response);
-    });
-    server.requestTimeout = this.#requestTimeoutMs;
-    server.on("checkContinue", (request, response) => {
-      void this.#handle(request, response, true);
-    });
-    server.on("checkExpectation", (request, response) => {
-      void this.#handle(request, response, false, true);
-    });
-    this.#server = server;
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(options.port, options.host, () => {
-        server.removeListener("error", reject);
-        resolve();
+    const server = createServer(
+      {
+        maxHeaderSize: this.#headerBytes,
+        headersTimeout: this.#headersTimeoutMs,
+        requestTimeout: this.#requestTimeoutMs,
+        connectionsCheckingInterval: Math.min(
+          MAX_RECEIVE_CHECK_INTERVAL_MS,
+          this.#headersTimeoutMs,
+          this.#requestTimeoutMs,
+        ),
+      },
+      (request, response) => {
+        this.#dispatch(request, response);
+      },
+    );
+    // Native's default count cap silently drops headers; byte bounds must reject, never truncate.
+    server.maxHeadersCount = 0;
+    server.on("connection", (socket) => {
+      this.#sockets.add(socket);
+      socket.once("close", () => {
+        this.#sockets.delete(socket);
       });
     });
+    server.on("clientError", (error, socket) => {
+      this.#clientError(error, socket);
+    });
+    server.on("checkContinue", (request, response) => {
+      this.#dispatch(request, response, true);
+    });
+    server.on("checkExpectation", (request, response) => {
+      this.#dispatch(request, response, false, true);
+    });
+    this.#server = server;
+    let rejectStartup: (error: Error) => void;
+    const cancelled = () => {
+      rejectStartup(new Error("HTTP startup cancelled"));
+    };
+    const failed = (error: Error) => {
+      rejectStartup(error);
+    };
+    try {
+      await new Promise<void>((resolve, reject) => {
+        rejectStartup = reject;
+        server.once("error", failed);
+        this.#listenAbort.signal.addEventListener("abort", cancelled, { once: true });
+        server.listen(
+          {
+            port: options.port,
+            ...(options.host === undefined ? {} : { host: options.host }),
+            signal: this.#listenAbort.signal,
+          },
+          resolve,
+        );
+      });
+    } catch (error: unknown) {
+      this.#listenAbort.abort();
+      this.#diagnose(error, { phase: "startup" });
+      throw error;
+    } finally {
+      server.removeListener("error", failed);
+      this.#listenAbort.signal.removeEventListener("abort", cancelled);
+    }
   }
 
   /** Returns a detached actual address only while the native server is listening. */
@@ -167,24 +241,98 @@ export class HttpServer {
   public close(): Promise<void> {
     this.#isClosed = true;
     if (this.#closePromise !== undefined) return this.#closePromise;
-    const server = this.#server;
-    if (server === undefined || !server.listening) {
-      this.#closePromise = this.#logs.drain();
-    } else {
-      this.#closePromise = promisify(server.close.bind(server))().then(() => this.#logs.drain());
-    }
+    this.#closePromise = this.#shutdown();
     return this.#closePromise;
+  }
+
+  /** Stops acceptance immediately and bounds all owned draining; arbitrary hook promises remain cooperative. */
+  async #shutdown(): Promise<void> {
+    const server = this.#server;
+    if (server === undefined) return;
+    if (!server.listening) this.#listenAbort.abort();
+    const transport = server.listening ? promisify(server.close.bind(server))() : Promise.resolve();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        this.#drain(transport),
+        new Promise<never>((resolve, reject) => {
+          void resolve;
+          timer = setTimeout(() => {
+            for (const abort of this.#active.keys()) abort.abort();
+            for (const socket of this.#sockets) socket.destroy();
+            reject(new Error("HTTP shutdown request/transport/logging drain timed out"));
+          }, this.#shutdownTimeoutMs);
+        }),
+      ]);
+    } catch (error: unknown) {
+      this.#diagnose(error, { phase: "shutdown" });
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** Drains dependents before logging; response completion callbacks run before native transport closes. */
+  async #drain(transport: Promise<void>): Promise<void> {
+    await transport;
+    await Promise.all(this.#active.values());
+    await this.#logs.drain();
+  }
+
+  /** Tracks handlers even after disconnect so close cannot silently abandon application work. */
+  #dispatch(
+    incoming: IncomingMessage,
+    outgoing: ServerResponse,
+    isContinue = false,
+    isExpectationRejected = false,
+  ): void {
+    if (this.#isClosed) {
+      incoming.socket.destroy();
+      return;
+    }
+    const abort = new AbortController();
+    // Schedule after registration so even synchronous routing rejections release their tracked entry.
+    const previous = this.#chains.get(incoming.socket) ?? Promise.resolve();
+    const pending = previous
+      .then(() => this.#handle(incoming, outgoing, abort, isContinue, isExpectationRejected))
+      .finally(() => {
+        this.#active.delete(abort);
+      });
+    this.#chains.set(incoming.socket, pending);
+    this.#active.set(abort, pending);
+  }
+
+  /** Parser failures have no normalized identity or request hook promise; close without draining hostile input. */
+  #clientError(error: Error & { code?: string }, socket: Duplex): void {
+    // An earlier response may still be in flight. Never append a parser status into its body.
+    this.#rejectedSockets.add(socket);
+    if (this.#chains.has(socket) || socket.destroyed || !socket.writable || socket.writableEnded) {
+      socket.destroy();
+      return;
+    }
+    let status = 400;
+    if (error.code === "HPE_HEADER_OVERFLOW") status = 431;
+    else if (error.code === "ERR_HTTP_REQUEST_TIMEOUT") status = 408;
+    // Half-close immediately and bound a peer that refuses to finish its side of the connection.
+    socket.end(
+      `HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
+      () => socket.destroy(),
+    );
   }
 
   /** Supervises every request failure and commits only normalized, schema-validated responses. */
   async #handle(
     incoming: IncomingMessage,
     outgoing: ServerResponse,
+    abort: AbortController,
     isContinue = false,
     isExpectationRejected = false,
   ): Promise<void> {
+    if (this.#rejectedSockets.has(incoming.socket)) {
+      outgoing.destroy();
+      return;
+    }
     const requestId = randomUUID();
-    const abort = new AbortController();
     const completion = new ResponseCompletion(
       outgoing,
       requestId,
@@ -199,7 +347,12 @@ export class HttpServer {
     });
     let context: IHttpErrorContext = { requestId, method: String(incoming.method), phase: "input" };
     try {
-      const targetResult = RequestTarget.parse(String(incoming.url));
+      const targetResult = RequestTarget.parse(
+        String(incoming.url),
+        this.#targetBytes,
+        this.#queryPairs,
+        this.#queryDepth,
+      );
       if (!targetResult.ok) {
         this.#problem(outgoing, requestId, targetResult.status, [], true);
         return;
@@ -396,7 +549,8 @@ export class HttpServer {
     shouldClose = false,
     mapping?: IHttpErrorMapping,
   ): void {
-    if (outgoing.destroyed) return;
+    if (outgoing.destroyed || outgoing.req.socket.destroyed || outgoing.req.socket.writableEnded)
+      return;
     const title = mapping?.title ?? STATUS_CODES[status];
     const body = JSON.stringify({
       type: mapping?.type ?? "about:blank",
@@ -412,13 +566,16 @@ export class HttpServer {
     outgoing.setHeader("X-Request-Id", requestId);
     outgoing.setHeader("Content-Type", "application/problem+json");
     outgoing.setHeader("Content-Length", Buffer.byteLength(body));
-    if (shouldClose) outgoing.setHeader("Connection", "close");
+    if (shouldClose) {
+      this.#rejectedSockets.add(outgoing.req.socket);
+      outgoing.setHeader("Connection", "close");
+    }
     this.#send(outgoing, body);
   }
 
   /** Accounts only final body bytes actually handed to the native transport, never delivery. */
   #send(outgoing: ServerResponse, body: string): void {
-    if (outgoing.destroyed) return;
+    if (outgoing.destroyed || outgoing.req.socket.destroyed) return;
     const payload = outgoing.req.method === "HEAD" ? "" : body;
     outgoing.end(payload);
     this.#completions.get(outgoing)?.handOff(Buffer.byteLength(payload));

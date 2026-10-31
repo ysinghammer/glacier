@@ -6,19 +6,16 @@ export class ResponseLogs {
   readonly #pending = new Set<Promise<void>>();
   readonly #hook: ((record: IHttpResponseLogRecord) => void | Promise<void>) | undefined;
   readonly #limit: number;
-  readonly #timeoutMs: number;
   readonly #diagnose: (error: unknown, context: IHttpErrorContext) => void;
 
   /** Retains validated composition only; starts no background resources. */
   public constructor(
     hook: ((record: IHttpResponseLogRecord) => void | Promise<void>) | undefined,
     limit: number,
-    timeoutMs: number,
     diagnose: (error: unknown, context: IHttpErrorContext) => void,
   ) {
     this.#hook = hook;
     this.#limit = limit;
-    this.#timeoutMs = timeoutMs;
     this.#diagnose = diagnose;
   }
 
@@ -53,25 +50,8 @@ export class ResponseLogs {
     }
   }
 
-  /** Drains the current work within a finite shutdown budget; abandoned promises stay supervised. */
+  /** Awaits tracked work; the resource owner bounds this together with transport and request cleanup. */
   public async drain(): Promise<void> {
-    if (this.#pending.size === 0) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      await Promise.race([
-        Promise.all(this.#pending),
-        new Promise<never>((resolve, reject) => {
-          void resolve;
-          timer = setTimeout(() => {
-            reject(new Error("HTTP response logging drain timed out"));
-          }, this.#timeoutMs);
-        }),
-      ]);
-    } catch (error: unknown) {
-      this.#diagnose(error, { phase: "shutdown" });
-      throw error;
-    } finally {
-      clearTimeout(timer);
-    }
+    await Promise.all(this.#pending);
   }
 }

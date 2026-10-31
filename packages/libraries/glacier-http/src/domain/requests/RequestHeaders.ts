@@ -47,6 +47,8 @@ export class RequestHeaders implements IHttpRequestHeaders {
       if (existing !== undefined && SENSITIVE_SINGLETONS.has(normalizedName))
         return { ok: false, status: 400 };
       fields.set(normalizedName, Object.freeze([...(existing ?? []), value]));
+      if (normalizedName === "transfer-encoding" && value.toLowerCase() !== "chunked")
+        return { ok: false, status: 400 };
     }
     return { ok: true, value: new RequestHeaders(fields) };
   }

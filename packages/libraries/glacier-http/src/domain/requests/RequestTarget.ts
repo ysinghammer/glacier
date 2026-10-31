@@ -1,20 +1,22 @@
 import type { IHttpQueryObject } from "./IHttpQueryObject.js";
 import type { IRequestNormalizationResult } from "./IRequestNormalizationResult.js";
 
-const MAX_TARGET_BYTES = 8192;
-const MAX_QUERY_PAIRS = 100;
-const MAX_QUERY_DEPTH = 5;
 const FORBIDDEN_KEYS = new Set(["__proto__", "prototype", "constructor"]);
 const QUERY_KEY = /^[^.[\]]+(?:\[[^.[\]]+\])*$/;
 
 /** Strict origin-form decoding and bounded bracket-query normalization. */
 export class RequestTarget {
   /** Rejects malformed/unsafe targets before building detached query structures. */
-  public static parse(target: string): IRequestNormalizationResult<{
+  public static parse(
+    target: string,
+    targetBytes: number,
+    queryPairs: number,
+    queryDepth: number,
+  ): IRequestNormalizationResult<{
     readonly pathname: string;
     readonly query: IHttpQueryObject;
   }> {
-    if (Buffer.byteLength(target) > MAX_TARGET_BYTES) return { ok: false, status: 414 };
+    if (Buffer.byteLength(target) > targetBytes) return { ok: false, status: 414 };
     if (!target.startsWith("/") || target.includes("#") || /[^\x21-\x7e]/.test(target))
       return { ok: false, status: 400 };
     const separator = target.indexOf("?");
@@ -36,17 +38,26 @@ export class RequestTarget {
         return { ok: false, status: 400 };
       segments.push(decoded);
     }
-    const parsedQuery = RequestTarget.#query(query);
+    const parsedQuery = RequestTarget.#query(query, queryPairs, queryDepth);
     if (!parsedQuery.ok) return parsedQuery;
     return { ok: true, value: { pathname: segments.join("/"), query: parsedQuery.value } };
   }
 
   /** Decodes once, promotes repeated scalars and rejects hostile/colliding notation. */
-  static #query(query: string): IRequestNormalizationResult<IHttpQueryObject> {
+  static #query(
+    query: string,
+    pairLimit: number,
+    depthLimit: number,
+  ): IRequestNormalizationResult<IHttpQueryObject> {
     const result: IMutableQueryObject = Object.create(null);
     if (query !== "") {
+      // Count before allocating the split array; total query bytes are already target-bounded.
+      let count = 1;
+      for (const character of query) {
+        if (character === "&") count++;
+        if (count > pairLimit) return { ok: false, status: 400 };
+      }
       const pairs = query.split("&");
-      if (pairs.length > MAX_QUERY_PAIRS) return { ok: false, status: 400 };
       for (const pair of pairs) {
         const separator = pair.indexOf("=");
         const keyResult = RequestTarget.#decode(
@@ -61,7 +72,7 @@ export class RequestTarget {
         const value = valueResult.value;
         if (!QUERY_KEY.test(key)) return { ok: false, status: 400 };
         const parts = key.replaceAll("]", "").split("[");
-        if (parts.length > MAX_QUERY_DEPTH) return { ok: false, status: 400 };
+        if (parts.length > depthLimit) return { ok: false, status: 400 };
         if (
           parts.some((part, index) => FORBIDDEN_KEYS.has(part) || (index > 0 && /^\d+$/.test(part)))
         )
@@ -100,11 +111,16 @@ export class RequestTarget {
 
   /** Freezes detached records and repeated scalar arrays recursively. */
   static #freeze(record: IMutableQueryObject): IHttpQueryObject {
-    for (const value of Object.values(record)) {
-      if (Array.isArray(value)) Object.freeze(value);
-      else if (typeof value === "object") RequestTarget.#freeze(value);
+    // Configurable depth must not become a JavaScript call-stack limit.
+    const pending = [record];
+    for (const current of pending) {
+      for (const value of Object.values(current)) {
+        if (Array.isArray(value)) Object.freeze(value);
+        else if (typeof value === "object") pending.push(value);
+      }
+      Object.freeze(current);
     }
-    return Object.freeze(record);
+    return record;
   }
 }
 
