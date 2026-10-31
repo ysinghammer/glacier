@@ -11,22 +11,24 @@ import { NodeProcessLocator } from "./NodeProcessLocator.adapter.js";
 // Pending log lines and filesystem state must not be exposed by transport serialization.
 const FILE_WRITERS = new WeakMap<NodeFileTransport, BufferedLineWriter>();
 
-/**
- * Appends entries to one file through a buffer, flushed at 4 KB, after 100 ms (both
- * configurable), on `beforeExit` and on `SIGINT` and `SIGTERM`. Missing parent directories are
- * created and there is no rotation: use logrotate or the platform. Each batch opens and closes
- * the file, so no handle outlives a write. Permission and disk errors are reported to the
- * factory's `onError`, and the lines of the failed batch are dropped.
- */
+/** Appends ordered batches to one file without rotation; flushes on byte/time limits and process exit, reporting and dropping failed batches. */
 export class NodeFileTransport implements ITransport {
-  /** Resolves this transport's private buffer while retaining receiver validation. */
+  /**
+   * Retrieves this transport's private buffer without exposing filesystem state.
+   * @returns The buffer that accepts and flushes this transport's lines.
+   * @throws TypeError if called with a receiver that has no retained writer.
+   */
   private get writer(): BufferedLineWriter {
     const writer = FILE_WRITERS.get(this);
     if (writer === undefined) throw new TypeError("Invalid file transport receiver");
     return writer;
   }
 
-  /** @throws Error for an empty path, or outside Node when no `host` is given. @throws RangeError for an invalid buffering option. */
+  /**
+   * Creates a buffered file transport with the configured destination and dependencies.
+   * @param options Required path and optional dependencies; limits default to 4096 bytes/100 ms.
+   * @throws Error when the configured destination path is empty.
+   */
   constructor(options: INodeFileTransportOptions) {
     if (options.path === "") {
       throw new Error("A file transport needs a non-empty path");
@@ -42,13 +44,22 @@ export class NodeFileTransport implements ITransport {
     );
   }
 
+  /**
+   * Queues the delivered text and reports asynchronous write failures through the delivery.
+   * @param _entry Entry supplied by the transport contract; delivery already contains its text.
+   * @param delivery Formatted text source and handler for batch write failures.
+   * @returns No value; adds the delivered line to the file buffer.
+   */
   public write(_entry: ILogEntry, delivery: ITransportDelivery): void {
     this.writer.append(delivery.text(), (error) => {
       delivery.reportError(error);
     });
   }
 
-  /** Resolves once every line written so far has been appended to the file or reported as failed. */
+  /**
+   * Waits until queued lines have been appended or their failures have been reported.
+   * @returns Resolves when the current pending output has settled.
+   */
   public flush(): Promise<void> {
     return this.writer.flush();
   }

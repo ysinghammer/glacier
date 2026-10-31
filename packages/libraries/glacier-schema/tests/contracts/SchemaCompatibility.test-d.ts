@@ -1,8 +1,15 @@
 import { Schema } from "../../index.js";
 import type { IJsonSchemaCompatibilityOptions } from "../../index.js";
 
-/** Required service construction is not invoked by metadata-only inspection. */
+/**
+ * Required service construction is not invoked by metadata-only inspection.
+ * @property service Required application-owned dependency used by this fixture.
+ */
 class Dto {
+  /**
+   * Constructs the fixture without schema processing invoking it.
+   * @param service Required application dependency retained by the fixture.
+   */
   public constructor(public readonly service: string) {}
 }
 const options: IJsonSchemaCompatibilityOptions = {

@@ -3,7 +3,9 @@ import type { IInstanceMetadataAddress } from "./IInstanceMetadataAddress.js";
 import type { IStaticMemberMetadataAddress } from "./IStaticMemberMetadataAddress.js";
 import type { IStaticMethodParameterMetadataAddress } from "./IStaticMethodParameterMetadataAddress.js";
 import type { IConstructorParameterMetadataAddress } from "./IConstructorParameterMetadataAddress.js";
-/** Complete checked constructor surface with separate sides and parameter kinds. */
+/** Union of every statically checked location addressable through a constructor.
+ * @template C Constructor whose static, instance, and parameter members are checked.
+ */
 export type IClassMetadataAddress<C extends IClass> =
   | IInstanceMetadataAddress<C["prototype"]>
   | IStaticMemberMetadataAddress<C>

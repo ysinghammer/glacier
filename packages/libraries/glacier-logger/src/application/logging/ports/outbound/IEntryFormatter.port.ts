@@ -1,6 +1,10 @@
 import type { ILogEntry } from "../../../../domain/logging/types/ILogEntry.js";
 
-/** Turns an entry into the text a transport writes. */
+/** Converts a log entry into the text representation written by a transport. */
 export interface IEntryFormatter {
+  /** Formats one entry.
+   * @param entry Entry to convert.
+   * @returns Formatted text for the transport to write.
+   */
   format(entry: ILogEntry): string;
 }

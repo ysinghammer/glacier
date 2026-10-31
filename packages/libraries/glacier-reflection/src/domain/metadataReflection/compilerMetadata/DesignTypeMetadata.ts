@@ -1,9 +1,7 @@
 import { ValueMetadataDefinition } from "../definitions/ValueMetadataDefinition.js";
 import type { IRuntimeType } from "./types/IRuntimeType.js";
 
-/**
- * Ordinary whole-value definition for design:type compiler member representations.
- * Functions/undefined are checked only at compiler ingestion; ordinary typed annotations retain identity.
- * Emitted Object/Function values do not reconstruct erased source types or prove constructability.
+/** Whole-value design:type; compiler ingestion checks function/undefined representations.
+ * Typed annotations retain identity; Object/Function emissions do not prove source types or constructability.
  */
 export const DESIGN_TYPE_METADATA = new ValueMetadataDefinition<IRuntimeType>("design:type");

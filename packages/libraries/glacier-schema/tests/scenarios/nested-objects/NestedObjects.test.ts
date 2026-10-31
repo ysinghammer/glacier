@@ -21,9 +21,17 @@ import {
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
+/** Address schema fixture used to verify nested class parsing and method behavior. */
 class Address {
+  /** City name validated as a non-empty nested string field. */
   public city!: string;
+  /** Integer postal value validated within the nested address. */
   public zip!: number;
+
+  /**
+   * Formats the stored city and postal value for the nested-instance assertion.
+   * @returns City and postal value separated by one space.
+   */
   public describe(): string {
     return `${this.city} ${this.zip}`;
   }
@@ -31,8 +39,11 @@ class Address {
 FieldDeclaration.declare(Address, "city", String, IsString({ min: 2 }));
 FieldDeclaration.declare(Address, "zip", Number, IsInt());
 
+/** Parent schema fixture that owns a name and a nested address. */
 class Person {
+  /** Name validated before the nested address. */
   public name!: string;
+  /** Address parsed into an `Address` instance. */
   public address!: Address;
 }
 FieldDeclaration.declare(Person, "name", String, IsString());
@@ -91,7 +102,9 @@ describe("SCH-080 Nested objects", () => {
   });
 
   it("uses the Rename alias in paths and the field message for the field's own issue only", () => {
+    /** Order fixture whose address is read through an aliased input key. */
     class Order {
+      /** Nested destination address exposed under the `ship_to` input alias. */
       public shipTo!: Address;
     }
     FieldDeclaration.declare(
@@ -114,8 +127,11 @@ describe("SCH-080 Nested objects", () => {
   });
 
   it("supports Optional and Default on nested fields", () => {
+    /** Customer fixture with optional billing and defaulted shipping addresses. */
     class Customer {
+      /** Optional billing address omitted when no input is supplied. */
       public billing?: Address;
+      /** Shipping address populated from its default when absent. */
       public shipping!: Address;
     }
     FieldDeclaration.declare(Customer, "billing", Address, Optional(), IsObject(Address));
@@ -148,9 +164,13 @@ describe("SCH-080 Nested objects", () => {
 });
 
 describe("SCH-081 Nested objects inside collections", () => {
+  /** Team fixture containing nested classes in three collection forms. */
   class Team {
+    /** Members parsed as `Person` instances. */
     public members!: Person[];
+    /** Role-keyed nested addresses parsed from a record. */
     public byRole!: Record<string, Address>;
+    /** Office-keyed nested addresses parsed from a map. */
     public offices!: Map<string, Address>;
   }
   FieldDeclaration.declare(Team, "members", Array, IsArray(Person));
@@ -190,7 +210,9 @@ describe("SCH-081 Nested objects inside collections", () => {
   });
 
   it("does not override nested issue messages with the collection message", () => {
+    /** Wrapper fixture whose collection message applies to root array issues. */
     class Wrapper {
+      /** Person list validating nested member issues independently. */
       public people!: Person[];
     }
     FieldDeclaration.declare(Wrapper, "people", Array, IsArray(Person, { message: "Bad people" }));
@@ -207,9 +229,13 @@ describe("SCH-081 Nested objects inside collections", () => {
 });
 
 describe("SCH-082 Lazy references", () => {
+  /** Recursive tree node used to verify lazy self-references. */
   class TreeNode {
+    /** Numeric value stored by this recursive node. */
     public value!: number;
+    /** Child nodes validated recursively as the same schema. */
     public children!: TreeNode[];
+    /** Optional parent node validated through a lazy class reference. */
     public parent?: TreeNode;
   }
   FieldDeclaration.declare(TreeNode, "value", Number, IsNumber());
@@ -253,7 +279,9 @@ describe("SCH-082 Lazy references", () => {
   });
 
   it("supports forward references between classes", () => {
+    /** Parent fixture whose child type is declared before the child class. */
     class Parent {
+      /** Forward-referenced child resolved after this class is declared. */
       public child!: Later;
     }
     FieldDeclaration.declare(
@@ -262,7 +290,9 @@ describe("SCH-082 Lazy references", () => {
       Object,
       IsObject(() => Later),
     );
+    /** Forward-declared nested type used by the lazy reference. */
     class Later {
+      /** Numeric identifier used to verify that the reference resolves. */
       public id!: number;
     }
     FieldDeclaration.declare(Later, "id", Number, IsNumber());
@@ -271,7 +301,9 @@ describe("SCH-082 Lazy references", () => {
   });
 
   it("fails parsing when a lazy reference does not resolve to a class", () => {
+    /** Fixture whose lazy reference intentionally resolves to a non-class value. */
     class Broken {
+      /** Invalid nested reference exercised by the definition-failure scenario. */
       public child!: unknown;
     }
     FieldDeclaration.declare(Broken, "child", Object, IsObject((() => 1) as never));
@@ -282,7 +314,9 @@ describe("SCH-082 Lazy references", () => {
 });
 
 describe("SCH-083 Recursion depth cap", () => {
+  /** Recursive chain fixture used for default and custom depth boundaries. */
   class Chain {
+    /** Optional next node used to construct deep recursive inputs. */
     public next?: Chain;
   }
   FieldDeclaration.declare(
@@ -293,7 +327,11 @@ describe("SCH-083 Recursion depth cap", () => {
     IsObject(() => Chain),
   );
 
-  /** Builds a chain input with `levels` nested objects, root included. */
+  /**
+   * Builds a linked input object with the requested number of levels.
+   * @param levels Number of nested nodes, including the root; values below one yield an empty root.
+   * @returns Root object whose `next` links contain the requested nesting depth.
+   */
   function chain(levels: number): Record<string, unknown> {
     let node: Record<string, unknown> = {};
     for (let level = 1; level < levels; level += 1) node = { next: node };
@@ -330,7 +368,9 @@ describe("SCH-083 Recursion depth cap", () => {
   });
 
   it("does not let the collection message hide the depth issue", () => {
+    /** Fixture used to verify a collection message does not hide nested depth errors. */
     class Holder {
+      /** Recursive nodes whose parsing is capped by the per-call maximum depth. */
       public items!: Chain[];
     }
     FieldDeclaration.declare(Holder, "items", Array, IsArray(Chain, { message: "Bad items" }));
@@ -343,7 +383,9 @@ describe("SCH-083 Recursion depth cap", () => {
 
 describe("SCH-084 IsObject declaration", () => {
   it("infers the class from the emitted design type when no argument is given", () => {
+    /** Fixture whose emitted design type is informative to object inference. */
     class Holder {
+      /** Address field whose design type supplies the nested class. */
       public address!: Address;
     }
     FieldDeclaration.declare(Holder, "address", Address, IsObject());
@@ -354,7 +396,9 @@ describe("SCH-084 IsObject declaration", () => {
   });
 
   it("requires an explicit class when the design type is not informative", () => {
+    /** Fixture lacking a useful design type for nested-class inference. */
     class Holder {
+      /** Unknown field requiring an explicit nested class argument. */
       public address!: unknown;
     }
 
@@ -373,7 +417,9 @@ describe("SCH-084 IsObject declaration", () => {
   });
 
   it("rejects a second type decorator", () => {
+    /** Fixture whose address field already has a type decorator. */
     class Holder {
+      /** Address field used to reject a duplicate object decorator. */
       public address!: Address;
     }
     FieldDeclaration.declare(Holder, "address", Address, IsObject(Address));
@@ -384,11 +430,15 @@ describe("SCH-084 IsObject declaration", () => {
 
 describe("SCH-085 Nested schema freezing", () => {
   it("freezes a nested class on the first parse that reaches it", () => {
+    /** Inner schema frozen when reached through the outer fixture. */
     class Inner {
+      /** Numeric leaf field that freezes the nested schema on parse. */
       public id!: number;
     }
     FieldDeclaration.declare(Inner, "id", Number, IsNumber());
+    /** Outer fixture reaching `Inner` during parsing. */
     class Outer {
+      /** Nested value whose parse prepares the inner schema. */
       public inner!: Inner;
     }
     FieldDeclaration.declare(Outer, "inner", Inner, IsObject(Inner));

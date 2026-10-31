@@ -5,10 +5,14 @@ import type { IDerivedClass } from "./types/IDerivedClass.js";
 import type { IDerivedClassOptions } from "./types/IDerivedClassOptions.js";
 
 /**
- * Creates a class with every field of `source` except the listed ones, keeping types and modifiers.
- * Class-level refinements are not carried over because they may need omitted fields. The result is a new
- * class, not a subclass; it carries no methods. `source` is frozen. Throws `SchemaDefinitionError` for union
- * base classes and for keys that are not schema fields of `source`.
+ * Creates a new schema class containing every source field except those selected for removal.
+ * @template T Instance type of the source class.
+ * @template K String keys of `T` to omit.
+ * @param source Schema class whose fields are copied and frozen against later decoration.
+ * @param keys Schema property names to omit; each must be declared by the source.
+ * @param options Optional generated-class name; defaults to `Omit` plus the source name.
+ * @returns New constructor-free class typed as `Omit<T, K>` without class refinements.
+ * @throws {SchemaDefinitionError} If any key is not a schema field of the source.
  */
 export function OmitType<T extends object, K extends keyof T & string>(
   source: abstract new (...arguments_: never[]) => T,

@@ -9,13 +9,24 @@ import { CompilerFixtureDecoration } from "./CompilerFixtureDecoration.js";
 /** Genuine TypeScript emission, with explicit registration preceding declaration execution. */
 @CompilerFixtureDecoration.annotate
 class RecordedConsumer {
-  /** Emits constructor parameter representations without constructing a consumer. */
-  public constructor(public readonly label: string) {}
+  /**
+   * Emits constructor parameter representations without constructing a consumer.
+   * @param label Text value represented by emitted constructor metadata.
+   */
+  public constructor(
+    /** Readonly label retained for emitted constructor metadata. */
+    public readonly label: string,
+  ) {}
 
+  /** Mutable declared field provides an emitted design:type representation. */
   @CompilerFixtureDecoration.annotate
   public field!: number;
 
-  /** Emits all three member metadata keys. */
+  /**
+   * Emits method type, parameter, and return metadata keys.
+   * @param input Boolean value represented by emitted parameter metadata.
+   * @returns The input converted to text.
+   */
   @CompilerFixtureDecoration.annotate
   public describe(input: boolean): string {
     return String(input);
@@ -24,7 +35,10 @@ class RecordedConsumer {
 
 /** Reports only public reads of genuine emitted declarations. */
 export class RecordedCompilerFixture {
-  /** Keeps runtime representations observable without serializing function identities. */
+  /**
+   * Reads emitted constructor and member representations through public metadata operations.
+   * @returns Ordered metadata read outcomes for the fixture declarations.
+   */
   public static read(): readonly unknown[] {
     return [
       DESIGN_PARAMETER_TYPES_METADATA.read(RecordedConsumer),

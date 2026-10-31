@@ -5,13 +5,11 @@ import { RuleDefinitionCheck } from "../schema/RuleDefinitionCheck.js";
 import type { ISizeOptions } from "./types/ISizeOptions.js";
 
 /**
- * Property decorator declaring that the field must be a `Map` whose keys match `key` and values match
- * `value`, each a primitive constructor, a decorated class or a `() => Class` reference. Accepts `min`
- * and `max` entry counts; the accepted value is a new `Map`. With per-call coercion an array of
- * `[key, value]` pairs or a plain object is also accepted. Issue paths use the entry key, or its position
- * for keys that are not strings or numbers; key issues carry `location: "key"`. Records metadata only;
- * throws `SchemaDefinitionError` for an invalid type or size, or when the property already has a type
- * decorator.
+ * Declares a map field, recording key/value types and entry-count rules as metadata.
+ * @param key Primitive, decorated class or lazy reference describing each key.
+ * @param value Primitive, decorated class or lazy reference describing each value.
+ * @param options Optional entry-count constraints and issue message.
+ * @returns A property decorator that registers the map field.
  */
 export function IsMap(
   key: IElementType,

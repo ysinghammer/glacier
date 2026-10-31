@@ -17,7 +17,9 @@ import type { IJsonSchemaDirection } from "./types/IJsonSchemaDirection.js";
 import type { IJsonSchemaCompatibilityOptions } from "./types/IJsonSchemaCompatibilityOptions.js";
 import { JsonSchemaCompatibility } from "./JsonSchemaCompatibility.js";
 
+/** Discriminated-union subset of field specifications. */
 type IUnionSpec = Extract<ITypeSpec, { kind: "union" }>;
+/** Intermediate generated keyword record before undefined values are removed. */
 type IKeywords = Record<string, unknown>;
 
 const FORMAT_KEYWORDS: Readonly<Record<IStringFormat, string>> = {
@@ -35,23 +37,46 @@ const REFERENCE_PREFIXES: Readonly<Record<IJsonSchemaTarget, string>> = {
 };
 
 /**
- * Builds the JSON Schema of one root class for one dialect. Every class reachable from the root, including the
- * root itself, becomes a named definition referenced by `$ref`, which also resolves cycles. Create one generator
- * per call; it holds the definitions collected so far.
+ * Builds one dialect-specific JSON Schema document with named references for reachable classes and cycles.
  */
 export class JsonSchemaGenerator {
+  /** Selected JSON Schema dialect for reference and document layout. */
   private readonly target: IJsonSchemaTarget;
+  /** Whether generated keywords describe accepted input or projected output. */
   private readonly direction: IJsonSchemaDirection;
+  /** Optional metadata-only wire compatibility checks. */
   private readonly compatibility: IJsonSchemaCompatibilityOptions | undefined;
+  /**
+   * Class owner for each definition name, used to reject ambiguous references.
+   * @default empty map
+   */
   private readonly owners = new Map<string, IClass>();
+  /**
+   * Definitions accumulated while traversing the root and its nested classes.
+   * @default empty map
+   */
   private readonly definitions = new Map<string, IJsonSchema>();
+  /**
+   * Pending discriminator checks resolved after all reachable definitions are generated.
+   * @property name Discriminator property name.
+   * @property value Expected variant discriminator value.
+   * @property reference Variant schema reference checked after traversal.
+   * @default []
+   */
   private readonly discriminators: {
     readonly name: string;
     readonly value: string;
     readonly reference: string;
   }[] = [];
 
-  /** Selects a supported dialect and direction without freezing metadata; invalid options throw definition errors. */
+  /**
+   * Configures schema dialect, direction and optional compatibility validation.
+   * @param target Output dialect controlling references and document shape.
+   * @param direction Input or projected-output schema direction.
+   * @param compatibility Optional explicit wire context for metadata checks.
+   * @default direction: "input"
+   * @throws {SchemaDefinitionError} If the direction or dialect is unsupported.
+   */
   public constructor(
     target: IJsonSchemaTarget,
     direction: IJsonSchemaDirection = "input",
@@ -71,9 +96,9 @@ export class JsonSchemaGenerator {
   }
 
   /**
-   * Returns the document for `root`: a `$ref` to the root definition next to `$schema` and `$defs`
-   * (`draft-2020-12`) or next to `components.schemas` (`openapi-3.1`). Throws `SchemaDefinitionError` when two
-   * classes share a definition name, a class has no name, or a field has modifiers but no type decorator.
+   * Generates a document containing the root reference and all reachable class definitions.
+   * @param root Root class whose schema is generated.
+   * @returns Dialect-specific document with definitions and resolved references.
    */
   public generate(root: IClass): IJsonSchema {
     const reference = this.reference(root);
@@ -95,7 +120,12 @@ export class JsonSchemaGenerator {
     };
   }
 
-  /** Registers `target` on first sight and returns the `$ref` to its definition. */
+  /**
+   * Reserves and returns a class definition reference, defining it on first sight.
+   * @param target Class to identify in the generated document.
+   * @returns Local `$ref` to the class definition.
+   * @throws {SchemaDefinitionError} If the class has no name or shares a name with another class.
+   */
   private reference(target: IClass): IJsonSchema {
     const name = ClassAnnotations.get(target).describe?.name ?? target.name;
     if (name === "") {
@@ -120,10 +150,20 @@ export class JsonSchemaGenerator {
     };
   }
 
+  /**
+   * Escapes a definition name for use in a URI-fragment JSON Pointer.
+   * @param name Definition name to encode.
+   * @returns Percent-encoded pointer segment with JSON Pointer escapes applied.
+   */
   private static escapePointer(name: string): string {
     return encodeURIComponent(name.replaceAll("~", "~0").replaceAll("/", "~1"));
   }
 
+  /**
+   * Generates and annotates one class or union definition.
+   * @param target Class whose body is converted to schema keywords.
+   * @returns Generated schema with class documentation and manual fragment applied.
+   */
   private define(target: IClass): IJsonSchema {
     const union = UnionRegistry.get(target);
     const schema = union === undefined ? this.object(target) : this.union(union.spec);
@@ -131,6 +171,12 @@ export class JsonSchemaGenerator {
     return this.annotate(schema, describe, fragment);
   }
 
+  /**
+   * Generates an object schema from effective class fields.
+   * @param target Class whose fields define object properties.
+   * @returns Object schema with projected property names and required fields.
+   * @throws {SchemaDefinitionError} If output projection maps multiple fields to one key.
+   */
   private object(target: IClass): IJsonSchema {
     const fields = FieldRegistry.readAll(target);
     if (this.direction === "output") {
@@ -160,10 +206,20 @@ export class JsonSchemaGenerator {
     });
   }
 
+  /**
+   * Selects the wire key used for a field in generated properties.
+   * @param field Field definition with optional input-key rename.
+   * @returns Renamed input key, or the declared property name.
+   */
   private static keyOf(field: IFieldDefinition): string {
     return field.modifiers.inputKey ?? field.name;
   }
 
+  /**
+   * Generates the schema for a field, including nullability and annotations.
+   * @param field Effective field definition to convert.
+   * @returns Generated field schema with documentation and manual fragment merged.
+   */
   private field(field: IFieldDefinition): IJsonSchema {
     const { modifiers } = field;
     const schema = this.spec(field.type);
@@ -171,7 +227,11 @@ export class JsonSchemaGenerator {
     return this.annotate(typed, modifiers.describe, modifiers.jsonSchema);
   }
 
-  /** Lets `null` through: scalar types gain a `null` type, enums a `null` member, everything else an `anyOf`. */
+  /**
+   * Extends a schema to accept null while preserving its existing constraints.
+   * @param schema Non-null schema to extend.
+   * @returns Schema accepting null through type, enum or `anyOf` keywords.
+   */
   private static nullable(schema: IJsonSchema): IJsonSchema {
     const { type } = schema;
     if (type === "null") return schema;
@@ -180,7 +240,13 @@ export class JsonSchemaGenerator {
     return { anyOf: [schema, { type: "null" }] };
   }
 
-  /** Layers documentation and then the manual fragment over the generated keywords. */
+  /**
+   * Applies documentation keywords and then user fragment overrides.
+   * @param schema Generated base schema.
+   * @param describe Optional title, description, example and deprecation annotation.
+   * @param fragment Optional manual keywords that take final precedence.
+   * @returns New schema record containing generated and supplied keywords.
+   */
   private annotate(
     schema: IJsonSchema,
     describe: IDescribeOptions | undefined,
@@ -196,6 +262,11 @@ export class JsonSchemaGenerator {
     return { ...schema, ...documentation, ...fragment };
   }
 
+  /**
+   * Converts a field type specification into JSON Schema keywords.
+   * @param spec Declared scalar, collection, nested-class or union type.
+   * @returns Corresponding JSON Schema fragment or reference.
+   */
   private spec(spec: ITypeSpec): IJsonSchema {
     if (this.compatibility !== undefined) JsonSchemaCompatibility.wire(spec, this.compatibility);
     switch (spec.kind) {
@@ -226,6 +297,11 @@ export class JsonSchemaGenerator {
     }
   }
 
+  /**
+   * Generates scalar keywords for a scalar field type.
+   * @param spec Scalar type specification and its applicable constraints.
+   * @returns Scalar schema for the selected input or output direction.
+   */
   private scalar(
     spec: Extract<
       ITypeSpec,
@@ -265,6 +341,12 @@ export class JsonSchemaGenerator {
     }
   }
 
+  /**
+   * Generates a literal schema while excluding values unavailable in JSON output.
+   * @param value Literal declared by the field.
+   * @param direction Input or projected-output schema direction.
+   * @returns Literal schema, or an always-failing schema for an invalid output literal.
+   */
   private static literalSpec(
     value: string | number | boolean | bigint | null,
     direction: "input" | "output",
@@ -276,6 +358,12 @@ export class JsonSchemaGenerator {
     return JsonSchemaGenerator.literal(value);
   }
 
+  /**
+   * Generates enum keywords for the selected projection direction.
+   * @param values Allowed string and number values.
+   * @param direction Input or projected-output schema direction.
+   * @returns Enum schema containing values representable in that direction.
+   */
   private static enumSpec(
     values: readonly (string | number)[],
     direction: "input" | "output",
@@ -287,6 +375,11 @@ export class JsonSchemaGenerator {
     return wireValues.length === 0 ? { not: {} } : { enum: wireValues };
   }
 
+  /**
+   * Generates array/object keywords for a collection type specification.
+   * @param spec Collection kind, element types and size rules.
+   * @returns Collection schema with recursively generated child schemas.
+   */
   private collectionSpec(
     spec: Extract<ITypeSpec, { kind: "array" | "tuple" | "set" | "map" | "record" }>,
   ): IJsonSchema {
@@ -329,6 +422,11 @@ export class JsonSchemaGenerator {
     }
   }
 
+  /**
+   * Generates string validation keywords from string rules.
+   * @param rules Length, pattern and format constraints.
+   * @returns String schema containing applicable keywords.
+   */
   private static string(rules: IStringRules): IJsonSchema {
     return JsonSchemaGenerator.compact({
       type: "string",
@@ -339,6 +437,11 @@ export class JsonSchemaGenerator {
     });
   }
 
+  /**
+   * Maps numeric constraints to JSON Schema numeric keywords.
+   * @param rules Inclusive/exclusive bounds and multiple constraint.
+   * @returns Keyword record omitting undefined values.
+   */
   private static numeric(rules: INumberRules): IKeywords {
     return JsonSchemaGenerator.compact({
       minimum: rules.min,
@@ -349,22 +452,40 @@ export class JsonSchemaGenerator {
     });
   }
 
+  /**
+   * Maps collection count bounds to array-size keywords.
+   * @param rules Minimum and maximum entry counts.
+   * @returns Array keyword record omitting undefined bounds.
+   */
   private static items(rules: ISizeRules): IKeywords {
     return JsonSchemaGenerator.compact({ minItems: rules.min, maxItems: rules.max });
   }
 
+  /**
+   * Maps collection count bounds to object-property keywords.
+   * @param rules Minimum and maximum entry counts.
+   * @returns Object keyword record omitting undefined bounds.
+   */
   private static properties(rules: ISizeRules): IKeywords {
     return JsonSchemaGenerator.compact({ minProperties: rules.min, maxProperties: rules.max });
   }
 
-  /** JSON has no bigint, so a bigint literal is emitted as the number it denotes. */
+  /**
+   * Builds a JSON Schema literal declaration for a scalar.
+   * @param value Accepted literal value; bigint is represented by its numeric value.
+   * @returns Schema using `type` and `const` keywords.
+   */
   private static literal(value: string | number | boolean | bigint | null): IJsonSchema {
     if (value === null) return { type: "null" };
     if (typeof value === "bigint") return { type: "integer", const: Number(value) };
     return { type: typeof value, const: value };
   }
 
-  /** The `oneOf` of the variant references with a `discriminator` mapping every value to its variant. */
+  /**
+   * Generates oneOf references and discriminator mappings for a union.
+   * @param spec Discriminator name and variant type specifications.
+   * @returns Union schema with variant references and mapping metadata.
+   */
   private union(spec: IUnionSpec): IJsonSchema {
     const references = [...spec.variants].map(
       ([value, variant]) => [value, this.spec(variant)] as const,
@@ -387,6 +508,11 @@ export class JsonSchemaGenerator {
     };
   }
 
+  /**
+   * Removes undefined-valued entries from a generated keyword record.
+   * @param keywords Candidate keyword-value mapping.
+   * @returns New record containing only defined keyword values.
+   */
   private static compact(keywords: IKeywords): IKeywords {
     return Object.fromEntries(Object.entries(keywords).filter(([, value]) => value !== undefined));
   }

@@ -17,25 +17,34 @@ const CONSOLE_METHOD_BY_LEVEL: Readonly<Record<ILogLevel, keyof IConsoleOutput>>
 // Injected consoles can retain prior log entries; serialization must not traverse their state.
 const CONSOLE_OUTPUTS = new WeakMap<BrowserConsoleTransport, IConsoleOutput>();
 
-/**
- * Writes each entry straight to the console, unbuffered: `trace` and `debug` use `console.debug`,
- * `info` uses `console.info`, `warn` uses `console.warn`, and `error` and `fatal` use
- * `console.error`. With the `json` format the console receives the structured entry object, so
- * its inspector can expand it; there is no JSON-string mode. With `pretty` it receives the styled
- * format string and its `%c` styles.
- */
+/** Writes trace/debug to debug, info to info, warn to warn, and error/fatal to error; JSON passes entries, pretty passes its format and styles. */
 export class BrowserConsoleTransport implements ITransport {
-  /** Preserves opaque transport output and rejects invalid borrowed receivers. */
+  /**
+   * Retrieves the injected console without exposing it through enumerable transport state.
+   * @returns The console output retained for this transport instance.
+   * @throws TypeError if called with a receiver that has no retained console.
+   */
   private get console(): IConsoleOutput {
     const output = CONSOLE_OUTPUTS.get(this);
     if (output === undefined) throw new TypeError("Invalid console transport receiver");
     return output;
   }
 
+  /**
+   * Retains the injected console or uses the global console by default.
+   * @param options Console selection; defaults to an empty object using global `console`.
+   * @default Empty options object.
+   */
   constructor(options: IBrowserConsoleTransportOptions = {}) {
     CONSOLE_OUTPUTS.set(this, options.console ?? console);
   }
 
+  /**
+   * Sends the entry immediately, selecting the console method by level and requested format.
+   * @param entry Log entry whose level selects the console method.
+   * @param delivery Supplies the selected text format and its styled representation.
+   * @returns No value; writes the entry or formatted output to the console.
+   */
   public write(entry: ILogEntry, delivery: ITransportDelivery): void {
     const method = CONSOLE_METHOD_BY_LEVEL[entry.level];
     if (delivery.format === "json") {

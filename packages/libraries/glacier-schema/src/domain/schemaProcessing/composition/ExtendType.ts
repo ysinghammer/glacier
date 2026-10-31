@@ -4,10 +4,13 @@ import type { IDerivedClass } from "./types/IDerivedClass.js";
 import type { IDerivedClassOptions } from "./types/IDerivedClassOptions.js";
 
 /**
- * Creates a class with the fields of `base` plus those of `extension`; an `extension` field replaces the
- * `base` field of the same name, including its modifiers, and keeps the base position. Class-level
- * refinements of both classes are kept. The result is a new class, not a subclass of either; it carries no
- * methods. Both classes are frozen. Throws `SchemaDefinitionError` for union base classes.
+ * Creates a new schema class by combining base fields with extension fields, which replace name collisions.
+ * @template B Instance type of the base class.
+ * @template E Instance type of the extension class.
+ * @param base Schema class supplying initial fields and refinements.
+ * @param extension Schema class supplying overriding and additional fields.
+ * @param options Optional generated-class name; defaults to `Extend` plus the base name.
+ * @returns New constructor-free class typed as base fields overridden by extension fields.
  */
 export function ExtendType<B extends object, E extends object>(
   base: abstract new (...arguments_: never[]) => B,

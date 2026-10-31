@@ -3,7 +3,12 @@ import { ReceivedType } from "./ReceivedType.js";
 
 /** Builds the standard rejection of a value of the wrong type. */
 export class TypeFailure {
-  /** Returns an `invalid_type` failure naming what was `expected` and what `value` actually is. */
+  /**
+   * Builds an `invalid_type` failure describing the expected and received categories.
+   * @param expected Human-readable expected type label.
+   * @param value Rejected runtime value.
+   * @returns Failure with expected and received labels; no input is mutated.
+   */
   public static invalidType(expected: string, value: unknown): IValueFailure {
     const received = ReceivedType.describe(value);
     return {

@@ -5,15 +5,20 @@ import type { IValueOutcome } from "../types/IValueOutcome.js";
 import { ValueCoercer } from "../ValueCoercer.js";
 import { ValueValidatorFactory } from "./ValueValidator.factory.js";
 
-/** Runs the whole per-field pipeline on a raw input value; created once per field at compile time. */
+/**
+ * Processes one raw field value through coercion, modifiers, validation and refinement.
+ * @param raw Input value read for the field, or undefined when absent.
+ * @param context Per-parse options and nesting depth.
+ * @returns Accepted transformed value or typed failures.
+ */
 export type IFieldProcessor = (raw: unknown, context: IParseContext) => IValueOutcome;
 
 /** Builds the pipeline coerce, default, transform, optional/nullable shortcuts, validate for a field. */
 export class FieldProcessorFactory {
   /**
-   * Returns the processor for `definition`. An accepted `undefined` outcome means the key stays absent.
-   * `Optional` only short-circuits `undefined` and `Nullable` only `null`; every other value, and any
-   * `undefined` or `null` the modifiers do not permit, goes to the type validator.
+   * Builds a processor closure for one compiled field definition.
+   * @param definition Declared field type, issue message and effective modifiers.
+   * @returns Reusable processor applying the field pipeline in fixed order.
    */
   public static create(definition: IFieldDefinition): IFieldProcessor {
     const { optional, nullable, defaultValue, transform, refine } = definition.modifiers;
@@ -29,6 +34,15 @@ export class FieldProcessorFactory {
       );
   }
 
+  /**
+   * Runs the field pipeline and applies optional, nullable and refinement behavior.
+   * @param raw Raw field input, possibly undefined.
+   * @param context Per-parse options and nesting depth.
+   * @param modifiers Field modifiers relevant to processing.
+   * @param coerce Coercer associated with the declared type.
+   * @param validate Validator associated with the declared type.
+   * @returns Accepted value or typed processing failures.
+   */
   private static process(
     raw: unknown,
     context: IParseContext,
@@ -59,6 +73,15 @@ export class FieldProcessorFactory {
     return FieldProcessorFactory.refine(outcome, modifiers.refine);
   }
 
+  /**
+   * Applies coercion, defaulting and the optional transform in pipeline order.
+   * @param raw Raw field input.
+   * @param context Per-parse options controlling coercion.
+   * @param defaultValue Optional default factory used for undefined input.
+   * @param transform Optional user transform applied to present values.
+   * @param coerce Type-specific coercer.
+   * @returns Transformed value, or a failure outcome when a transform throws.
+   */
   private static transform(
     raw: unknown,
     context: IParseContext,
@@ -80,13 +103,23 @@ export class FieldProcessorFactory {
     return { value };
   }
 
+  /**
+   * Narrows a transform result to its failure variant.
+   * @param result Value-or-outcome result from the transform stage.
+   * @returns True when the result contains a failure outcome.
+   */
   private static isTransformFailure(
     result: { readonly value: unknown } | { readonly outcome: IValueOutcome },
   ): result is { readonly outcome: IValueOutcome } {
     return "outcome" in result;
   }
 
-  /** Applies the property refinement to a valid outcome. */
+  /**
+   * Applies a property refinement to a successfully validated value.
+   * @param outcome Successful value outcome from type validation.
+   * @param refine Synchronous predicate and optional issue message.
+   * @returns Original success or a custom refinement failure.
+   */
   private static refine(outcome: IValueOutcome, refine: IRefinement): IValueOutcome {
     if (!outcome.isValid || outcome.value === undefined) return outcome;
     const message = refine.message ?? "Refinement failed";
@@ -105,7 +138,11 @@ export class FieldProcessorFactory {
     };
   }
 
-  /** Reports an exception thrown by a transform function. */
+  /**
+   * Converts a transform exception into a typed validation failure.
+   * @param error Thrown value captured from the transform callback.
+   * @returns Rejected outcome with a safe reason parameter.
+   */
   private static transformFailure(error: unknown): IValueOutcome {
     const reason = error instanceof Error ? error.message : String(error);
     return {

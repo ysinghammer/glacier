@@ -41,6 +41,10 @@ describe("SCH-134 preparation and reachable metadata freezing", () => {
     IsString()(Parent.prototype, "inherited");
     /** Recursive DTO with every metadata reference shape. */
     class Dto extends Parent {
+      /**
+       * Records explicit construction so preparation can prove it avoids instantiation.
+       * @param argument Required constructor value consumed only by direct construction.
+       */
       public constructor(argument: string) {
         super();
         callbacks++;

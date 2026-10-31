@@ -1,10 +1,13 @@
 import type { IRejectionReason } from "../types/IRejectionReason.js";
 
-/** Thrown by `new LoggerFactory(config)` when the configuration is invalid. */
+/** Carries every validation reason for an invalid logger factory configuration. */
 export class InvalidLoggerConfigurationError extends Error {
+  /** All configuration failures reported by validation. */
   public readonly reasons: readonly IRejectionReason[];
 
-  /** Keeps every rejection reason; the message joins them for humans. */
+  /** Creates an error whose message summarizes every supplied reason.
+   * @param reasons Configuration validation failures to retain.
+   */
   constructor(reasons: readonly IRejectionReason[]) {
     super(`Invalid logger configuration: ${reasons.map((reason) => reason.message).join("; ")}`);
     this.name = "InvalidLoggerConfigurationError";

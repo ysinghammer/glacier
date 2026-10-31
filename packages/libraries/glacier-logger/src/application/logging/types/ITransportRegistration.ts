@@ -1,18 +1,20 @@
 import type { ILogLevel } from "../../../domain/logging/types/ILogLevel.js";
 import type { ITransport } from "../ports/outbound/ITransport.port.js";
 
-/** How a transport wants entries rendered. */
+/** Selects JSON or pretty representation for a transport. */
 export type ILogFormat = "json" | "pretty";
 
-/** One destination for entries together with its routing and rendering choices. */
+/** Configures one destination's level filtering and entry representation. */
 export interface ITransportRegistration {
+  /** Destination receiving entries that meet its effective minimum level. */
   readonly transport: ITransport;
-  /** Minimum level for this transport, applied after the global level. Defaults to the global level. */
+  /** Additional minimum level; omitted to inherit the global level. */
   readonly level?: ILogLevel;
+  /** Text or styled representation requested for this destination. */
   readonly format: ILogFormat;
   /**
-   * Whether `pretty` output carries colour. The caller decides, for example from a TTY check,
-   * so tests stay deterministic. Defaults to no colour.
+   * Enables color in pretty output; caller supplies the decision, omitted for no color.
+   * @default false
    */
   readonly isColorEnabled?: boolean;
 }

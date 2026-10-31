@@ -10,21 +10,24 @@ import { StreamTextSink } from "./StreamTextSink.adapter.js";
 // A transport can itself be logged; pending lines and process handles must stay out of its fields.
 const STDOUT_WRITERS = new WeakMap<NodeStdoutTransport, BufferedLineWriter>();
 
-/**
- * Writes entries to `process.stdout` through a buffer. Lines are collected and written when 4 KB
- * are pending or 100 ms have passed (both configurable), in order, one batch at a time. Pending
- * lines are also flushed on `beforeExit`, `SIGINT` and `SIGTERM`. A failed write is reported to
- * the factory's `onError`.
- */
+/** Buffers formatted lines to stdout in order, flushing at byte/time limits and process exit; reports failed batches through delivery. */
 export class NodeStdoutTransport implements ITransport {
-  /** Resolves the transport buffer without making pending lines enumerable. */
+  /**
+   * Retrieves this transport's buffer without making pending lines enumerable.
+   * @returns The buffer that accepts and flushes this transport's lines.
+   * @throws TypeError if called with a receiver that has no retained writer.
+   */
   private get writer(): BufferedLineWriter {
     const writer = STDOUT_WRITERS.get(this);
     if (writer === undefined) throw new TypeError("Invalid stdout transport receiver");
     return writer;
   }
 
-  /** @throws Error outside Node when no `host` is given. @throws RangeError for an invalid buffering option. */
+  /**
+   * Builds a buffered stdout transport, using the supplied host or the running Node process.
+   * @param options Host and byte/time limits; defaults to 4096 bytes and 100 ms.
+   * @default Empty options object.
+   */
   constructor(options: INodeStdoutTransportOptions = {}) {
     const host = options.host ?? NodeProcessLocator.require();
     STDOUT_WRITERS.set(
@@ -33,13 +36,22 @@ export class NodeStdoutTransport implements ITransport {
     );
   }
 
+  /**
+   * Queues the delivered text and reports asynchronous write failures through the delivery.
+   * @param _entry Entry supplied by the transport contract; delivery already contains its text.
+   * @param delivery Formatted text source and handler for batch write failures.
+   * @returns No value; adds the delivered line to the stdout buffer.
+   */
   public write(_entry: ILogEntry, delivery: ITransportDelivery): void {
     this.writer.append(delivery.text(), (error) => {
       delivery.reportError(error);
     });
   }
 
-  /** Resolves once every line written so far has reached `stdout`. */
+  /**
+   * Waits until all lines queued before this call have been written or reported as failed.
+   * @returns Resolves when the current pending output has settled.
+   */
   public flush(): Promise<void> {
     return this.writer.flush();
   }

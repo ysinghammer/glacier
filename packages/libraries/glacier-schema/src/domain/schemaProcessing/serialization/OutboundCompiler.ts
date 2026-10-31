@@ -17,14 +17,26 @@ import type { IValueFailure } from "../validation/types/IValueFailure.js";
 import type { IOutboundContext } from "./types/IOutboundContext.js";
 import { JsonProjection } from "./JsonProjection.js";
 
-/** Cached outbound validator accepting unknown logical DTO data without input transformations. */
+/**
+ * Cached validator for one class's logical output value.
+ * @param value Candidate logical DTO value.
+ * @param context Per-call active-object tracking and property-name provenance.
+ * @returns Validated constructor-free DTO or typed output issues.
+ */
 type IOutboundSchema = (value: unknown, context: IOutboundContext) => IResult<object>;
-/** Outbound value validator retains logical types for refinements and later JSON projection. */
+/**
+ * Validates one outbound field while retaining logical values for projection.
+ * @param value Candidate logical field value.
+ * @param context Per-call active-object tracking and property-name provenance.
+ * @returns Accepted logical value or typed validation failures.
+ */
 type IOutboundValidator = (value: unknown, context: IOutboundContext) => IValueOutcome;
 
 /** Prepared logical field definition paired with its cached outbound value processor. */
 interface IOutboundField {
+  /** Effective field metadata used for logical reads and wire-name projection. */
   readonly definition: IFieldDefinition;
+  /** Cached validator for the field's logical output value. */
   readonly validate: IOutboundValidator;
 }
 
@@ -35,7 +47,13 @@ const MAX_ACTIVE_OBJECTS = 64;
 
 /** Prepares both directions and validates outbound logical data using cached field/type closures. */
 export class OutboundCompiler {
-  /** Freezes reachable metadata and warms both directions, resolving metadata thunks but no value callbacks. */
+  /**
+   * Prepares both schema directions and all reachable nested classes once.
+   * @param target Root class whose metadata and nested references are prepared.
+   * @param visited Classes already visited during this traversal; defaults to a new set.
+   * @returns No value; freezes reachable metadata and warms compiled closures.
+   * @throws {SchemaDefinitionError} If `target` is not a class constructor.
+   */
   public static prepare(target: IClass, visited = new Set<IClass>()): void {
     if (typeof target !== "function" || !Object.hasOwn(target, "prototype")) {
       throw new SchemaDefinitionError("Schema preparation requires a class");
@@ -56,7 +74,13 @@ export class OutboundCompiler {
     PREPARED_CLASSES.add(target);
   }
 
-  /** Rejects union-only reference loops that select variants forever without entering a class value schema. */
+  /**
+   * Rejects a path through root unions that loops without entering a class value schema.
+   * @param target Current union class under inspection.
+   * @param active Union classes on the current recursive path.
+   * @returns No value when variant traversal makes progress.
+   * @throws {SchemaDefinitionError} If a root-union cycle cannot validate a value.
+   */
   private static assertUnionProgress(target: IClass, active: Set<IClass>): void {
     const union = UnionRegistry.get(target);
     if (union === undefined) return;
@@ -72,7 +96,12 @@ export class OutboundCompiler {
     active.delete(target);
   }
 
-  /** Visits all DTO references, including references nested in collection and union specifications. */
+  /**
+   * Visits each nested class reference contained in a type specification.
+   * @param type Type specification whose children are traversed.
+   * @param visited Classes already prepared in this traversal.
+   * @returns No value; prepares reachable class schemas as a side effect.
+   */
   private static visit(type: ITypeSpec, visited: Set<IClass>): void {
     switch (type.kind) {
       case "object":
@@ -104,7 +133,11 @@ export class OutboundCompiler {
     }
   }
 
-  /** Compiles logical field reads and refinements; constructors and input modifier callbacks never run. */
+  /**
+   * Retrieves or compiles an outbound schema for logical field values.
+   * @param target Class whose fields, union and refinements define output validation.
+   * @returns Cached outbound validation closure.
+   */
   public static compile(target: IClass): IOutboundSchema {
     const cached = OUTBOUND_SCHEMAS.get(target);
     if (cached !== undefined) return cached;
@@ -135,7 +168,16 @@ export class OutboundCompiler {
     return schema;
   }
 
-  /** Validates logical own fields and then class rules, recording projection names on the constructor-free DTO. */
+  /**
+   * Validates a logical class value, its fields and class refinements.
+   * @param value Candidate class-like value.
+   * @param context Outbound recursion and projection-name state.
+   * @param target Class whose prototype is used for the validated DTO.
+   * @param fields Prepared validators for effective fields.
+   * @param names Mapping from logical property names to wire names.
+   * @param refinements Class checks run after all fields succeed.
+   * @returns Constructor-free validated DTO or typed output issues.
+   */
   private static validateClass(
     value: unknown,
     context: IOutboundContext,
@@ -165,6 +207,14 @@ export class OutboundCompiler {
     }
   }
 
+  /**
+   * Validates one own data property and assigns its accepted logical value.
+   * @param value Source object being validated.
+   * @param context Outbound recursion and projection-name state.
+   * @param field Field definition paired with its outbound validator.
+   * @param instance Constructor-free DTO receiving the accepted property.
+   * @returns Issues for unsafe accessors or rejected field values.
+   */
   private static validateField(
     value: object,
     context: IOutboundContext,
@@ -194,6 +244,12 @@ export class OutboundCompiler {
     return [];
   }
 
+  /**
+   * Applies a property refinement to an outbound-valid value.
+   * @param outcome Successful value outcome before refinement.
+   * @param refine Synchronous predicate and optional issue-message override.
+   * @returns Original success or custom failure, including a caught reason.
+   */
   private static refineField(
     outcome: Extract<IValueOutcome, { isValid: true }>,
     refine: NonNullable<IFieldDefinition["modifiers"]["refine"]>,
@@ -208,6 +264,12 @@ export class OutboundCompiler {
     }
   }
 
+  /**
+   * Prefixes outbound value failures with the logical field name.
+   * @param definition Field metadata supplying name and message override.
+   * @param failures Value failures emitted by the field validator.
+   * @returns Public issues with paths relative to the output object.
+   */
   private static fieldIssues(
     definition: IFieldDefinition,
     failures: readonly IValueFailure[],
@@ -219,6 +281,12 @@ export class OutboundCompiler {
     }));
   }
 
+  /**
+   * Runs class refinements after successful outbound field validation.
+   * @param instance Constructor-free DTO containing validated fields.
+   * @param refinements Inherited and local class predicates with issue options.
+   * @returns Issues for failed predicates or exceptions they throw.
+   */
   private static classRefinementIssues(
     instance: object,
     refinements: readonly IClassRefinement[],
@@ -240,7 +308,12 @@ export class OutboundCompiler {
     return issues;
   }
 
-  /** Resolves metadata references and rejects nonclass results before value processing. */
+  /**
+   * Resolves a lazy metadata reference to a class constructor.
+   * @param resolve Thunk expected to return a class.
+   * @returns Resolved class constructor.
+   * @throws {SchemaDefinitionError} If the thunk result is not a class constructor.
+   */
   private static resolve(resolve: () => unknown): IClass {
     const target = resolve();
     if (typeof target !== "function" || !Object.hasOwn(target, "prototype")) {
@@ -249,7 +322,11 @@ export class OutboundCompiler {
     return target as IClass;
   }
 
-  /** Converts root-union outcomes; only class variants reach this adapter, so successful values are objects. */
+  /**
+   * Converts a root-union value outcome to the public parse-result shape.
+   * @param outcome Union validation result.
+   * @returns Successful object result or failures rooted at the empty path.
+   */
   private static result(outcome: IValueOutcome): IResult<object> {
     if (outcome.isValid) return { ok: true, value: outcome.value as object };
     return {
@@ -258,12 +335,20 @@ export class OutboundCompiler {
     };
   }
 
-  /** Extracts issues from a known rejected safety result. */
+  /**
+   * Extracts issue records from a rejected safety result.
+   * @param result Rejected JSON-projection result.
+   * @returns Its readonly issue list.
+   */
   private static issues(result: Extract<IResult<never>, { ok: false }>): readonly ISchemaIssue[] {
     return result.issues;
   }
 
-  /** Adapts JSON safety results to the internal value-validation protocol. */
+  /**
+   * Adapts a JSON-safety result to an internal value-validation outcome.
+   * @param result Projection result being adapted.
+   * @returns Accepted projected value or its failures.
+   */
   private static outcome(result: IResult<unknown>): IValueOutcome {
     return result.ok
       ? { isValid: true, value: result.value }
@@ -271,9 +356,9 @@ export class OutboundCompiler {
   }
 
   /**
-   * Builds logical validators; scalar constraints reuse validation without normalization. Collection factory
-   * callbacks receive the original extended context unchanged; narrow signature adaptations below retain
-   * the outbound recursion/provenance state without exposing it through input parsing options.
+   * Builds an outbound validator for a scalar, collection, nested class or union type.
+   * @param type Declared field type and constraints.
+   * @returns Validator retaining logical data for later JSON projection.
    */
   private static validator(type: ITypeSpec): IOutboundValidator {
     switch (type.kind) {
@@ -396,6 +481,14 @@ export class OutboundCompiler {
     }
   }
 
+  /**
+   * Selects an outbound union variant using its logical discriminator property.
+   * @param value Candidate union object.
+   * @param context Outbound recursion and projection-name state.
+   * @param variants Resolved tags, logical field keys and validators.
+   * @param discriminator Wire discriminator name used in issue paths.
+   * @returns Selected variant outcome or an invalid-discriminator failure.
+   */
   private static validateUnion(
     value: unknown,
     context: IOutboundContext,
@@ -427,7 +520,12 @@ export class OutboundCompiler {
     };
   }
 
-  /** Makes descriptor-safe collection snapshots while keeping active ancestors for cycle detection. */
+  /**
+   * Wraps a collection validator with descriptor-safe snapshot and cycle handling.
+   * @param validate Collection validator applied to the snapshot.
+   * @param kind Supported collection representation.
+   * @returns Outbound validator that preserves recursion tracking.
+   */
   private static collection(
     validate: IValueValidator,
     kind: "array" | "set" | "map" | "record",
@@ -435,6 +533,14 @@ export class OutboundCompiler {
     return (value, context) => OutboundCompiler.validateCollection(value, context, validate, kind);
   }
 
+  /**
+   * Snapshots and validates a collection while tracking active ancestors.
+   * @param value Candidate collection value.
+   * @param context Outbound recursion and projection-name state.
+   * @param validate Validator applied to the snapshot.
+   * @param kind Expected collection representation.
+   * @returns Validation outcome or typed safety issue.
+   */
   private static validateCollection(
     value: unknown,
     context: IOutboundContext,
@@ -454,6 +560,12 @@ export class OutboundCompiler {
     }
   }
 
+  /**
+   * Selects the safe snapshot strategy for a collection representation.
+   * @param value Candidate collection object.
+   * @param kind Expected array, set, map or record kind.
+   * @returns Snapshot result, preserving unsupported input for the validator to reject.
+   */
   private static snapshotCollection(
     value: object,
     kind: "array" | "set" | "map" | "record",
@@ -468,6 +580,11 @@ export class OutboundCompiler {
     return { ok: true, value };
   }
 
+  /**
+   * Copies set entries through the built-in Set iterator.
+   * @param value Set instance to snapshot.
+   * @returns New Set, or invalid-type issue for an incompatible instance.
+   */
   private static snapshotSet(value: Set<unknown>): IResult<unknown> {
     try {
       return { ok: true, value: new Set(Set.prototype.values.call(value)) };
@@ -476,6 +593,11 @@ export class OutboundCompiler {
     }
   }
 
+  /**
+   * Copies map entries through the built-in Map iterator and checks string keys.
+   * @param value Map instance to snapshot.
+   * @returns New Map, or issue for invalid map data or non-string keys.
+   */
   private static snapshotMap(value: Map<unknown, unknown>): IResult<unknown> {
     let entries: readonly (readonly [unknown, unknown])[];
     try {
@@ -488,6 +610,12 @@ export class OutboundCompiler {
     return { ok: true, value: new Map(entries) };
   }
 
+  /**
+   * Copies enumerable data properties without invoking getters.
+   * @param value Array or plain record being snapshotted.
+   * @param isArray Whether to create an array-shaped snapshot.
+   * @returns Safe shallow snapshot or accessor issue at the offending key.
+   */
   private static snapshotProperties(value: object, isArray: boolean): IResult<unknown> {
     const output: Record<string, unknown> | unknown[] = Array.isArray(value)
       ? Array.from({ length: value.length })

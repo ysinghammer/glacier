@@ -3,9 +3,10 @@ import type { ILiteralValue } from "../schema/types/ITypeSpec.js";
 import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
- * Property decorator declaring that the field must strictly equal one string, number, boolean, bigint
- * or `null` literal. Records metadata only; throws `SchemaDefinitionError` when the property already
- * has a type decorator.
+ * Declares a field that must strictly equal the supplied scalar literal.
+ * @param value Accepted string, number, boolean, bigint or null literal.
+ * @param options Optional issue-message settings for the field.
+ * @returns A property decorator that registers the literal field.
  */
 export function IsLiteral(
   value: ILiteralValue,

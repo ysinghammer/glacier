@@ -6,12 +6,13 @@ import { MetadataTarget } from "../targets/MetadataTarget.js";
 import { MetadataAddress } from "../addressing/MetadataAddress.js";
 import { MetadataStorage } from "../storage/MetadataStorage.js";
 
-/** Internal class-backed discovery for the frozen facade; no public construction or instance API. */
+/** Implements definition identity discovery for the frozen public facade. */
 export class MetadataDiscoveryOperations {
-  /**
-   * Discovers identities once each at a checked address, defaulting to class and inherited lookup.
-   * Own mode restricts to direct declarations; present undefined/empty collections remain discoverable.
-   * Returns a shallow-frozen identity array or a typed address rejection, without ordering promises.
+  /** Discovers identities at a checked location; class/inherited lookup is the default.
+   * @template R Constructor or instance type used to check the address.
+   * @param target Constructor or canonical instance alias to inspect.
+   * @param address Optional checked address and lookup mode; omitted selects inherited class lookup.
+   * @returns Frozen identity list in unspecified order, or typed target/address rejection.
    */
   public static definitions<R extends object>(
     target: R,
@@ -20,10 +21,11 @@ export class MetadataDiscoveryOperations {
     return MetadataDiscoveryOperations.definitionsDynamic(target, address);
   }
 
-  /**
-   * Discovers identities at a dynamic address without finite-key or tuple guarantees.
-   * Instance aliases permit only class and instance-side locations; static/constructor parameters reject.
-   * Inspection exceptions propagate; no getters or consumer constructors are invoked.
+  /** Discovers identities at an erased location without finite-key or tuple guarantees.
+   * Instance aliases reject static and constructor-parameter locations.
+   * @param target Constructor or canonical instance alias to inspect.
+   * @param address Optional dynamic address and lookup mode; omitted selects inherited class lookup.
+   * @returns Frozen identity list in unspecified order, or typed target/address rejection.
    */
   public static definitionsDynamic(
     target: object,

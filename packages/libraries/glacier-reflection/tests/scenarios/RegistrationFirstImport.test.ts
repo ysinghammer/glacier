@@ -4,6 +4,7 @@ it("registers first then reads compiler records through the canonical root defin
   const registration = await import("../../register.js");
   const handler = Reflect.metadata;
   const root = await import("../../index.js");
+  /** Target whose design:type is emitted after explicit registration. */
   class Consumer {}
   Reflect.metadata("design:type", String)(Consumer);
   expect(root.DESIGN_TYPE_METADATA.read(Consumer)).toEqual({

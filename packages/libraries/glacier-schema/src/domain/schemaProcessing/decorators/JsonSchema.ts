@@ -5,10 +5,9 @@ import type { IJsonSchemaFragment } from "../jsonSchema/types/IJsonSchemaFragmen
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 
 /**
- * Class and property decorator merging a hand-written JSON Schema `fragment` over the generated schema of the
- * field or class; fragment keywords win and are not validated. It never affects parsing and may be combined with
- * any type decorator in either order. Class fragments are not inherited. Records metadata only; throws
- * `SchemaDefinitionError` for a fragment that is not a plain object or a target that already has `JsonSchema`.
+ * Overlays a manual JSON Schema fragment on generated output without changing parsing behavior.
+ * @param fragment Keyword object merged over the generated schema; supplied keywords take precedence.
+ * @returns A class and property decorator that records the fragment.
  */
 export function JsonSchema(fragment: IJsonSchemaFragment): ClassDecorator & PropertyDecorator {
   return (target: object, key?: string | symbol): void => {

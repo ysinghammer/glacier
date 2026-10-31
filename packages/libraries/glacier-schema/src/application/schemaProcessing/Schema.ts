@@ -13,14 +13,16 @@ import type { IJsonValue } from "../../domain/schemaProcessing/serialization/typ
 import type { IJsonSchemaCompatibilityOptions } from "../../domain/schemaProcessing/jsonSchema/types/IJsonSchemaCompatibilityOptions.js";
 import { JsonSchemaCompatibility } from "../../domain/schemaProcessing/jsonSchema/JsonSchemaCompatibility.js";
 
-/** Public preparation, input validation, outbound JSON projection and directional schema generation. */
+/** Provides static operations to prepare DTO schemas, validate and project values, and generate JSON Schema. */
 export class Schema {
   /**
-   * Checks all reachable metadata for known wire-type and structural annotation contradictions.
-   * Resolves lazy metadata references only; never constructs values or runs defaults/transforms/refinements,
-   * freezes metadata, or changes ordinary parsing/generation. Throws SchemaDefinitionError on disagreement.
-   * Output uses JSON without coercion. Bounded checks do not prove arbitrary callback equivalence or validate
-   * the complete external JSON Schema/OpenAPI specification.
+   * Checks reachable DTO metadata for wire-type and annotation contradictions without constructing values, running
+   * defaults, transforms, or refinements, or freezing metadata.
+   * @template T - Object instance type described by the decorated class.
+   * @param target Decorated DTO class whose reachable schema is checked.
+   * @param options Wire context and coercion policy; output requires JSON and no coercion.
+   * @returns Returns no value; completes after compatibility checks pass.
+   * @remarks This bounded check does not prove callback equivalence or full specification validity.
    */
   public static assertJsonSchemaCompatibility<T extends object>(
     target: IConstructableClass<T>,
@@ -30,21 +32,26 @@ export class Schema {
     new JsonSchemaGenerator("openapi-3.1", options.direction, options).generate(target);
   }
   /**
-   * Synchronously prepares input/output processing and freezes reachable schema metadata and ancestors.
-   * Resolves lazy metadata references but never runs constructors, defaults, transforms or refinements.
-   * Idempotent; malformed definitions throw SchemaDefinitionError. Failed preparation does not unfreeze
-   * metadata: recover with corrected, fresh class declarations, not registry reset operations.
+   * Prepares parsing and projection by resolving reachable metadata and synchronously freezing the DTO class and
+   * ancestors. Idempotent; it runs no constructors, defaults, transforms, or refinements.
+   * @template T - Object instance type described by the decorated class.
+   * @param target Decorated DTO class to prepare, including its reachable schema metadata.
+   * @returns Returns no value; freezes the class metadata for later parsing and projection.
    */
   public static prepare<T extends object>(target: IConstructableClass<T>): void {
     OutboundCompiler.prepare(target);
   }
 
   /**
-   * Validates unknown logical DTO data and returns detached renamed JSON or typed issues. Reads only
-   * declared data descriptors, strips extras and runs field/class refinements on constructor-free DTOs.
-   * No defaults, coercion, transforms or string normalization run. Dates/collections project to JSON;
-   * unsafe descriptors, cycles and non-JSON values fail without calling getters or consumer toJSON.
-   * Definition failures throw; diagnostic messages/params are private detail for transport redaction.
+   * Validates unknown DTO data and projects successful values to detached, renamed JSON; invalid values return typed issues.
+   * @template T - Object instance type described by the decorated DTO class.
+   * @param target Decorated DTO class defining the logical fields and outbound validation rules.
+   * @param value Untrusted logical DTO value to validate and project.
+   * @returns Detached JSON on success, or every validation and projection issue on failure.
+   * @remarks Reads declared properties, strips extras, and invokes no getters or consumer `toJSON`.
+   * @remarks Runs refinements on constructor-free DTOs; skips defaults, coercion, and transforms.
+   * @remarks Dates/collections become JSON; accessors, cycles, and non-JSON values yield issues.
+   * @remarks Prepares and freezes reachable schema metadata on first use.
    */
   public static safeSerialize<T extends object>(
     target: IConstructableClass<T>,
@@ -62,11 +69,13 @@ export class Schema {
     return JsonProjection.copy(result.value, names, true);
   }
   /**
-   * Validates `input` against the decorated class and returns an instance or every issue found, without
-   * throwing for invalid input. The instance is created without calling the constructor, only declared
-   * fields are copied and unknown keys are stripped. The first call freezes the class's schema; decorating
-   * it later throws `SchemaDefinitionError`. Pass `{ coerce: true }` to convert
-   * strings and similar input toward the declared types first; coercion is off by default.
+   * Validates unknown input and returns a constructor-free DTO instance or every issue found.
+   * Copies declared fields, strips extras, and freezes class schema on first use.
+   * @template T - Object instance type returned for the decorated DTO class.
+   * @param target Decorated DTO class whose schema validates the input.
+   * @param input Untrusted value to validate and copy into a constructor-free instance.
+   * @param options Per-call coercion, singleton-array, and maximum-depth settings; defaults to `{}`.
+   * @returns The DTO instance on success, or all validation issues on failure.
    */
   public static safeParse<T extends object>(
     target: IConstructableClass<T>,
@@ -77,8 +86,13 @@ export class Schema {
   }
 
   /**
-   * Like `safeParse` but returns the instance directly and throws `SchemaError` carrying every issue when
-   * the input is invalid. Throws `SchemaDefinitionError` for incorrectly declared classes.
+   * Parses unknown input and returns the DTO instance; unlike `safeParse`, invalid input is reported by an exception.
+   * @template T - Object instance type returned for the decorated DTO class.
+   * @param target Decorated DTO class whose schema validates the input.
+   * @param input Untrusted value to validate and copy into a constructor-free instance.
+   * @param options Per-call parsing settings; omission uses the defaults from `safeParse`.
+   * @returns The constructor-free DTO instance after successful validation.
+   * @throws {SchemaError} When input validation returns one or more issues.
    */
   public static parse<T extends object>(
     target: IConstructableClass<T>,
@@ -91,14 +105,17 @@ export class Schema {
   }
 
   /**
-   * Generates the JSON Schema of one decorated class and every class it references. `draft-2020-12` returns
-   * `{ $schema, $ref, $defs }`; `openapi-3.1` returns `{ $ref, components: { schemas } }`. Definitions are keyed by
-   * class name or `Describe({ name })`; properties use `Rename` aliases. Input (default) excludes optional/defaulted
-   * fields from `required`; output excludes only optional fields and closes projected DTO objects. Output bigint
-   * and nonfinite literals have an unsatisfiable schema. `Refine` and `Transform` are skipped, as are string flags other than none
-   * and `u`. A discriminated union becomes `oneOf` with a `discriminator` mapping and `IsOneOf` becomes `oneOf`.
-   * Pure: it does not freeze or compile the class. Throws `SchemaDefinitionError` for an unknown target, colliding
-   * or empty definition names, or fields with modifiers but no type.
+   * Generates JSON Schema for a decorated class and all referenced classes without freezing metadata.
+   * Input is the default direction; output describes projected DTO values.
+   * @template T - Object instance type represented by the decorated class.
+   * @param target Abstract decorated class used as the document root.
+   * @param options Required dialect and optional direction; see `IJsonSchemaOptions`.
+   * @returns Draft 2020-12 (`$schema`, `$ref`, `$defs`) or OpenAPI 3.1 (`$ref`, `components.schemas`).
+   * @remarks Names use class names or `Describe` names; `Rename` sets wire property names.
+   * @remarks Input omits optional/defaulted fields; output omits optional fields and closes DTOs.
+   * @remarks `Refine` and `Transform` are skipped; string flags except none and `u` are ignored.
+   * @remarks `IsOneOf` and discriminated unions yield `oneOf`; discriminators include mappings.
+   * @remarks Output bigint and nonfinite literals have unsatisfiable schemas.
    */
   public static toJsonSchema<T extends object>(
     target: abstract new (...arguments_: never[]) => T,
@@ -110,8 +127,9 @@ export class Schema {
   }
 
   /**
-   * Type guard recognising a `SchemaError` by its registered-symbol brand, so errors created by a duplicate
-   * copy of this package are still recognised. Never throws; any non-error value yields `false`.
+   * Recognizes branded schema errors, including errors from duplicate package copies, without relying on class identity.
+   * @param error Unknown value to check for the registered schema-error brand.
+   * @returns True when the brand lookup is `true`; otherwise false.
    */
   public static isError(error: unknown): error is SchemaError {
     return (

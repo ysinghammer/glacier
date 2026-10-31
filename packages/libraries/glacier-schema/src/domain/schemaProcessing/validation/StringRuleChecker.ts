@@ -3,12 +3,20 @@ import type { IValueFailure } from "./types/IValueFailure.js";
 import type { IValueOutcome } from "./types/IValueOutcome.js";
 import { StringFormats } from "./StringFormats.js";
 
-/** Normalises and checks one string value; created once per field at compile time. */
+/**
+ * Normalises and checks a string against declared field rules.
+ * @param value String to normalize and validate.
+ * @returns Normalized string on success or its first constraint failure.
+ */
 export type IStringRuleChecker = (value: string) => IValueOutcome;
 
 /** Builds the checker for the constraints and normalisations of a string field. */
 export class StringRuleChecker {
-  /** Returns a checker that trims, lowercases, then reports the first violated constraint. */
+  /**
+   * Creates a checker that applies normalisations before reporting the first failed rule.
+   * @param rules String constraints and normalisations to apply.
+   * @returns Checker yielding the normalised string on success or one typed failure.
+   */
   public static create(rules: IStringRules): IStringRuleChecker {
     const pattern =
       rules.pattern === undefined
@@ -25,7 +33,13 @@ export class StringRuleChecker {
     };
   }
 
-  /** Returns the first violated rule in the order min, max, length, pattern, format. */
+  /**
+   * Finds the first failed rule in the order min, max, length, pattern, format.
+   * @param rules Constraints used for the check.
+   * @param pattern Pattern with stateful flags removed, when configured.
+   * @param value Normalised string being checked.
+   * @returns First constraint failure, or undefined when all rules pass.
+   */
   private static firstFailure(
     rules: IStringRules,
     pattern: RegExp | undefined,
@@ -61,7 +75,13 @@ export class StringRuleChecker {
     return undefined;
   }
 
-  /** Builds the failure of a value shorter than `limit`; `isExact` marks a `length` rule. */
+  /**
+   * Builds the failure for a string shorter than its lower boundary.
+   * @param limit Minimum or exact length configured by the rule.
+   * @param isExact Whether the rule requires an exact length.
+   * @param value Rejected string.
+   * @returns Failure with length details.
+   */
   private static tooSmall(limit: number, isExact: boolean, value: string): IValueFailure {
     return {
       code: "too_small",
@@ -76,7 +96,13 @@ export class StringRuleChecker {
     };
   }
 
-  /** Builds the failure of a value longer than `limit`; `isExact` marks a `length` rule. */
+  /**
+   * Builds the failure for a string longer than its upper boundary.
+   * @param limit Maximum or exact length configured by the rule.
+   * @param isExact Whether the rule requires an exact length.
+   * @param value Rejected string.
+   * @returns Failure with length details.
+   */
   private static tooBig(limit: number, isExact: boolean, value: string): IValueFailure {
     return {
       code: "too_big",

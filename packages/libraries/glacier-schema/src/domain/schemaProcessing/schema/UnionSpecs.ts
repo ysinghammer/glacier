@@ -8,8 +8,11 @@ import type { ITypeSpec } from "./types/ITypeSpec.js";
 /** Turns the arguments of the union decorators into type specifications. */
 export class UnionSpecs {
   /**
-   * Builds the discriminated union for `config`. Throws `SchemaDefinitionError` naming `label` for an
-   * empty discriminator, no variants, or a variant that is not a class or `() => Class` reference.
+   * Builds a discriminated union specification from decorator configuration.
+   * @param config Discriminator property and variant mapping.
+   * @param label Class or field label used in definition diagnostics.
+   * @returns Validated union specification with resolved variant type metadata.
+   * @throws {SchemaDefinitionError} If the discriminator or mapping is absent or empty.
    */
   public static discriminated(
     config: IUnionOptions,
@@ -38,7 +41,12 @@ export class UnionSpecs {
     };
   }
 
-  /** Whether `spec` directly names `target` as a variant, which would make a root union recurse forever. */
+  /**
+   * Checks whether a root union directly includes its own base class.
+   * @param spec Discriminated union specification to inspect.
+   * @param target Class declared as the union base.
+   * @returns True when the base is a direct variant and would recurse without progress.
+   */
   public static hasDirectVariant(
     spec: Extract<ITypeSpec, { kind: "union" }>,
     target: IClass,
@@ -49,8 +57,11 @@ export class UnionSpecs {
   }
 
   /**
-   * Builds the non-discriminated union of `types`. Throws `SchemaDefinitionError` naming `label` when
-   * fewer than two types are given or one is not a primitive constructor, class or reference.
+   * Builds a non-discriminated union specification from element types.
+   * @param types At least two primitive, class or lazy-reference alternatives.
+   * @param label Field label used in definition diagnostics.
+   * @returns One-of specification preserving declaration order.
+   * @throws {SchemaDefinitionError} If fewer than two alternatives are supplied.
    */
   public static oneOf(
     types: readonly IElementType[],

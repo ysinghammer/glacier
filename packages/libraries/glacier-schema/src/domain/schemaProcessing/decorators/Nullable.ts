@@ -1,9 +1,8 @@
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 
 /**
- * Property decorator allowing `null`, which is kept as `null` on the instance without further checks.
- * `undefined` is still rejected unless `Optional` or `Default` applies. Records metadata only; throws
- * `SchemaDefinitionError` when the property already has `Nullable`.
+ * Allows null input and preserves it on the parsed instance without further field validation.
+ * @returns A property decorator that records nullability.
  */
 export function Nullable(): PropertyDecorator {
   return (target, key) => FieldRegistry.modify(target, key, "Nullable", { nullable: true });

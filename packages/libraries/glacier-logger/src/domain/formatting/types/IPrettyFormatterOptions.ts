@@ -1,8 +1,5 @@
-/** Options of `PrettyEntryFormatter`. */
+/** Caller-controlled configuration for pretty entry formatting. */
 export interface IPrettyFormatterOptions {
-  /**
-   * Whether output carries colour. Decided by the caller (for example from a TTY check) so the
-   * formatter stays deterministic. When `false` the output has no escape codes and no `%c`.
-   */
+  /** Whether ANSI or browser CSS styling is emitted; there is no automatic environment default. */
   readonly isColorEnabled: boolean;
 }

@@ -17,39 +17,52 @@ import { MetadataStorage } from "../storage/MetadataStorage.js";
 import { MetadataDecorator } from "../decorators/MetadataDecorator.js";
 import { MetadataBoundaryError } from "../failures/MetadataBoundary.error.js";
 
-/**
- * Definition-owned direct operations over weak class-local storage.
- * Names never establish identity. Values are trusted typed inputs, not general JavaScript validation.
- * Omitted addresses select class declarations; member sides default to instance.
- * Read-side operations accept canonical instance aliases without inspecting instance values or getters.
- * Plain objects/prototypes reject; descriptor/proxy inspection exceptions remain observable.
- * This shared base is internal and is not exported through the package root.
+/** Provides typed direct metadata operations over weak class-local storage.
+ * Names are labels, values are trusted, omitted addresses mean class, and reads accept canonical instances.
+ * @template TDeclaration Value accepted by writes and decorators.
+ * @template TValue Prepared and returned storage value type.
+ * @remarks Target/address inspection and snapshot failures from implementations remain observable.
  */
 export abstract class MetadataDefinitionOperations<
   in out TDeclaration,
   in out TValue,
 > implements IMetadataDefinitionIdentity {
+  /** Readonly descriptive label that does not establish identity or register the definition. */
   public readonly name: string;
+  /** Mutable weak class-local declaration store unique to this definition instance.
+   * @default Fresh empty store per definition instance.
+   */
   private storage = new MetadataStorage<TValue>();
+  /** Readonly fixed resolution semantics reported during definition discovery. */
   public abstract readonly kind: IMetadataKind;
-  /** Retains a descriptive label without registering or sharing identities. */
+  /** Retains a label without registering or sharing definition identity.
+   * @param name Descriptive name returned by discovery.
+   */
   protected constructor(name: string) {
     this.name = name;
   }
-  /** Converts the fixed declaration contract to this definition's stored value contract. */
+  /** Converts one typed declaration into the value representation stored by this definition.
+   * @param value Caller-supplied typed declaration.
+   * @returns Prepared value to store and later resolve.
+   */
   protected abstract prepare(value: TDeclaration): TValue;
-  /** Resolves nearest-first declarations according to the fixed definition meaning. */
+  /** Returns the nearest present value, or valid absence when no values exist.
+   * @param values Present values ordered nearest-first.
+   * @returns Present nearest value or an absence result.
+   */
   protected resolve(values: readonly TValue[]): IMetadataRead<TValue> {
     for (const value of values) {
       return { isValid: true, isPresent: true, value };
     }
     return { isValid: true, isPresent: false };
   }
-  /**
-   * Replaces one direct declaration on a constructor; repeated writes do not accumulate.
-   * Checks visible keys/fixed tuple positions against the target without widening it.
-   * Returns a typed atomic rejection for invalid targets/addresses/positions.
-   * Accumulating outer containers snapshot before storage; snapshot exceptions remain thrown.
+  /** Replaces one direct constructor declaration after checked target/address validation.
+   * Accumulating definitions snapshot outer containers; invalid inputs return without mutation.
+   * @template C Constructor type used to constrain the checked address.
+   * @param target Constructor owning the direct declaration.
+   * @param value Typed declaration value prepared before storage.
+   * @param address Optional checked class/member location; omitted means the class itself.
+   * @returns Successful write or typed rejection; repeated writes replace, not accumulate.
    */
   public set<C extends IClass>(
     target: C,
@@ -58,10 +71,12 @@ export abstract class MetadataDefinitionOperations<
   ): IMetadataWriteResult {
     return this.setDynamic(target, value, address);
   }
-  /**
-   * Replaces a constructor declaration using dynamic names/positions while retaining value typing.
-   * Validates address shape and safe nonnegative integer positions, not member existence or tuple bounds.
-   * Instances and inheritance options reject without mutation; inspection/snapshot exceptions propagate.
+  /** Replaces a constructor declaration using dynamic names while retaining value typing.
+   * Validates address shape and positions, but not member existence or tuple bounds.
+   * @param target Constructor owning the direct declaration; instances are rejected.
+   * @param value Typed declaration value prepared before storage.
+   * @param address Optional dynamic location; omitted means the class itself.
+   * @returns Successful write or typed rejection; rejected inputs do not mutate storage.
    */
   public setDynamic(
     target: IClass,
@@ -76,11 +91,12 @@ export abstract class MetadataDefinitionOperations<
     this.storage.set(normalizedTarget.owner, this, normalized.address, prepared);
     return { isValid: true };
   }
-  /**
-   * Reads the fixed value type through a constructor or class-instance alias.
-   * Inherited lookup is default; address.inheritance "own" selects direct class declarations.
-   * Validate isValid before isPresent: present undefined is distinct from absence.
-   * Instance addresses exclude static members and individual constructor parameters.
+  /** Reads the fixed value type through a constructor or canonical instance alias.
+   * Inherited lookup is default; inspect isValid before isPresent because undefined may be present.
+   * @template R Constructor or instance type used to check the address.
+   * @param target Constructor or ordinary instance alias to read from.
+   * @param address Optional checked location and lookup mode; omitted selects inherited class lookup.
+   * @returns Typed value, valid absence, or typed target/address rejection.
    */
   public read<R extends object>(
     target: R,
@@ -88,10 +104,11 @@ export abstract class MetadataDefinitionOperations<
   ): IMetadataRead<TValue> {
     return this.readDynamic(target, address);
   }
-  /**
-   * Reads dynamic/discovered locations with the same validation and inheritance as checked reads.
-   * Makes no finite-key, tuple-bound or signature-equivalence guarantee; parameter inheritance is positional.
-   * Instance static/constructor-parameter requests reject rather than appear absent.
+  /** Reads a dynamic location with the same validation and inheritance as checked reads.
+   * Dynamic addresses promise no finite keys, tuple bounds, or signature equivalence.
+   * @param target Constructor or canonical instance alias to read from.
+   * @param address Optional erased location and lookup mode; omitted selects inherited class lookup.
+   * @returns Typed value, valid absence, or typed target/address rejection.
    */
   public readDynamic(
     target: object,
@@ -110,9 +127,12 @@ export abstract class MetadataDefinitionOperations<
       ),
     );
   }
-  /**
-   * Checks validated presence at a checked location in inherited (default) or own mode.
-   * Undefined and empty accumulating declarations count as present; invalid inputs are not absence.
+  /** Checks whether a checked location has a declaration in inherited or own mode.
+   * Undefined and empty accumulating declarations count as present; rejection is not absence.
+   * @template R Constructor or instance type used to check the address.
+   * @param target Constructor or ordinary instance alias to inspect.
+   * @param address Optional checked location and lookup mode; omitted selects inherited class lookup.
+   * @returns Presence, or a typed rejection for invalid target/address input.
    */
   public has<R extends object>(
     target: R,
@@ -120,9 +140,11 @@ export abstract class MetadataDefinitionOperations<
   ): IMetadataPresenceResult {
     return this.hasDynamic(target, address);
   }
-  /**
-   * Checks presence at a dynamic location, retaining runtime target/address restrictions.
-   * Invalid inputs return rejection; exceptional inspection failures remain thrown.
+  /** Checks presence at a dynamic location under runtime target/address restrictions.
+   * Invalid input returns rejection; this method adds no exception handling for inspection failures.
+   * @param target Constructor or canonical instance alias to inspect.
+   * @param address Optional erased location and lookup mode; omitted selects inherited class lookup.
+   * @returns Presence, or a typed rejection for invalid target/address input.
    */
   public hasDynamic(
     target: object,
@@ -132,9 +154,12 @@ export abstract class MetadataDefinitionOperations<
     if (!result.isValid) return result;
     return { isValid: true, isPresent: result.isPresent };
   }
-  /**
-   * Deletes only this definition's direct constructor declaration, never an ancestor.
-   * Returns validated isDeleted; removal may reveal inherited metadata. Instances reject.
+  /** Deletes only this definition's direct declaration from a constructor.
+   * Removing it may reveal inherited metadata; instances are rejected.
+   * @template C Constructor type used to constrain the checked address.
+   * @param target Constructor owning the direct declaration.
+   * @param address Optional checked location; omitted means the class itself.
+   * @returns Successful deletion status, or typed rejection; false means no direct entry existed.
    */
   public delete<C extends IClass>(
     target: C,
@@ -142,9 +167,11 @@ export abstract class MetadataDefinitionOperations<
   ): IMetadataDeletionResult {
     return this.deleteDynamic(target, address);
   }
-  /**
-   * Deletes a dynamic constructor location without finite-key/tuple guarantees.
-   * Rejected inputs leave declarations unchanged; no inheritance/reset/suppression option exists.
+  /** Deletes a dynamic direct constructor location without key or tuple-bound guarantees.
+   * Rejected inputs leave declarations unchanged; deletion cannot reset or suppress inheritance.
+   * @param target Constructor owning the direct declaration; instances are rejected.
+   * @param address Optional erased location; omitted means the class itself.
+   * @returns Successful deletion status, or typed rejection; false means no direct entry existed.
    */
   public deleteDynamic(
     target: IClass,
@@ -159,12 +186,11 @@ export abstract class MetadataDefinitionOperations<
       isDeleted: this.storage.delete(normalizedTarget.owner, this, normalized.address),
     };
   }
-  /**
-   * Discovers distinct metadata-bearing addresses, not every runtime member or parameter.
-   * Lookup defaults to inherited; own means direct declarations on the resolved class.
-   * Instance aliases omit static and individual constructor-parameter locations.
-   * Arrays/target-free canonical records are shallow-frozen with unspecified ordering.
-   * Use readDynamic for returned records, explicitly carrying own mode into the read if needed.
+  /** Discovers distinct metadata-bearing addresses, not all runtime members or parameters.
+   * Results are shallow-frozen and unordered; instance aliases omit static and constructor locations.
+   * @param target Constructor or canonical instance alias to inspect.
+   * @param lookup Optional own/inherited mode; omitted includes ancestor declarations.
+   * @returns Frozen discovered addresses, or a typed target/lookup rejection.
    */
   public locations(target: object, lookup?: IMetadataLookup): IMetadataLocationsResult {
     const normalizedTarget = MetadataTarget.normalize(target, false);
@@ -180,12 +206,10 @@ export abstract class MetadataDefinitionOperations<
       ),
     };
   }
-  /**
-   * Creates a typed legacy decorator for class/member/accessor/constructor or method parameter locations.
-   * Snapshots accumulating outer containers now; replacement/contained values retain identity.
-   * Invocation replaces the direct declaration and returns void without replacing consumers.
-   * Legacy callback typing cannot prove source keys or tuple bounds; invalid invocation throws
-   * MetadataBoundaryError and exceptional inspection/snapshot failures remain observable.
+  /** Creates a legacy callback for writing one direct class, member, or parameter declaration.
+   * Accumulating containers snapshot when created; callback behavior follows its declared contract.
+   * @param value Typed declaration value prepared when the decorator is created.
+   * @returns Legacy callback; its invocation contract documents boundary errors on the callback type.
    */
   public decorator(value: TDeclaration): ILegacyMetadataDecorator {
     const prepared = this.prepare(value);

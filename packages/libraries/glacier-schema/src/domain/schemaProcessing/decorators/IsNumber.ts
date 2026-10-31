@@ -3,8 +3,9 @@ import { RuleDefinitionCheck } from "../schema/RuleDefinitionCheck.js";
 import type { INumberOptions } from "./types/INumberOptions.js";
 
 /**
- * Property decorator declaring that the field must be a finite number. Accepts the constraints of its options (checked for consistency when decorating). Records metadata only; throws
- * `SchemaDefinitionError` when the property's emitted TypeScript type contradicts it or it already has a type decorator.
+ * Declares a finite-number field and records its numeric constraints as schema metadata.
+ * @param options Optional numeric bounds, divisibility constraint and issue message.
+ * @returns A property decorator that registers the number field.
  */
 export function IsNumber(options?: INumberOptions): PropertyDecorator {
   const { message, ...rules } = options ?? {};

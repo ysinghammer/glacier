@@ -9,10 +9,10 @@ import type { IValueValidator } from "./ValueValidator.factory.js";
 /** Builds the validators of discriminated and non-discriminated unions. */
 export class UnionValidatorFactory {
   /**
-   * Returns a validator that reads the `discriminator` property of an object, picks the variant validator
-   * registered for its value and returns that variant's outcome, so issues point into the variant. A
-   * non-object is `invalid_type`; a missing, non-string or unregistered discriminator is
-   * `invalid_discriminator`, located at the discriminator property.
+   * Creates a validator that dispatches an object to the validator selected by its discriminator.
+   * @param discriminator Own property whose string value selects the variant.
+   * @param variants Map from allowed discriminator strings to value validators.
+   * @returns Validator that preserves the selected variant's outcome and issue paths.
    */
   public static discriminated(
     discriminator: string,
@@ -38,10 +38,9 @@ export class UnionValidatorFactory {
   }
 
   /**
-   * Returns a validator accepting a value that matches any option; the first matching option in declaration
-   * order wins. Options are tried without coercion first, and only when none matches and the call enables
-   * `coerce` once more with each option's own coercion, so an exact match is never converted. When nothing
-   * matches the single `invalid_union` failure lists the issues of every option in `params.attempts`.
+   * Creates a validator accepting the first matching non-discriminated union option.
+   * @param options Ordered validators and per-option coercers used only after exact checks fail.
+   * @returns Validator with one `invalid_union` failure containing attempts when none match.
    */
   public static oneOf(options: readonly IOneOfOption[]): IValueValidator {
     return (value, context) => {
@@ -59,7 +58,14 @@ export class UnionValidatorFactory {
     };
   }
 
-  /** Tries every option in order and stops at the first accepted one. */
+  /**
+   * Tries options in order, retaining failures until one accepts the value.
+   * @param options Ordered alternative validators and coercers.
+   * @param value Candidate value supplied to each option.
+   * @param context Per-parse options and nesting depth.
+   * @param isCoerced Whether each candidate is coerced before its validation.
+   * @returns First success and prior failures, or all failures when no option matches.
+   */
   private static attempt(
     options: readonly IOneOfOption[],
     value: unknown,
@@ -75,7 +81,11 @@ export class UnionValidatorFactory {
     return { isValid: false, failures: [], attempts };
   }
 
-  /** Builds the `invalid_union` rejection carrying the issues of each attempted option. */
+  /**
+   * Builds the `invalid_union` rejection from all attempted option failures.
+   * @param attempts Failures grouped by option in declaration order.
+   * @returns Rejected value outcome with serialisable issue details.
+   */
   private static noMatch(attempts: readonly (readonly IValueFailure[])[]): IValueOutcome {
     return {
       isValid: false,
@@ -98,7 +108,13 @@ export class UnionValidatorFactory {
     };
   }
 
-  /** Builds the rejection of a missing or unknown discriminator value. */
+  /**
+   * Builds an `invalid_discriminator` failure at the discriminator property.
+   * @param discriminator Property name used to select the variant.
+   * @param expected Allowed discriminator strings.
+   * @param received Actual discriminator value, possibly undefined.
+   * @returns Failure carrying expected and received discriminator details.
+   */
   private static discriminatorFailure(
     discriminator: string,
     expected: readonly string[],

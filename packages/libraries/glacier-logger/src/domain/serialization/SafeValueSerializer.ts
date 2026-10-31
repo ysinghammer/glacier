@@ -9,13 +9,12 @@ const FUNCTION_PLACEHOLDER = "[Function]";
 const SYMBOL_PLACEHOLDER = "[Symbol]";
 const INVALID_DATE_PLACEHOLDER = "[Invalid Date]";
 
-/**
- * Turns any value into a plain structure that `JSON.stringify` accepts. It never throws:
- * anything it cannot read becomes a stable placeholder string, and the caller's data is never
- * mutated.
- */
+/** Converts values to JSON-compatible data, substituting placeholders for unreadable values. */
 export class SafeValueSerializer {
-  /** Serialises each own enumerable property of a record, keeping the record shape. */
+  /** Serializes own enumerable record properties while preserving their keys.
+   * @param record - Structured data to serialize without mutation.
+   * @returns A plain record containing JSON-compatible values or placeholders.
+   */
   public static serializeRecord(
     record: Readonly<Record<string, unknown>>,
   ): Record<string, unknown> {
@@ -27,9 +26,11 @@ export class SafeValueSerializer {
     );
   }
 
-  /**
-   * Serialises a value reached through `ancestors`, the objects currently being serialised.
-   * Used by the error serialiser so cycles spanning both are detected.
+  /** Serializes a value while recognizing objects already active in the traversal.
+   * @param value - Value to convert.
+   * @param ancestors - Active objects used to detect circular references.
+   * @param depth - Current traversal depth, used for the maximum-depth limit.
+   * @returns A safe scalar, array, record, or placeholder for unsupported data.
    */
   public static serializeWithin(value: unknown, ancestors: Set<object>, depth: number): unknown {
     try {
@@ -39,7 +40,13 @@ export class SafeValueSerializer {
     }
   }
 
-  /** Serialises the named properties of `target`. A throwing getter yields a placeholder. */
+  /** Reads and serializes named properties, replacing a getter failure with a placeholder.
+   * @param target - Object that owns the requested properties.
+   * @param keys - Property names to read in the supplied order.
+   * @param ancestors - Active objects used to detect circular references.
+   * @param depth - Current traversal depth for nested values.
+   * @returns A plain record containing serialized values for the requested keys.
+   */
   public static serializeProperties(
     target: object,
     keys: readonly string[],
@@ -57,6 +64,12 @@ export class SafeValueSerializer {
     return Object.fromEntries(entries);
   }
 
+  /** Converts one value by type; the public wrapper replaces failures with a placeholder.
+   * @param value - Value to convert.
+   * @param ancestors - Active objects used to detect circular references.
+   * @param depth - Current traversal depth.
+   * @returns The converted value or an appropriate placeholder.
+   */
   private static serializeUnsafe(value: unknown, ancestors: Set<object>, depth: number): unknown {
     if (value === null) {
       return null;
@@ -80,6 +93,12 @@ export class SafeValueSerializer {
     }
   }
 
+  /** Serializes an object while enforcing cycle and depth limits.
+   * @param value - Object to serialize.
+   * @param ancestors - Active traversal objects; this method restores its own addition.
+   * @param depth - Current depth checked against the maximum.
+   * @returns Serialized object contents or a cycle/depth placeholder.
+   */
   private static serializeObject(value: object, ancestors: Set<object>, depth: number): unknown {
     if (ancestors.has(value)) {
       return CIRCULAR_PLACEHOLDER;
@@ -95,6 +114,12 @@ export class SafeValueSerializer {
     }
   }
 
+  /** Selects a representation for dates, errors, collections, arrays, and ordinary objects.
+   * @param value - Object whose contents are converted.
+   * @param ancestors - Active traversal objects for cycle detection.
+   * @param depth - Current depth passed to nested values.
+   * @returns A JSON-compatible representation of the object.
+   */
   private static serializeContents(value: object, ancestors: Set<object>, depth: number): unknown {
     if (value instanceof Date) {
       return Number.isNaN(value.getTime()) ? INVALID_DATE_PLACEHOLDER : value.toISOString();
@@ -118,6 +143,12 @@ export class SafeValueSerializer {
     return SafeValueSerializer.serializeProperties(value, Object.keys(value), ancestors, depth);
   }
 
+  /** Serializes each item in an iterable into an array.
+   * @param items - Values yielded in output order.
+   * @param ancestors - Active traversal objects for cycle detection.
+   * @param depth - Current depth passed to each item.
+   * @returns An array of serialized values.
+   */
   private static serializeItems(
     items: Iterable<unknown>,
     ancestors: Set<object>,
@@ -126,6 +157,10 @@ export class SafeValueSerializer {
     return Array.from(items, (item) => SafeValueSerializer.serializeWithin(item, ancestors, depth));
   }
 
+  /** Distinguishes typed arrays from `DataView` among array-buffer views.
+   * @param value - Object to classify.
+   * @returns `true` for a typed array with numeric or bigint elements.
+   */
   private static isTypedArray(value: object): value is ArrayLike<number | bigint> {
     return ArrayBuffer.isView(value) && !(value instanceof DataView);
   }

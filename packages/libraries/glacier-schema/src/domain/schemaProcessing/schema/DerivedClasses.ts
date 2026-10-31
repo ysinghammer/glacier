@@ -13,6 +13,7 @@ export type IDerivationKind = "partial" | "pick" | "omit" | "extend";
 
 /** How a derived class came to be, so later phases can name and describe it. */
 export interface IDerivation {
+  /** Mapped-type operation that produced the derived class. */
   readonly kind: IDerivationKind;
   /** The class the fields were copied from; for `extend` the base class. */
   readonly source: IClass;
@@ -25,9 +26,12 @@ const derivations = new WeakMap<IClass, IDerivation>();
 /** Builds the classes returned by the mapped type helpers and records their origin. */
 export class DerivedClasses {
   /**
-   * Creates a class named `name` whose own fields are `fields` and which carries the class-level refinements
-   * `refinements` take from. Freezes every class in `sources`, because the copy would otherwise silently diverge.
-   * Throws `SchemaDefinitionError` when a source is a union base class.
+   * Creates a named class with copied fields and selected inherited class refinements.
+   * @param derivation Origin metadata describing the mapped-type operation.
+   * @param name Runtime name assigned to the generated class.
+   * @param fields Effective fields copied onto the generated class.
+   * @param refinementSources Classes whose refinements are inherited by the result.
+   * @returns New constructor-free derived class with recorded origin metadata.
    */
   public static create(
     derivation: IDerivation,
@@ -50,7 +54,12 @@ export class DerivedClasses {
     return derived;
   }
 
-  /** Reads the effective fields of `source` after rejecting unions and freezing it. */
+  /**
+   * Reads effective fields from a class after preventing further schema decoration.
+   * @param source Source class whose field definitions are copied.
+   * @returns Effective fields in declaration order.
+   * @throws {SchemaDefinitionError} If `source` is a discriminated-union base class.
+   */
   public static fieldsOf(source: IClass): readonly IFieldDefinition[] {
     if (UnionRegistry.get(source) !== undefined) {
       throw new SchemaDefinitionError(
@@ -61,11 +70,20 @@ export class DerivedClasses {
     return FieldRegistry.readAll(source);
   }
 
-  /** Returns how `target` was derived, or `undefined` for ordinary classes and subclasses of derived ones. */
+  /**
+   * Retrieves mapped-type origin metadata for a generated class.
+   * @param target Class whose origin is queried.
+   * @returns Derivation details, or undefined for classes without direct metadata.
+   */
   public static describe(target: IClass): IDerivation | undefined {
     return derivations.get(target);
   }
 
+  /**
+   * Creates an empty runtime constructor with a chosen name.
+   * @param name Runtime class name used by schema diagnostics and references.
+   * @returns New class constructor with no copied methods or constructor behavior.
+   */
   private static declareClass(name: string): IClass {
     const derived = class {};
     Object.defineProperty(derived, "name", { value: name, configurable: true });

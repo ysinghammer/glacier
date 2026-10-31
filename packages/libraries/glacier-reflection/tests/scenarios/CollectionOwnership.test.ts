@@ -7,6 +7,7 @@ import {
 
 describe("shallow accumulating collection ownership", () => {
   it("freezes own-only snapshots without freezing or deduplicating their contained values", () => {
+    /** Target owning independent list and record snapshots. */
     class Target {}
     const contained = { name: "shared" };
     const list = new ListMetadataDefinition<typeof contained>("own list");
@@ -29,7 +30,9 @@ describe("shallow accumulating collection ownership", () => {
     expect(Object.isFrozen(contained)).toBe(false);
   });
   it("copies and freezes input and output list structure, preserving contained objects and replacement identity", () => {
+    /** Base owns the original input list snapshot. */
     class Base {}
+    /** Leaf adds a direct list contribution to the inherited snapshot. */
     class Leaf extends Base {}
     const first = { name: "first" };
     const second = { name: "second" };
@@ -59,7 +62,9 @@ describe("shallow accumulating collection ownership", () => {
   });
 
   it("copies own enumerable string entries into frozen null-prototype records with safe reserved keys", () => {
+    /** Base owns the original input record snapshot. */
     class Base {}
+    /** Leaf adds a direct entry that replaces an inherited key. */
     class Leaf extends Base {}
     const person = { name: "Ada" };
     const replacement = { name: "Grace" };
@@ -98,6 +103,7 @@ describe("shallow accumulating collection ownership", () => {
   });
 
   it("prepares complete snapshots before writes so an enumerable getter failure leaves previous data intact", () => {
+    /** Target retains the original record when snapshot preparation throws. */
     class Target {}
     const record = new RecordMetadataDefinition<string>("atomic");
     record.set(Target, { old: "retained" });
@@ -105,6 +111,11 @@ describe("shallow accumulating collection ownership", () => {
     const input = { next: "new" };
     Object.defineProperty(input, "broken", {
       enumerable: true,
+      /**
+       * Throws the snapshot failure whenever the enumerable value is read.
+       * @returns Never returns; every read throws the captured failure.
+       * @throws {Error} Whenever snapshot preparation evaluates this property.
+       */
       get: () => {
         throw failure;
       },

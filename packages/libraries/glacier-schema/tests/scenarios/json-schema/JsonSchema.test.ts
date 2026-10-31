@@ -49,10 +49,21 @@ const OPENAPI = { target: "openapi-3.1" } as const;
 const DEFS = "#/$defs/";
 const SCHEMAS = "#/components/schemas/";
 
+/**
+ * Reads the draft schema definitions from a generated document.
+ * @param document Generated JSON Schema document with a `$defs` member.
+ * @returns Definitions record used by assertions; the test fixture guarantees its shape.
+ */
 function defsOf(document: Record<string, unknown>): Record<string, Record<string, unknown>> {
   return document.$defs as Record<string, Record<string, unknown>>;
 }
 
+/**
+ * Selects a named definition's property schemas from a generated document.
+ * @param document Generated JSON Schema document containing `$defs`.
+ * @param name Definition key whose property schemas are needed.
+ * @returns Property schemas for the requested definition.
+ */
 function propertiesOf(
   document: Record<string, unknown>,
   name: string,
@@ -60,7 +71,12 @@ function propertiesOf(
   return defsOf(document)[name]?.properties as Record<string, Record<string, unknown>>;
 }
 
-/** Declares one field on a fresh class and returns the generated schema of that field. */
+/**
+ * Generates one field schema from a fresh publicly declared class.
+ * @param designType Design type recorded for the fixture property, if available.
+ * @param decorators Public property decorators applied in declaration order.
+ * @returns Generated schema for the fixture's `value` property, or an empty record.
+ */
 function fieldSchema(
   designType:
     | StringConstructor
@@ -70,7 +86,9 @@ function fieldSchema(
     | undefined,
   ...decorators: PropertyDecorator[]
 ): Record<string, unknown> {
+  /** One-field fixture used to generate a property schema. */
   class Holder {
+    /** Field represented by the generated schema fragment. */
     public value!: unknown;
   }
   FieldDeclaration.declare(Holder, "value", designType as StringConstructor, ...decorators);
@@ -78,12 +96,17 @@ function fieldSchema(
 }
 
 describe("SCH-120 Document layout per target", () => {
+  /** Address fixture represented as a referenced JSON Schema definition. */
   class Address {
+    /** City value emitted as a required string property. */
     public city!: string;
   }
   FieldDeclaration.declare(Address, "city", String, IsString());
+  /** Person fixture referencing its address in generated documents. */
   class Person {
+    /** Required display name represented as a string property. */
     public name!: string;
+    /** Required nested address represented by a schema reference. */
     public home!: Address;
   }
   FieldDeclaration.declare(Person, "name", String, IsString());
@@ -125,8 +148,11 @@ describe("SCH-120 Document layout per target", () => {
   });
 
   it("emits a class once however often it is referenced", () => {
+    /** Pair fixture containing two references to the same address definition. */
     class Pair {
+      /** First reference to the shared address schema. */
       public first!: Address;
+      /** Second reference to the shared address schema. */
       public second!: Address;
     }
     FieldDeclaration.declare(Pair, "first", Object, IsObject(Address));
@@ -136,9 +162,13 @@ describe("SCH-120 Document layout per target", () => {
   });
 
   it("resolves cycles, including to the root, through $ref", () => {
+    /** Recursive node fixture represented by self-referential schema references. */
     class Node {
+      /** Required node label. */
       public label!: string;
+      /** Optional next node in the recursive chain. */
       public next?: Node;
+      /** Child nodes recursively represented as an array. */
       public children!: Node[];
     }
     FieldDeclaration.declare(Node, "label", String, IsString());
@@ -165,7 +195,9 @@ describe("SCH-120 Document layout per target", () => {
   });
 
   it("escapes definition names inside the pointer", () => {
+    /** Fixture whose generated definition name contains pointer-special characters. */
     class Odd {
+      /** Required field retained in the escaped definition. */
       public id!: string;
     }
     Describe({ name: "a/b~c d" })(Odd);
@@ -303,11 +335,20 @@ describe("SCH-122 Collections", () => {
 });
 
 describe("SCH-123 Modifiers", () => {
+  /** Account fixture covering aliases, defaults, optionality and nullability. */
   class Account {
+    /** Required identifier emitted as a string. */
     public id!: string;
+    /** Optional nickname excluded from required properties. */
     public nickname?: string;
+    /**
+     * Role supplied by the default and therefore not required on input.
+     * @default "member"
+     */
     public role!: string;
+    /** Email represented by its `mail` wire alias. */
     public email!: string;
+    /** Nullable integer age emitted with a null alternative. */
     public age!: number | null;
   }
   FieldDeclaration.declare(Account, "id", String, IsString());
@@ -329,7 +370,9 @@ describe("SCH-123 Modifiers", () => {
   });
 
   it("omits required when every field is optional", () => {
+    /** Fixture with one optional property and no required definition list. */
     class Loose {
+      /** Optional string field omitted from the required list. */
       public a?: string;
     }
     FieldDeclaration.declare(Loose, "a", String, IsString(), Optional());
@@ -350,7 +393,9 @@ describe("SCH-123 Modifiers", () => {
       enum: ["a", "b", null],
     });
     expect(fieldSchema(undefined, IsAny(), Nullable())).toEqual({ anyOf: [{}, { type: "null" }] });
+    /** Nested schema referenced by a nullable property. */
     class Inner {
+      /** Required nested identifier. */
       public id!: string;
     }
     FieldDeclaration.declare(Inner, "id", String, IsString());
@@ -360,7 +405,9 @@ describe("SCH-123 Modifiers", () => {
   });
 
   it("accepts modifiers before or after the type decorator", () => {
+    /** Fixture proving modifier and annotation order does not change generation. */
     class Reordered {
+      /** Nullable string property carrying a title annotation. */
       public value!: string;
     }
     FieldDeclaration.declare(
@@ -379,19 +426,26 @@ describe("SCH-123 Modifiers", () => {
 });
 
 describe("SCH-124 Unions", () => {
+  /** Cat union variant with a literal discriminator and positive life count. */
   class Cat {
+    /** Literal selecting this variant. */
     public type!: "cat";
+    /** Positive integer count belonging to this variant. */
     public lives!: number;
   }
   FieldDeclaration.declare(Cat, "type", String, IsLiteral("cat"));
   FieldDeclaration.declare(Cat, "lives", Number, IsInt({ min: 1 }));
+  /** Dog union variant with its literal discriminator. */
   class Dog {
+    /** Literal selecting this variant. */
     public type!: "dog";
   }
   FieldDeclaration.declare(Dog, "type", String, IsLiteral("dog"));
 
   it("maps a discriminated union property to oneOf with a discriminator mapping", () => {
+    /** Owner fixture whose pet field references the cat and dog variants. */
     class Owner {
+      /** Required pet selected by its logical `type` discriminator. */
       public pet!: Cat | Dog;
     }
     FieldDeclaration.declare(
@@ -412,6 +466,7 @@ describe("SCH-124 Unions", () => {
   });
 
   it("maps a union base class to a oneOf definition and uses components in openapi-3.1", () => {
+    /** Class-level union root for the OpenAPI definition test. */
     class Pet {}
     IsUnion({ discriminator: "type", variants: { cat: Cat, dog: Dog } })(Pet);
     const document = Schema.toJsonSchema(Pet, OPENAPI);
@@ -462,7 +517,9 @@ describe("SCH-125 Describe and JsonSchema", () => {
   });
 
   it("annotates a field that references a class next to its $ref", () => {
+    /** Referenced target fixture included alongside a field annotation. */
     class Target {
+      /** Required target identifier. */
       public id!: string;
     }
     FieldDeclaration.declare(Target, "id", String, IsString());
@@ -475,7 +532,9 @@ describe("SCH-125 Describe and JsonSchema", () => {
   });
 
   it("annotates classes and names their definition", () => {
+    /** Buyer fixture with a custom generated definition name. */
     class Buyer {
+      /** Required buyer identifier. */
       public id!: string;
     }
     Describe({ name: "Customer", title: "A customer", description: "Someone who buys" })(Buyer);
@@ -492,7 +551,9 @@ describe("SCH-125 Describe and JsonSchema", () => {
   });
 
   it("merges JsonSchema fragments over generated keywords on properties and classes", () => {
+    /** Strict fixture whose class and field fragments override generated keywords. */
     class Strict {
+      /** Required code property with a generated minimum length. */
       public code!: string;
     }
     Describe({ title: "Ignored by fragment" })(Strict);
@@ -514,12 +575,15 @@ describe("SCH-125 Describe and JsonSchema", () => {
   });
 
   it("does not inherit class annotations", () => {
+    /** Parent fixture carrying class-level annotations and an identifier. */
     class Parent {
+      /** Required identifier inherited as a field declaration. */
       public id!: string;
     }
     JsonSchema({ $comment: "base" })(Parent);
     Describe({ name: "Base", title: "Base" })(Parent);
     FieldDeclaration.declare(Parent, "id", String, IsString());
+    /** Child fixture used to confirm class annotations are not inherited. */
     class Child extends Parent {}
     expect(defsOf(Schema.toJsonSchema(Child, DRAFT))["Child"]).toEqual({
       type: "object",
@@ -529,7 +593,9 @@ describe("SCH-125 Describe and JsonSchema", () => {
   });
 
   it("rejects invalid decorator use", () => {
+    /** Host fixture used to exercise invalid annotation targets and duplicates. */
     class Host {
+      /** Field used for property-level annotation validation. */
       public value!: string;
     }
     expect(() => Describe({ name: "" })(Host)).toThrow(SchemaDefinitionError);
@@ -554,24 +620,37 @@ describe("SCH-125 Describe and JsonSchema", () => {
 
 describe("SCH-126 Names, collisions and invalid input", () => {
   it("rejects two different classes with the same definition name", () => {
+    /** First class owning the requested definition name. */
     class First {
+      /** Required identifier shared by the collision fixtures. */
       public id!: string;
     }
     FieldDeclaration.declare(First, "id", String, IsString());
+    /**
+     * Creates an unrelated class that references `First`.
+     * @returns Constructor for a separate schema graph with a unique root.
+     */
     const other = (): new () => object => {
+      /** Nested schema used to verify definition-name scoping. */
       class Item {
+        /** Reference field pointing to the first definition. */
         public first!: First;
       }
       FieldDeclaration.declare(Item, "first", Object, IsObject(First));
       return Item;
     };
+    /** Second class deliberately assigned the first class's definition name. */
     class Imposter {
+      /** Required identifier colliding with `First`'s definition. */
       public id!: string;
     }
     Describe({ name: "First" })(Imposter);
     FieldDeclaration.declare(Imposter, "id", String, IsString());
+    /** Root referencing both colliding classes. */
     class Holder {
+      /** Reference to the original definition. */
       public first!: First;
+      /** Reference to the class with the duplicate definition name. */
       public second!: Imposter;
     }
     FieldDeclaration.declare(Holder, "first", Object, IsObject(First));
@@ -581,18 +660,25 @@ describe("SCH-126 Names, collisions and invalid input", () => {
   });
 
   it("lets Describe({ name }) resolve a collision", () => {
+    /** First class retaining its native definition name. */
     class Left {
+      /** Required identifier. */
       public id!: string;
     }
     FieldDeclaration.declare(Left, "id", String, IsString());
+    /** Second class assigned a non-colliding custom definition name. */
     class Right {
+      /** Required identifier. */
       public id!: string;
     }
     Describe({ name: "Left2" })(Right);
     FieldDeclaration.declare(Right, "id", String, IsString());
     Object.defineProperty(Right, "name", { value: "Left" });
+    /** Root referencing both independently named definitions. */
     class Both {
+      /** Reference to the first definition. */
       public left!: Left;
+      /** Reference to the explicitly renamed definition. */
       public right!: Right;
     }
     FieldDeclaration.declare(Both, "left", Object, IsObject(Left));
@@ -611,6 +697,7 @@ describe("SCH-126 Names, collisions and invalid input", () => {
   });
 
   it("rejects unknown targets", () => {
+    /** Empty fixture used to exercise an unsupported generation target. */
     class Plain {}
     expect(() =>
       Schema.toJsonSchema(Plain, { target: "openapi-3.0" as IJsonSchemaTarget }),
@@ -618,7 +705,9 @@ describe("SCH-126 Names, collisions and invalid input", () => {
   });
 
   it("surfaces fields that have modifiers but no type", () => {
+    /** Fixture with an optional modifier but no base type declaration. */
     class Broken {
+      /** Field whose missing type is rejected during generation. */
       public value!: string;
     }
     Optional()(Broken.prototype, "value");
@@ -627,9 +716,13 @@ describe("SCH-126 Names, collisions and invalid input", () => {
 });
 
 describe("SCH-127 Derived classes and structural validity", () => {
+  /** Source fixture for partial, pick, omit and extend schema composition. */
   class Base {
+    /** UUID-formatted identifier retained by derived classes. */
     public id!: string;
+    /** Required title with a descriptive annotation. */
     public title!: string;
+    /** Optional non-negative stock count. */
     public stock?: number;
   }
   FieldDeclaration.declare(Base, "id", String, IsString({ format: "uuid" }));
@@ -658,24 +751,39 @@ describe("SCH-127 Derived classes and structural validity", () => {
     expect(Object.keys(defsOf(Schema.toJsonSchema(OmitType(Base, ["id"]), DRAFT)))).toEqual([
       "OmitBase",
     ]);
-    const extended = ExtendType(Base, class Extra {}, { name: "Extended" });
+    const extended = ExtendType(
+      Base,
+      /** Empty extension preserving the requested generated class name. */
+      class Extra {},
+      { name: "Extended" },
+    );
     expect(Object.keys(defsOf(Schema.toJsonSchema(extended, DRAFT)))).toEqual(["Extended"]);
   });
 
   it("produces structurally valid documents for every target", () => {
+    /** Leaf schema combining scalar, collection and nullable enum fields. */
     class Leaf {
+      /** Lowercase identifier constrained by a regular expression. */
       public id!: string;
+      /** At least one string tag. */
       public tags!: string[];
+      /** Nullable mode selected from a finite enum. */
       public mode!: string;
     }
     FieldDeclaration.declare(Leaf, "id", String, IsString({ pattern: /^[a-z]+$/u }));
     FieldDeclaration.declare(Leaf, "tags", Array, IsArray(String, { min: 1 }));
     FieldDeclaration.declare(Leaf, "mode", String, IsEnum(["a", "b"]), Nullable());
+    /** Tree fixture referencing a leaf, recursive children and a tuple. */
     class Tree {
+      /** Required leaf schema reference. */
       public leaf!: Leaf;
+      /** Recursive child nodes represented as an array. */
       public kids!: Tree[];
+      /** Fixed pair of string and number values. */
       public pair!: [string, number];
+      /** String-keyed record of leaf objects. */
       public bag!: Record<string, Leaf>;
+      /** Nullable union of a scalar string or leaf object. */
       public either!: string | Leaf;
     }
     FieldDeclaration.declare(Tree, "leaf", Object, IsObject(Leaf));

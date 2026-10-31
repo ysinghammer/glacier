@@ -58,7 +58,9 @@ import {
   Schema,
 } from "../../index.js";
 
+/** Input fixture used to verify parsing and public type inference. */
 class User {
+  /** Required name field used by the parser contract checks. */
   public name!: string;
 }
 
@@ -97,7 +99,9 @@ const decorators: PropertyDecorator[] = [
 const collectionOptions: ICollectionOptions = { min: 1, max: 2, unique: true, message: "m" };
 const sizeOptions: ISizeOptions = { min: 1, max: 2 };
 const elementType: IElementType = String;
+/** Recursive fixture used to type-check nested collection declarations. */
 class Node {
+  /** Child nodes accepted by the public collection decorator. */
   public children!: Node[];
 }
 const collections: PropertyDecorator[] = [
@@ -207,8 +211,11 @@ void [
   builtIn,
 ];
 
+/** Fixture for verifying derived-class APIs preserve inferred account fields. */
 class Account {
+  /** Stable identifier retained by picked and omitted derived types. */
   public id!: string;
+  /** Account label whose type is replaced by the extension contract. */
   public name!: string;
 }
 const update: IDerivedClass<Partial<Account>> = PartialType(Account);

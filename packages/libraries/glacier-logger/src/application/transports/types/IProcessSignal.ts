@@ -1,2 +1,2 @@
-/** Signals on which buffered transports flush before the process terminates. */
+/** Termination signals that trigger buffered transport flushing. */
 export type IProcessSignal = "SIGINT" | "SIGTERM";

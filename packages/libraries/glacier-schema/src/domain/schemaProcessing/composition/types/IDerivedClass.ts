@@ -1,2 +1,5 @@
-/** Class produced by a mapped type helper; it can be parsed, extended and decorated like any schema class. */
+/**
+ * Class produced by a mapped-type helper and usable as a schema class.
+ * @template T Instance shape parsed by the generated class.
+ */
 export type IDerivedClass<T extends object> = new () => T;

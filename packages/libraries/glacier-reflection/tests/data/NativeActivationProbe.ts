@@ -4,7 +4,12 @@ import { fileURLToPath } from "node:url";
 
 /** Runs platform preconditions that would break Vitest's own Reflect.apply usage. */
 export class NativeActivationProbe {
-  /** Awaits native assertions and process exit; Vitest's V8 collector inherits and consumes real child coverage. */
+  /**
+   * Runs native activation assertions in a fresh child and retains its real V8 coverage.
+   * @param mode Reflect condition exercised by the child process.
+   * @returns Captured standard output after a successful child exit.
+   * @throws {Error} When the child cannot start, times out, or assertions fail.
+   */
   public static run(mode: "absent" | "unavailable" | "null" | "throwing"): string {
     const result = spawnSync(
       process.execPath,

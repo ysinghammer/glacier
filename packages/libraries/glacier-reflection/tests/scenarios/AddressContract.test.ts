@@ -8,6 +8,7 @@ import { ContractTarget as ContractTargetBase } from "../data/ContractTarget.js"
 
 let ContractTarget: typeof ContractTargetBase;
 beforeEach(() => {
+  /** Fresh constructor identity for each independently executed address case. */
   ContractTarget = class extends ContractTargetBase {};
 });
 
@@ -56,6 +57,7 @@ describe("embedded address validation and location isolation", () => {
     },
   );
   it("all class side member and parameter positions remain isolated", () => {
+    /** Child constructor used to verify independent class-side metadata. */
     class Other extends ContractTarget {}
     const definition = new ValueMetadataDefinition<number>("matrix");
     ADDRESSES.forEach((address, index) => {
@@ -286,6 +288,7 @@ describe("embedded address validation and location isolation", () => {
     "noncanonical constructor descriptor %s rejects across public operations without consumer calls",
     (shape) => {
       let calls = 0;
+      /** Constructor whose prototype descriptor is altered by this case. */
       class Malformed {}
       if (shape === "missing") {
         Reflect.deleteProperty(Malformed.prototype, "constructor");

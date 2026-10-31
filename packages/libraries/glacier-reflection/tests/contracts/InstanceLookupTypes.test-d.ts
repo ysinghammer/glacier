@@ -29,16 +29,38 @@ void MetadataDiscovery.prototype;
 const discoveryInstance: MetadataDiscovery = MetadataDiscovery;
 void discoveryInstance;
 
-/** Supplies an instance-only checked surface with inherited and callable members. */
+/** Supplies one inherited instance property for checked instance addressing. */
 class Base {
+  /**
+   * Mutable inherited instance value addressed through a derived instance.
+   * @default 1
+   */
   public inherited = 1;
 }
-/** Supplies static and constructor addresses unavailable through an instance. */
+/** Supplies a static key, constructor argument, and callable instance member. */
 class Consumer extends Base {
+  /**
+   * Mutable static key intentionally unavailable through the checked instance surface.
+   * @default 1
+   */
   public static field = 1;
-  constructor(public readonly input: string) {
+
+  /**
+   * Creates an instance with a single required constructor argument.
+   * @param input Constructor value retained by this type fixture.
+   */
+  constructor(
+    /** Readonly input retained on the instance for checked target inference. */
+    public readonly input: string,
+  ) {
     super();
   }
+  /**
+   * Supplies a finite method tuple with an optional trailing position.
+   * @param input Required numeric method argument.
+   * @param optional Optional flag; defaults to `undefined`.
+   * @returns No value; consumes the arguments for type-contract checks.
+   */
   public method(input: number, optional?: boolean): void {
     void [input, optional];
   }

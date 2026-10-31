@@ -33,6 +33,7 @@ describe("SCH-130 recursive logical-to-wire projection", () => {
   it("reads logical names, strips uninspected extras and copies shared nested values independently", () => {
     /** Child DTO with a wire alias. */
     class Child {
+      /** Logical name serialized under the `wireName` key. */
       public name!: string;
     }
     IsString()(Child.prototype, "name");
@@ -137,11 +138,20 @@ describe("SCH-131 output modifier and refinement direction", () => {
     let constructors = 0;
     /** Nested logical DTO methods can inspect validated fields without constructor state. */
     class Child {
+      /** Name validated before the nested refinement runs. */
       public name!: string;
+
+      /**
+       * Counts explicit construction to prove projection avoids the constructor.
+       */
       public constructor() {
         constructors++;
       }
-      /** Validates the logical name. */
+
+      /**
+       * Checks whether the parsed logical name matches the expected user.
+       * @returns `true` only when the name is `Ada`.
+       */
       public hasName(): boolean {
         return this.name === "Ada";
       }
@@ -221,12 +231,21 @@ describe("SCH-131 output modifier and refinement direction", () => {
     let constructors = 0;
     /** Logical DTO with a public cross-field rule. */
     class Dto {
+      /** Logical name read from the `alias` wire key. */
       public name!: string;
+
+      /**
+       * Records construction and initializes the logical name for direct callers.
+       * @param argument Name stored by direct construction; schema projection skips this constructor.
+       */
       public constructor(argument: string) {
         constructors++;
         this.name = argument;
       }
-      /** Reads validated logical state, not renamed wire input. */
+      /**
+       * Reads validated logical state, not renamed wire input.
+       * @returns Whether the validated name equals `Ada`.
+       */
       public isAda(): boolean {
         return this.name === "Ada";
       }

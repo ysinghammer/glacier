@@ -18,49 +18,128 @@ import {
   type IStaticMemberKey,
 } from "@glacier/reflection";
 
-/** Supplies inherited public keys for checked addressing. */
+/** Supplies one inherited public instance key for target-anchored address checks. */
 class Base {
+  /**
+   * Mutable inherited value used by checked member-key inference.
+   * @default 1
+   */
   public inherited = 1;
 }
-/** Supplies finite, optional, empty, rest and overloaded signatures. */
+/** Supplies representative signatures for checked member and parameter address inference. */
 class Consumer extends Base {
+  /**
+   * Mutable instance field accepted by checked member addresses.
+   * @default 1
+   */
   public field = 1;
+  /**
+   * Mutable optional callable field with optional parameters for address inference.
+   * @param input Required text argument supplied to the function.
+   * @param flag Optional flag; defaults to `undefined` when the function is called.
+   * @returns No value; the callback is used only for type inference.
+   */
   public optionalMethod?: (input: string, flag?: boolean) => void;
+  /**
+   * Mutable numeric instance key accepted after property-key normalization.
+   * @default "numeric"
+   */
   public 7 = "numeric";
+  /**
+   * Mutable static key accepted by static address inference.
+   * @default 2
+   */
   public static field = 2;
+
+  /**
+   * Constructs an instance with required and optional emitted parameters.
+   * @param input Required instance input.
+   * @param optional Optional flag; defaults to `undefined`.
+   */
   constructor(
+    /** Readonly required constructor value exposed as an instance property. */
     public readonly input: string,
+    /** Readonly optional constructor flag exposed as an instance property. */
     public readonly optional?: boolean,
   ) {
     super();
   }
+  /**
+   * Supplies a finite optional tuple for instance method addressing.
+   * @param input Required method input.
+   * @param optional Optional flag; defaults to `undefined`.
+   * @returns No value; consumes the arguments for type-contract checks.
+   */
   public method(input: string, optional?: boolean): void {
     void [input, optional];
   }
+  /**
+   * Supplies a callable member with no addressable parameter positions.
+   * @returns No value.
+   */
   public empty(): void {}
+  /**
+   * Supplies an unbounded rest tuple for dynamic position inference.
+   * @param input Values accepted by the rest parameter.
+   * @returns No value; consumes the supplied values.
+   */
   public rest(...input: string[]): void {
     void input;
   }
+  /**
+   * First overload is intentionally excluded from exposed tuple inference.
+   * @param input Text argument accepted by this overload.
+   * @returns No value.
+   */
   public overloaded(input: string): void;
+  /**
+   * Second overload defines the exposed finite parameter tuple.
+   * @param input Numeric argument accepted by this overload.
+   * @param second Required flag accepted by this overload.
+   * @returns No value.
+   */
   public overloaded(input: number, second: boolean): void;
+  /**
+   * Implements both overload signatures for the test fixture.
+   * @param input Text or numeric overload argument.
+   * @param second Optional flag used by the numeric overload.
+   * @returns No value; consumes the overload inputs.
+   */
   public overloaded(input: string | number, second?: boolean): void {
     void [input, second];
   }
+  /**
+   * Supplies a symbol-keyed callable instance member.
+   * @returns An empty string iterator.
+   */
   public [Symbol.iterator](): Iterator<string> {
     return [][Symbol.iterator]();
   }
+  /**
+   * Supplies a finite static method parameter tuple.
+   * @param input Numeric argument represented by the static tuple.
+   * @returns No value; consumes the supplied argument.
+   */
   public static method(input: number): void {
     void input;
   }
 }
-/** Private constructors expose identity but not parameter tuples. */
+/** Private constructor fixture exposes class identity but not its checked tuple. */
 class PrivateConsumer {
+  /**
+   * Prevents construction while retaining a private constructor parameter.
+   * @param input Private constructor input unavailable to checked addressing.
+   */
   private constructor(input: string) {
     void input;
   }
 }
-/** Protected constructors expose identity but not parameter tuples. */
+/** Protected constructor fixture exposes class identity but not its checked tuple. */
 class ProtectedConsumer {
+  /**
+   * Prevents direct construction while retaining a protected parameter.
+   * @param input Protected constructor input unavailable to checked addressing.
+   */
   protected constructor(input: string) {
     void input;
   }

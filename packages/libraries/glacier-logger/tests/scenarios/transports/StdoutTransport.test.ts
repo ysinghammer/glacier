@@ -9,12 +9,23 @@ import type { ILoggerConfiguration, Logger } from "../../../index.js";
 import { FakeProcessHost } from "../../doubles/FakeProcessHost.js";
 import { IS_NODE } from "../../doubles/RuntimeKind.js";
 
+/** Groups the process host, factory, and logger created for a stdout scenario. */
 interface IStdoutSetup {
+  /** Readonly fake process host exposing writes and lifecycle listeners. */
   readonly host: FakeProcessHost;
+  /** Readonly factory whose flush operation drains the configured stdout transport. */
   readonly factory: LoggerFactory;
+  /** Readonly logger configured with the `Stdout` context. */
   readonly logger: Logger;
 }
 
+/**
+ * Builds a stdout transport fixture with optional transport and logger settings.
+ * @param options Transport options merged over the fixture's fake process host.
+ * @param configuration Optional factory settings merged over the baseline.
+ * @returns The host, factory, and logger for assertions.
+ * @throws {Error} If logger creation unexpectedly rejects the fixed valid configuration.
+ */
 function setup(
   options: ConstructorParameters<typeof NodeStdoutTransport>[0] = {},
   configuration: Partial<ILoggerConfiguration> = {},
@@ -32,6 +43,11 @@ function setup(
   return { host, factory, logger: created.logger };
 }
 
+/**
+ * Parses non-empty JSON lines from output chunks and extracts their message values.
+ * @param chunks Stream chunks captured in write order.
+ * @returns Message values converted to strings, in line order.
+ */
 function messagesOf(chunks: readonly string[]): string[] {
   return chunks
     .join("")

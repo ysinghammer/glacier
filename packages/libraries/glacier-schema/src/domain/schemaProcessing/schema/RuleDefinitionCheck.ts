@@ -7,8 +7,11 @@ import { StringFormats } from "../validation/StringFormats.js";
 /** Rejects constraint declarations that could never be satisfied or are malformed, when decorating. */
 export class RuleDefinitionCheck {
   /**
-   * Throws `SchemaDefinitionError` naming `label` when `rules` contain a negative or fractional length,
-   * `min` above `max`, `length` combined with `min` or `max`, an unknown `format` or a non-RegExp `pattern`.
+   * Validates string-rule ranges and configured pattern and format values.
+   * @param label Field label included in definition diagnostics.
+   * @param rules String constraints and normalisations to check.
+   * @returns No value; validates the declaration before metadata is stored.
+   * @throws {SchemaDefinitionError} If string constraints or formats are malformed.
    */
   public static string(label: string, rules: IStringRules): void {
     for (const name of ["min", "max", "length"] as const) {
@@ -32,8 +35,11 @@ export class RuleDefinitionCheck {
   }
 
   /**
-   * Throws `SchemaDefinitionError` naming `label` when a bound is not a finite number, the bounds leave
-   * no accepted value, or `multipleOf` is not a positive finite number.
+   * Validates numeric bounds and the positive divisor constraint.
+   * @param label Field label included in definition diagnostics.
+   * @param rules Numeric constraints to check.
+   * @returns No value; validates the declaration before metadata is stored.
+   * @throws {SchemaDefinitionError} If numeric bounds conflict or are non-finite.
    */
   public static number(label: string, rules: INumberRules): void {
     for (const name of ["min", "max", "exclusiveMin", "exclusiveMax", "multipleOf"] as const) {
@@ -58,8 +64,11 @@ export class RuleDefinitionCheck {
   }
 
   /**
-   * Throws `SchemaDefinitionError` naming `label` when `min` or `max` is not a non-negative integer or
-   * `min` exceeds `max`.
+   * Validates non-negative integer collection-size bounds.
+   * @param label Field label included in definition diagnostics.
+   * @param rules Minimum and maximum entry counts.
+   * @returns No value; validates the declaration before metadata is stored.
+   * @throws {SchemaDefinitionError} If a bound is invalid or minimum exceeds maximum.
    */
   public static size(label: string, rules: ISizeRules): void {
     for (const name of ["min", "max"] as const) {

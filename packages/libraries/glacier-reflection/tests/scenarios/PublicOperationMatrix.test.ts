@@ -18,16 +18,34 @@ import type {
   IDynamicClassMetadataAddress,
 } from "../../index.js";
 
-/** The ordinary declaration shape, with the separately inferred retrieval contract. */
+/**
+ * Ordinary definition shape with a separately inferred retrieval contract.
+ * @template TDeclaration Value supplied to each definition operation.
+ * @template TValue Value returned by reads and inherited resolution.
+ */
 type IMatrixDefinition<TDeclaration, TValue> = Omit<
   ValueMetadataDefinition<TDeclaration>,
   "read" | "readDynamic" | "kind"
 > & {
+  /** Readonly aggregation kind distinguishing value/list/record behavior. */
   readonly kind: IMetadataKind;
+  /**
+   * Reads the target using the fixture's independent retrieval type.
+   * @template R Constructor or instance whose checked keys anchor the address.
+   * @param target Constructable or instance target to read.
+   * @param address Optional checked address and inheritance mode.
+   * @returns Typed success value or public address rejection.
+   */
   read<R extends object>(
     target: R,
     address?: IMetadataReadAddress<NoInfer<R>> & IMetadataLookup,
   ): IMetadataRead<TValue>;
+  /**
+   * Reads a target using a dynamic address that need not be statically known.
+   * @param target Constructor or instance target to read.
+   * @param address Optional dynamic address and inheritance mode.
+   * @returns Typed success value or public address rejection.
+   */
   readDynamic(
     target: object,
     address?: IDynamicClassMetadataAddress & IMetadataLookup,
@@ -36,7 +54,18 @@ type IMatrixDefinition<TDeclaration, TValue> = Omit<
 
 /** Registers independent public-operation cases without sharing target declarations between tests. */
 class PublicOperationMatrix {
-  /** Runs one operation matrix case outside its nested test registration callbacks. */
+  /**
+   * Runs one operation matrix case outside its nested test-registration callbacks.
+   * @template TDeclaration Values passed to definition write/decorator operations.
+   * @template TValue Values returned by reads after aggregation.
+   * @param operation Public definition operation under test.
+   * @param create Creates a fresh definition for this operation case.
+   * @param baseValue Value written to the base class.
+   * @param ownValue Value written to the child class.
+   * @param inheritedValue Expected inherited result for the aggregation kind.
+   * @param directValue Expected direct result for the aggregation kind.
+   * @returns No value; Vitest assertions report contract failures.
+   */
   private static runOperation<TDeclaration, TValue>(
     operation:
       | "set"
@@ -55,13 +84,23 @@ class PublicOperationMatrix {
     inheritedValue: TValue,
     directValue: TValue,
   ): void {
+    /** Base target carries one addressable field and method for all matrix cases. */
     class Base {
+      /**
+       * Mutable instance field used to create an ordinary class target.
+       * @default 1
+       */
       public field = 1;
-      /** Gives checked addressing a one-position tuple. */
+      /**
+       * Gives checked addressing a one-position tuple.
+       * @param input Sole method argument represented in the tuple.
+       * @returns No value; consumes the input for type inference.
+       */
       public method(input: string): void {
         void input;
       }
     }
+    /** Child target used to distinguish own and inherited declarations. */
     class Child extends Base {}
     const definition = create();
     expect(definition.set(Base, baseValue)).toEqual({ isValid: true });
@@ -218,7 +257,18 @@ class PublicOperationMatrix {
     expect(baseRead.isValid && baseRead.isPresent).toBe(true);
   }
 
-  /** Checks each inherited operation on each ordinary definition and predefined value instance. */
+  /**
+   * Registers all public operations for one definition kind and its test values.
+   * @template TDeclaration Values passed to definition write/decorator operations.
+   * @template TValue Values returned by reads after aggregation.
+   * @param name Label included in generated Vitest scenario names.
+   * @param create Creates a fresh definition for each operation case.
+   * @param baseValue Value written to the base class.
+   * @param ownValue Value written to the child class.
+   * @param inheritedValue Expected inherited result for the aggregation kind.
+   * @param directValue Expected direct result for the aggregation kind.
+   * @returns No value; registers Vitest tests for every operation.
+   */
   public static register<TDeclaration, TValue>(
     name: string,
     create: () => IMatrixDefinition<TDeclaration, TValue>,
@@ -343,6 +393,7 @@ describe("remaining runtime exports: ordinary public identity and boundaries", (
     expect(new MetadataBoundaryError("foreign-handler").cause).toBeUndefined();
   });
   it("MetadataDiscovery remains frozen and detached checked/dynamic calls preserve identity", () => {
+    /** Target used to check public definition identity and boundaries. */
     class Target {}
     const definition = new ValueMetadataDefinition<undefined>("present undefined");
     definition.set(Target, undefined);

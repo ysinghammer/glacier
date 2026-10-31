@@ -26,26 +26,55 @@ import type {
   IStaticMethodParameterMetadataAddress,
 } from "@glacier/reflection";
 
-/** Independent generated-declaration consumer with a fixed public signature. */
+/** Independent generated-declaration fixture with fixed static and instance signatures. */
 class Consumer {
+  /**
+   * Mutable static text key exposed to static-address type inference.
+   * @default "static"
+   */
   public static label = "static";
-  /** Supplies one finite static parameter position. */
+  /**
+   * Supplies one finite static parameter position.
+   * @param count Numeric argument used by the static signature.
+   * @returns The numeric argument represented as text.
+   */
   public static describe(count: number): string {
     return String(count);
   }
-  public constructor(public readonly name: string) {}
-  /** Supplies a checked finite method tuple. */
+  /**
+   * Creates the instance with its immutable name.
+   * @param name Instance label used by the method fixture.
+   */
+  public constructor(
+    /** Readonly name exposed to checked instance-member inference. */
+    public readonly name: string,
+  ) {}
+  /**
+   * Supplies a checked finite method tuple.
+   * @param count Numeric argument appended to the instance name.
+   * @returns The instance name and count joined by a colon.
+   */
   public describe(count: number): string {
     return `${this.name}:${count}`;
   }
 }
 
-/** Checks exact erased contracts without importing a test runner into the independent consumer. */
+/**
+ * Represents whether two types have identical assignability without importing a runner.
+ * @template A First type compared for exact equality.
+ * @template B Second type compared for exact equality.
+ */
 type ITypeEquality<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
-/** Compile-only equality assertions; this fixture is never runtime-discovered. */
+/** Compile-only equality assertion class; this fixture is never runtime-discovered. */
 declare class DistributionTypeAssertions {
-  /** Requires identical contracts rather than one-way assignability. */
+  /**
+   * Requires identical contracts rather than one-way assignability.
+   * @template A First type contract to compare.
+   * @template B Second type contract to compare.
+   * @param mismatch No arguments when equal; one impossible argument otherwise.
+   * @returns No value; a type error reports unequal contracts.
+   */
   public static equal<A, B>(...mismatch: ITypeEquality<A, B> extends true ? [] : [never]): void;
 }
 

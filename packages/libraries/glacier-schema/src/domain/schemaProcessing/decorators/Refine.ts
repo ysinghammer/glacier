@@ -4,23 +4,29 @@ import { FieldRegistry } from "../schema/FieldRegistry.js";
 import type { IRefineOptions } from "./types/IRefineOptions.js";
 
 /**
- * Property decorator rejecting a value that `test` does not approve, with the `custom` code and `message`
- * (default `Refinement failed`). It runs last, on the value that passed coercion, transform and type
- * validation, and not for absent or `null` values. Synchronous only; an exception counts as a rejection
- * and its message is reported in `params.reason`. Throws `SchemaDefinitionError` when the property already
- * has `Refine`.
+ * Adds a synchronous property check after coercion, transformation and type validation.
+ * @param test Predicate for the validated non-nullish property value.
+ * @param message Optional issue text; defaults to `Refinement failed`.
+ * @returns Property decorator recording the refinement metadata.
  */
 export function Refine(test: (value: unknown) => boolean, message?: string): PropertyDecorator;
 /**
- * Class decorator running `test` on the instance after every field validated; it never runs when any
- * field failed. `path` (input keys, default the root), `code` (default `custom`) and `message` configure the
- * issue. A class may have several, and subclasses inherit them. Throws `SchemaDefinitionError` after the
- * class was parsed.
+ * Adds a synchronous check after every field on the class has validated.
+ * @template T Instance type passed to the class refinement predicate.
+ * @param test Predicate accepting the fully validated instance.
+ * @param options Issue path, code and message used when the predicate rejects.
+ * @returns Class decorator recording an inherited class refinement.
  */
 export function Refine<T extends object>(
   test: (value: T) => boolean,
   options: IRefineOptions,
 ): ClassDecorator;
+/**
+ * Creates a property or class refinement decorator from its predicate and configuration.
+ * @param test Synchronous predicate invoked on a validated value or instance.
+ * @param config Property message or class refinement options, according to decorator use.
+ * @returns Decorator recording the refinement for later schema processing.
+ */
 export function Refine(
   test: (value: never) => boolean,
   config?: string | IRefineOptions,

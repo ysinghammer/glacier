@@ -2,10 +2,9 @@ import { FieldRegistry } from "../schema/FieldRegistry.js";
 import type { ITransformFunction } from "../schema/types/ITransformFunction.js";
 
 /**
- * Property decorator running `transform` on the input value (after coercion, before validation), so the
- * result is what gets validated. It does not run for a missing value without `Default`. An exception
- * thrown by `transform` becomes a `transform_failed` issue. Records metadata only; throws
- * `SchemaDefinitionError` when the property already has `Transform`.
+ * Registers a transform applied after coercion and before field validation; missing input skips it.
+ * @param transform Synchronous conversion whose result is passed to the field validator.
+ * @returns A property decorator that records the transform.
  */
 export function Transform(transform: ITransformFunction): PropertyDecorator {
   return (target, key) => FieldRegistry.modify(target, key, "Transform", { transform });

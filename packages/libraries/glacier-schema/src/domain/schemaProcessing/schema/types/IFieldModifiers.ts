@@ -9,11 +9,18 @@ export interface IFieldModifiers {
   readonly optional?: true;
   /** `Nullable`: `null` is accepted and kept. */
   readonly nullable?: true;
-  /** `Default`: produces the value used instead of `undefined`; called once per parse. */
+  /**
+   * `Default`: factory called once per parse when input is undefined.
+   * @returns Default field value for this parse.
+   */
   readonly defaultValue?: () => unknown;
   /** `Rename`: the input key the field is read from, instead of its property name. */
   readonly inputKey?: string;
-  /** `Transform`: custom transform of the input value before validation. */
+  /**
+   * `Transform`: callback converting present input before validation.
+   * @param value Input value after optional coercion.
+   * @returns Replacement value passed to the field validator.
+   */
   readonly transform?: ITransformFunction;
   /** `Refine`: check run last on the validated value. */
   readonly refine?: IRefinement;

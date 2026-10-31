@@ -7,9 +7,10 @@ import { UnionValidatorFactory } from "./factories/UnionValidator.factory.js";
 /** Builds the compiled schema of a class decorated with `IsUnion`. */
 export class RootUnionSchema {
   /**
-   * Returns a schema that selects the variant by the discriminator of the input and parses the input with
-   * the variant's schema at the same depth, so issues are located exactly as if the variant had been
-   * parsed directly. Variants are resolved and compiled on first use.
+   * Compiles the base union into a schema that delegates input to its selected variant.
+   * @template T Parsed instance type of the union base.
+   * @param union Discriminator and variant metadata declared on the base class.
+   * @returns Schema result from the chosen variant at the current nesting depth.
    */
   public static create<T extends object>(union: IClassUnion): ICompiledSchema<T> {
     const variants = new Map(
@@ -38,7 +39,11 @@ export class RootUnionSchema {
     };
   }
 
-  /** Resolves a variant specification, which is always a class or a reference to one. */
+  /**
+   * Resolves a variant specification to its class constructor.
+   * @param variant Class or lazy class specification from union metadata.
+   * @returns Resolved constructor value for nested schema compilation.
+   */
   private static resolve(variant: ITypeSpec): unknown {
     return variant.kind === "lazy" ? variant.resolve() : Reflect.get(variant, "target");
   }

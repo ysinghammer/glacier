@@ -1,2 +1,2 @@
-/** Entry keys owned by the logger. Call fields and bindings may not use them. */
+/** Logger-owned entry keys that user call fields and bindings cannot override. */
 export type IReservedKey = "message" | "err" | "level" | "time" | "context";

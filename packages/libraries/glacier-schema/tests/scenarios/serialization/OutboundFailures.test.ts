@@ -256,6 +256,7 @@ describe("SCH-136 refinement failure diagnostics", () => {
     for (const prototype of [Date.prototype, Map.prototype, Set.prototype]) {
       /** Refinement mutation cannot turn a successful result into an uncaught native brand exception. */
       class Dto {
+        /** Value mutated to a forged native prototype by the refinement. */
         public value: unknown;
       }
       IsAny()(Dto.prototype, "value");
@@ -343,8 +344,16 @@ describe("SCH-136 refinement failure diagnostics", () => {
     });
     /** Private brands do not exist on constructor-free validation instances. */
     class Branded {
+      /**
+       * Constructor-installed state intentionally absent during schema validation.
+       * @default true
+       */
       private secret = true;
-      /** This method intentionally requires a constructor-installed brand. */
+
+      /**
+       * Reads the constructor-installed state to exercise a private brand check.
+       * @returns Whether the private state is enabled.
+       */
       public check(): boolean {
         return this.secret;
       }
@@ -365,6 +374,7 @@ describe("SCH-136 refinement failure diagnostics", () => {
   it("rejects unsafe mutations made by successful consumer refinements before returning JSON", () => {
     /** A callback can mutate validated logical data; final projection still checks JSON safety. */
     class Dto {
+      /** Value mutation inspected for unsafe accessors during final projection. */
       public value: unknown;
     }
     IsAny()(Dto.prototype, "value");
@@ -382,6 +392,7 @@ describe("SCH-136 refinement failure diagnostics", () => {
     });
     /** Date state is validated again during the final projection. */
     class Dates {
+      /** Date value mutated to an invalid timestamp by the refinement. */
       public value!: Date;
     }
     IsDate()(Dates.prototype, "value");
@@ -395,6 +406,7 @@ describe("SCH-136 refinement failure diagnostics", () => {
     });
     /** Map keys must remain strings at the final JSON boundary. */
     class Maps {
+      /** Map whose key type is corrupted by a successful refinement. */
       public value!: Map<unknown, string>;
     }
     IsMap(String, String)(Maps.prototype, "value");
@@ -408,6 +420,7 @@ describe("SCH-136 refinement failure diagnostics", () => {
     });
     /** Undeclared JSON accessor contents are inspected safely too. */
     class Arrays {
+      /** Array whose element accessor is installed by the refinement. */
       public value!: unknown[];
     }
     IsArray(String)(Arrays.prototype, "value");

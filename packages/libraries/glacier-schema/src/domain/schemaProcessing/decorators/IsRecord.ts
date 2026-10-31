@@ -5,11 +5,10 @@ import { RuleDefinitionCheck } from "../schema/RuleDefinitionCheck.js";
 import type { ISizeOptions } from "./types/ISizeOptions.js";
 
 /**
- * Property decorator declaring that the field must be a plain object, used as a dictionary, whose values
- * all match `value`: a primitive constructor, a decorated class or a `() => Class` reference. Keys are
- * the object's own enumerable string keys. Accepts `min` and `max` entry counts; the accepted value is a
- * new plain object. Records metadata only; throws `SchemaDefinitionError` for an invalid type or size, or
- * when the property already has a type decorator.
+ * Declares a plain-object dictionary field and records its value type and size rules as metadata.
+ * @param value Primitive, decorated class or lazy reference describing each dictionary value.
+ * @param options Optional entry-count constraints and issue message.
+ * @returns A property decorator that registers the record field.
  */
 export function IsRecord(value: IElementType, options?: ISizeOptions): PropertyDecorator {
   const { message, ...rules } = options ?? {};

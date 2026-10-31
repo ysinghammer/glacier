@@ -1,5 +1,5 @@
 import type { INumberRules } from "../../schema/types/INumberRules.js";
 import type { ISchemaDecoratorOptions } from "./ISchemaDecoratorOptions.js";
 
-/** Options of `IsNumber` and `IsInt`: the shared `message` plus the numeric constraints. */
+/** Combined issue-message and numeric constraints accepted by `IsNumber` and `IsInt`. */
 export interface INumberOptions extends ISchemaDecoratorOptions, INumberRules {}

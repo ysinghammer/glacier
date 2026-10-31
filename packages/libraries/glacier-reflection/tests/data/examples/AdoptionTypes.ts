@@ -4,9 +4,18 @@ import { AdoptionExample } from "../compiler/AdoptionExample.js";
 
 /** Independently checks documentation inference and rejection through generated root declarations. */
 class AdoptionTypes {
-  /** Type-checks accepted values and guards against checked-location/value widening. */
+  /**
+   * Type-checks accepted values and rejects checked-location or value-contract widening.
+   * @returns No value; compile-time assertions are represented by type errors.
+   */
   public static check(): void {
+    /** Supplies a checked callable member for generated declaration inference. */
     class Consumer {
+      /**
+       * Returns the input unchanged as a checked method target.
+       * @param input Text argument required by the fixture method.
+       * @returns The same text value.
+       */
       public describe(input: string): string {
         return input;
       }

@@ -10,10 +10,17 @@ import {
 import { LegacyLocations } from "../artifacts/compiler/LegacyLocations.js";
 import { AdoptionExample } from "../artifacts/compiler/AdoptionExample.js";
 
+/** One expected fixture value paired with its optional public metadata address. */
 type ILegacyCase = readonly [IDynamicClassMetadataAddress | undefined, string];
 
 /** Splits compiler-emission checks by address and inheritance while asserting only public metadata operations. */
 class LegacyEmissionAssertions {
+  /**
+   * Builds expected definition identities for every legacy-emission case.
+   * @param cases Address/value pairs included in the fixture.
+   * @param fixture Created declarations and their public metadata definition.
+   * @returns Map from fixture value to its expected definition identity set.
+   */
   public static expectedDefinitions(
     cases: readonly ILegacyCase[],
     fixture: ReturnType<typeof LegacyLocations.create>,
@@ -26,6 +33,12 @@ class LegacyEmissionAssertions {
     );
   }
 
+  /**
+   * Selects compiler definitions expected for a fixture address category.
+   * @param address Optional metadata location; omitted for constructor metadata.
+   * @param value Fixture label identifying the declaration kind.
+   * @returns Compiler definition identities expected at that address.
+   */
   private static compilerDefinitions(
     address: IDynamicClassMetadataAddress | undefined,
     value: string,
@@ -45,6 +58,13 @@ class LegacyEmissionAssertions {
     return definitions;
   }
 
+  /**
+   * Verifies each emitted value and its own/inherited discovery identity.
+   * @param cases Address/value pairs included in the fixture.
+   * @param fixture Created declarations and their public metadata definition.
+   * @param expected Expected definition identities indexed by fixture value.
+   * @returns No value; assertions report mismatches.
+   */
   public static verifyCases(
     cases: readonly ILegacyCase[],
     fixture: ReturnType<typeof LegacyLocations.create>,
@@ -61,6 +81,16 @@ class LegacyEmissionAssertions {
     }
   }
 
+  /**
+   * Verifies one case's direct read and selected inheritance discovery.
+   * @param fixture Created declarations and their public metadata definition.
+   * @param address Optional metadata location; omitted for class metadata.
+   * @param value Fixture label identifying the declaration kind.
+   * @param inheritance Lookup mode for the assertion.
+   * @param expected Expected definition identities indexed by fixture value.
+   * @returns No value; assertions report mismatches.
+   * @throws {Error} When discovery returns a typed rejection instead of success.
+   */
   private static verifyCase(
     fixture: ReturnType<typeof LegacyLocations.create>,
     address: IDynamicClassMetadataAddress | undefined,
@@ -79,6 +109,14 @@ class LegacyEmissionAssertions {
     });
   }
 
+  /**
+   * Verifies all reported locations for own and inherited lookups.
+   * @param cases Address/value pairs included in the fixture.
+   * @param fixture Created declarations and their public metadata definition.
+   * @param expected Expected definition identities indexed by fixture value.
+   * @returns No value; assertions report mismatches.
+   * @throws {Error} When location discovery returns a typed rejection.
+   */
   public static verifyLocations(
     cases: readonly ILegacyCase[],
     fixture: ReturnType<typeof LegacyLocations.create>,
@@ -93,6 +131,15 @@ class LegacyEmissionAssertions {
     }
   }
 
+  /**
+   * Verifies one discovered location's read and definition identity.
+   * @param fixture Created declarations and their public metadata definition.
+   * @param address Canonical metadata location reported by discovery.
+   * @param inheritance Lookup mode for the assertion.
+   * @param expected Expected definition identities indexed by fixture value.
+   * @returns No value; assertions report mismatches.
+   * @throws {Error} When the fixture read is absent or discovery rejects.
+   */
   private static verifyLocation(
     fixture: ReturnType<typeof LegacyLocations.create>,
     address: IDynamicClassMetadataAddress,
@@ -113,6 +160,11 @@ class LegacyEmissionAssertions {
     expect(new Set(discovered.definitions)).toEqual(expected.get(read.value));
   }
 
+  /**
+   * Verifies protected and private constructor/method declarations remain recorded.
+   * @param fixture Created protected and private declarations.
+   * @returns No value; assertions report mismatches.
+   */
   public static verifyProtected(fixture: ReturnType<typeof LegacyLocations.create>): void {
     const cases: readonly [IDynamicClassMetadataAddress, string][] = [
       [{ kind: "constructor-parameter", position: 0 }, "protected-constructor"],

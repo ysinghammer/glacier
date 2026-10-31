@@ -4,6 +4,7 @@ import { ContractTarget as ContractTargetBase } from "../data/ContractTarget.js"
 
 let ContractTarget: typeof ContractTargetBase;
 beforeEach(() => {
+  /** Fresh constructor identity for each isolated scenario case. */
   ContractTarget = class extends ContractTargetBase {};
 });
 
@@ -48,6 +49,7 @@ describe("instances are read-only aliases for canonical class declarations", () 
   it.each(["inherited", "own"] as const)(
     "subclass aliases resolve the subclass in %s mode",
     (inheritance) => {
+      /** Child class whose direct value wins over inherited fixture metadata. */
       class Derived extends ContractTarget {}
       const definition = new ValueMetadataDefinition<string>("subclass");
       const inherited = new ValueMetadataDefinition<string>("base-only");
@@ -79,6 +81,7 @@ describe("instances are read-only aliases for canonical class declarations", () 
     },
   );
   it("instance-owned constructor values and getters never redirect or execute during lookup", () => {
+    /** Constructor used to shadow an instance's own `constructor` property. */
     class Unrelated {}
     const definition = new ValueMetadataDefinition<string>("shadowed");
     definition.set(ContractTarget, "correct");
@@ -107,10 +110,17 @@ describe("instances are read-only aliases for canonical class declarations", () 
   it("lookup never constructs consumers or executes instance member getters", () => {
     let constructions = 0;
     let getterCalls = 0;
+    /** Counts construction and throws if lookup evaluates the field getter. */
     class Guarded {
+      /** Counts actual construction of this protected fixture. */
       constructor() {
         constructions += 1;
       }
+      /**
+       * Throws when read so metadata lookup can prove it avoids instance values.
+       * @returns Never returns; reading the field always throws.
+       * @throws {Error} Whenever a caller evaluates the getter.
+       */
       public get field(): string {
         getterCalls += 1;
         throw new Error("getter invoked");
@@ -249,6 +259,7 @@ describe("instances are read-only aliases for canonical class declarations", () 
     expect(() => MetadataDiscovery.definitions(target)).toThrow(failure);
   });
   it("a noncanonical prototype constructor cannot redirect an instance lookup", () => {
+    /** Constructor used as a misleading noncanonical prototype value. */
     class Other {}
     const intermediate: object = Object.create(ContractTarget.prototype);
     Object.defineProperty(intermediate, "constructor", { value: Other });

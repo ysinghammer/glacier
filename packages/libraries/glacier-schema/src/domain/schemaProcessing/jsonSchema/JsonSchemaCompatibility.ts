@@ -41,7 +41,12 @@ const SCHEMA_VALUE_KEYWORDS = new Set([
 
 /** Checks known wire types and structural overrides without processing consumer values or changing legacy generation. */
 export class JsonSchemaCompatibility {
-  /** Rejects invalid/unimplemented wire contexts before reading metadata. */
+  /**
+   * Validates the explicit serialization and coercion context.
+   * @param options Direction, wire format and coercion setting to validate.
+   * @returns No value; permits supported contexts to proceed.
+   * @throws {SchemaDefinitionError} If any option is invalid or output contradicts JSON restrictions.
+   */
   public static options(options: IJsonSchemaCompatibilityOptions): void {
     if (
       options === null ||
@@ -54,12 +59,24 @@ export class JsonSchemaCompatibility {
       throw new SchemaDefinitionError("Invalid schema compatibility wire context");
   }
 
-  /** Rejects known input types unavailable in JSON/text data; callbacks are deliberately not inspected or invoked. */
+  /**
+   * Checks a declared type against the configured wire representation.
+   * @param spec Field type to inspect recursively.
+   * @param options Validated wire direction and coercion context.
+   * @returns No value; output schemas bypass input-only checks.
+   */
   public static wire(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
     if (options.direction === "output") return;
     JsonSchemaCompatibility.wireInput(spec, options);
   }
 
+  /**
+   * Rejects input types that cannot be represented by the configured wire format.
+   * @param spec Field type being checked.
+   * @param options Validated input wire and coercion context.
+   * @returns No value when the type is wire-compatible.
+   * @throws {SchemaDefinitionError} For map/set, strict Date/bigint, or non-finite enum input.
+   */
   private static wireInput(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
     if (spec.kind === "map" || spec.kind === "set")
       throw new SchemaDefinitionError("Map and Set inputs require non-wire instances");
@@ -74,6 +91,13 @@ export class JsonSchemaCompatibility {
     JsonSchemaCompatibility.textWire(spec, options);
   }
 
+  /**
+   * Checks whether one literal has a faithful representation in the wire context.
+   * @param value Literal value declared by the field.
+   * @param options Validated input wire and coercion context.
+   * @returns No value when the literal can be represented.
+   * @throws {SchemaDefinitionError} If bigint is lossy or the value has no supported wire form.
+   */
   private static literalWire(
     value: string | number | boolean | bigint | null,
     options: IJsonSchemaCompatibilityOptions,
@@ -90,6 +114,13 @@ export class JsonSchemaCompatibility {
       throw new SchemaDefinitionError("Literal has no supported wire representation");
   }
 
+  /**
+   * Requires coercion for non-string scalar values supplied through text input.
+   * @param spec Field type whose scalar wire values are checked.
+   * @param options Validated text-input context.
+   * @returns No value when text values can satisfy the field.
+   * @throws {SchemaDefinitionError} If strict text input cannot represent a required scalar.
+   */
   private static textWire(spec: ITypeSpec, options: IJsonSchemaCompatibilityOptions): void {
     if (options.wire !== "text" || options.coerce) return;
     const unsupportedScalar =
@@ -101,12 +132,24 @@ export class JsonSchemaCompatibility {
       throw new SchemaDefinitionError("Text input needs coercion for non-string scalars");
   }
 
+  /**
+   * Checks whether a literal or enum includes values other than strings.
+   * @param spec Type specification to inspect.
+   * @returns True when the scalar values include a non-string member.
+   */
   private static hasNonStringValues(spec: ITypeSpec): boolean {
     if (spec.kind === "literal") return typeof spec.value !== "string";
     return spec.kind === "enum" && spec.values.some((value) => typeof value !== "string");
   }
 
-  /** Requires a preserved singleton wire discriminator after reachable definitions are complete, including cycles. */
+  /**
+   * Verifies that a generated variant preserves its discriminator as one exact wire value.
+   * @param name Discriminator property name.
+   * @param value Configured variant discriminator string.
+   * @param schema Generated variant object schema.
+   * @returns No value when the property preserves the configured singleton.
+   * @throws {SchemaDefinitionError} If the property is missing or does not preserve that value.
+   */
   public static discriminator(name: string, value: string, schema: IJsonSchema): void {
     const properties = schema.properties;
     const field: unknown =
@@ -123,7 +166,13 @@ export class JsonSchemaCompatibility {
       );
   }
 
-  /** Allows descriptions and unchanged structural declarations, but not altered validation/projection keywords. */
+  /**
+   * Ensures a manual fragment is safe JSON and does not contradict generated constraints.
+   * @param schema Generated schema used as the authoritative contract.
+   * @param fragment Optional manual annotations and structural declarations.
+   * @returns No value when every supplied keyword is safe and compatible.
+   * @throws {SchemaDefinitionError} If data is unsafe or a keyword changes generated behavior.
+   */
   public static annotation(schema: IJsonSchema, fragment: IJsonSchemaFragment | undefined): void {
     if (fragment === undefined) return;
     const result = JsonProjection.copy(fragment, new WeakMap(), false);
@@ -139,13 +188,23 @@ export class JsonSchemaCompatibility {
     }
   }
 
-  /** Chooses whether a nested value is a schema, a name-to-schema map or ordinary literal data. */
+  /**
+   * Classifies a JSON Schema keyword's nested comparison context.
+   * @param key Keyword whose child value is compared.
+   * @returns Schema, schema-map or ordinary-value context.
+   */
   private static context(key: string): "schema" | "map" | "value" {
     if (SCHEMA_MAP_KEYWORDS.has(key)) return "map";
     return SCHEMA_VALUE_KEYWORDS.has(key) ? "schema" : "value";
   }
 
-  /** Compares safe JSON structurally; property names and literal objects are never treated as annotation keywords. */
+  /**
+   * Compares projected JSON structures under keyword-aware schema semantics.
+   * @param left Generated safe JSON value.
+   * @param right User-supplied safe JSON value.
+   * @param context Whether values are schemas, schema maps or ordinary data.
+   * @returns True when structures match after permitted descriptive extensions.
+   */
   private static equal(
     left: unknown,
     right: unknown,

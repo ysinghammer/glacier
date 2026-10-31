@@ -8,16 +8,42 @@ import {
 
 describe("declared inheritance contracts", () => {
   it("matches parameter positions without claiming equivalent signatures or leaking other positions", () => {
+    /** Base fixture declares constructor and method positions for inheritance checks. */
     class Base {
-      constructor(public dependency: string) {}
+      /**
+       * Creates a base consumer with one dependency argument.
+       * @param dependency Base constructor value.
+       */
+      constructor(
+        /** Dependency value retained as a public instance property. */
+        public dependency: string,
+      ) {}
+      /**
+       * Returns the input using the broad base method signature.
+       * @param input Unrestricted base method input.
+       * @returns The same input value.
+       */
       public run(input: unknown): unknown {
         return input;
       }
     }
+    /** Overrides base positions with different declared parameter types. */
     class Leaf extends Base {
-      constructor(public count: number) {
+      /**
+       * Creates the leaf with its own constructor parameter.
+       * @param count Numeric leaf constructor value.
+       */
+      constructor(
+        /** Numeric value retained as the leaf's public instance property. */
+        public count: number,
+      ) {
         super("base");
       }
+      /**
+       * Narrows the inherited method signature for tuple identity checks.
+       * @param input Numeric leaf method input.
+       * @returns The same numeric input.
+       */
       public override run(input: number): number {
         return input;
       }
@@ -55,7 +81,9 @@ describe("declared inheritance contracts", () => {
   });
 
   it("distinguishes absent records from present empty records in both lookup modes", () => {
+    /** Base class may own an empty record declaration. */
     class Base {}
+    /** Child class distinguishes inherited and own empty records. */
     class Leaf extends Base {}
     const records = new RecordMetadataDefinition<string>("empty");
     expect(records.read(Leaf)).toEqual({ isValid: true, isPresent: false });
@@ -75,8 +103,11 @@ describe("declared inheritance contracts", () => {
     expect(records.has(Leaf)).toEqual({ isValid: true, isPresent: true });
   });
   it("replaces whole values at the nearest declaration, including undefined, and reveals ancestors on deletion", () => {
+    /** Root class owns the original replacement value. */
     class Base {}
+    /** Middle class supplies the nearest inherited replacement. */
     class Middle extends Base {}
+    /** Leaf class tests own writes and ancestor revelation after deletion. */
     class Leaf extends Middle {}
     const definition = new ValueMetadataDefinition<object | undefined>("value");
     const base = { label: "base", nested: { retained: true } };
@@ -101,8 +132,11 @@ describe("declared inheritance contracts", () => {
   });
 
   it("concatenates three levels ancestor-first with duplicates, replaces repeated writes and does not reset", () => {
+    /** Root class contributes the first list value. */
     class Base {}
+    /** Middle class contributes the replacement list value. */
     class Middle extends Base {}
+    /** Leaf class contributes an explicit empty list declaration. */
     class Leaf extends Middle {}
     const tags = new ListMetadataDefinition<string>("tags");
     expect(tags.read(Leaf)).toEqual({ isValid: true, isPresent: false });
@@ -139,8 +173,11 @@ describe("declared inheritance contracts", () => {
   });
 
   it("accumulates homogeneous records but replaces conflicting entries whole rather than recursively", () => {
+    /** Root class contributes base record entries. */
     class Base {}
+    /** Middle class replaces conflicting entries for record merge checks. */
     class Middle extends Base {}
+    /** Leaf class supplies an empty record while retaining ancestors. */
     class Leaf extends Middle {}
     const records = new RecordMetadataDefinition<{ optional: boolean; label?: string }>("record");
     const replacement = new ValueMetadataDefinition<
@@ -182,11 +219,27 @@ describe("declared inheritance contracts", () => {
     { kind: "method-parameter", side: "static", member: "run", position: 0 },
   ] satisfies IDynamicClassMetadataAddress[]) {
     it(`accumulates only the matching ${JSON.stringify(address)} location and preserves unrelated declarations`, () => {
+      /** Base declares the constructor position used by matching-address checks. */
       class Base {
-        constructor(public input: string) {}
+        /**
+         * Creates the base with its original parameter value.
+         * @param input Base constructor input.
+         */
+        constructor(
+          /** Base constructor value retained for address matching. */
+          public input: string,
+        ) {}
       }
+      /** Leaf adds a constructor position at the same address. */
       class Leaf extends Base {
-        constructor(public flag: boolean) {
+        /**
+         * Creates the leaf with its own flag and the required base argument.
+         * @param flag Leaf constructor flag.
+         */
+        constructor(
+          /** Leaf flag retained for same-location accumulation checks. */
+          public flag: boolean,
+        ) {
           super("different");
         }
       }

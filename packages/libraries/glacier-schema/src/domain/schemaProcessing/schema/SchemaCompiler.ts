@@ -21,15 +21,19 @@ interface ICompiledField {
   readonly key: string;
   /** Key read from the input, which differs from `key` for renamed fields. */
   readonly inputKey: string;
+  /** Field-level issue message override, when configured. */
   readonly message: string | undefined;
+  /** Cached processor applying this field's modifiers and declared type. */
   readonly process: IFieldProcessor;
 }
 
 /** Compiles a decorated class into a cached validate-and-instantiate closure, without `eval`. */
 export class SchemaCompiler {
   /**
-   * Returns the closure for `target`, compiling it on first use. Compiling freezes the metadata of the
-   * class and its ancestors, so decorating them afterwards throws `SchemaDefinitionError`.
+   * Retrieves or compiles a cached schema for a decorated class.
+   * @template T Instance type produced by parsing the target class.
+   * @param target Class whose registered fields and refinements define the schema.
+   * @returns Cached parser closure; first compilation freezes the class hierarchy metadata.
    */
   public static compile<T extends object>(target: IClass): ICompiledSchema<T> {
     const cached = CompiledSchemaCache.get<T>(target);
@@ -53,7 +57,12 @@ export class SchemaCompiler {
     return schema;
   }
 
-  /** Runs the class-level refinements on a fully validated instance and reports each rejection. */
+  /**
+   * Runs class refinements after all fields have validated.
+   * @param instance Constructor-free instance populated from validated fields.
+   * @param refinements Inherited and local refinement declarations in execution order.
+   * @returns Issues for false results or exceptions, preserving each configured path and code.
+   */
   private static refine(
     instance: object,
     refinements: readonly IClassRefinement[],
@@ -76,7 +85,13 @@ export class SchemaCompiler {
     return issues;
   }
 
-  /** Rejects classes in which two fields would read the same input key. */
+  /**
+   * Ensures every compiled field reads a distinct input key.
+   * @param target Class used to identify a conflicting schema in the error.
+   * @param fields Compiled fields and their effective input keys.
+   * @returns No value when all fields use distinct input keys.
+   * @throws {SchemaDefinitionError} If two fields read the same input key.
+   */
   private static assertDistinctInputKeys(target: IClass, fields: readonly ICompiledField[]): void {
     const owners = new Map<string, string>();
     for (const field of fields) {
@@ -90,7 +105,14 @@ export class SchemaCompiler {
     }
   }
 
-  /** Builds the closure; the instance never runs the constructor and receives only declared fields. */
+  /**
+   * Creates the parser closure for a class after its fields and refinements are compiled.
+   * @template T Instance type returned when parsing succeeds.
+   * @param target Class prototype used for the constructor-free output instance.
+   * @param fields Compiled field processors in declaration order.
+   * @param refinements Class-level checks run after successful field processing.
+   * @returns Parser producing a populated instance or typed issues.
+   */
   private static build<T extends object>(
     target: IClass,
     fields: readonly ICompiledField[],
@@ -132,6 +154,15 @@ export class SchemaCompiler {
     };
   }
 
+  /**
+   * Processes declared input fields and assigns only accepted, defined values.
+   * @template T Instance type being populated.
+   * @param input Plain object already accepted by the root type check.
+   * @param instance Constructor-free object receiving accepted fields.
+   * @param fields Compiled field processors in declaration order.
+   * @param context Per-parse options and nesting depth.
+   * @returns Issues collected from rejected fields.
+   */
   private static processFields<T extends object>(
     input: object,
     instance: T,
@@ -158,6 +189,12 @@ export class SchemaCompiler {
     return issues;
   }
 
+  /**
+   * Converts value failures to public issues prefixed with the field input key.
+   * @param field Field whose input key and message override apply.
+   * @param failures Failures returned by the field processor.
+   * @returns Public issue records with complete field paths.
+   */
   private static fieldFailures(
     field: ICompiledField,
     failures: readonly IValueFailure[],

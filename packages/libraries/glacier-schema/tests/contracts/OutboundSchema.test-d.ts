@@ -7,8 +7,15 @@ import {
   type ISchemaIssueCode,
 } from "../../index.js";
 
-/** A DTO constructor requiring application-owned arguments must not be called by schema processing. */
+/**
+ * A DTO constructor requiring application-owned arguments must not be called by schema processing.
+ * @property name Required name value held by the fixture.
+ */
 class Dto {
+  /**
+   * Constructs the fixture with its required application value.
+   * @param name Required service-owned name retained on the instance.
+   */
   public constructor(public readonly name: string) {}
 }
 const preparation: void = Schema.prepare(Dto);

@@ -1,4 +1,4 @@
-/** Observable decorator and compiler integration failure categories. */
+/** Safe categories: compiler key/value, decorator target/location, foreign handler, unavailable Reflect, or install failure. */
 export type IMetadataBoundaryErrorCode =
   | "unsupported-compiler-key"
   | "invalid-compiler-value"

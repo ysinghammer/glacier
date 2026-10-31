@@ -5,7 +5,9 @@ import type { IJsonSchemaFragment } from "./types/IJsonSchemaFragment.js";
 
 /** What `Describe` and `JsonSchema` declared directly on one class. */
 export interface IClassAnnotation {
+  /** Documentation metadata declared directly on the class. */
   readonly describe?: IDescribeOptions;
+  /** Manual schema keywords declared directly on the class. */
   readonly fragment?: IJsonSchemaFragment;
 }
 
@@ -13,7 +15,13 @@ const annotations = new WeakMap<IClass, IClassAnnotation>();
 
 /** Records documentation of classes for the JSON Schema output; subclasses do not inherit it. */
 export class ClassAnnotations {
-  /** Stores `describe` on `target`. Throws `SchemaDefinitionError` when the class already has `Describe`. */
+  /**
+   * Stores class documentation metadata; a second declaration is a definition error.
+   * @param target Class receiving the annotation.
+   * @param describe Documentation values emitted by schema generation.
+   * @returns No value; stores the annotation for this class.
+   * @throws {SchemaDefinitionError} If `target` already has a description annotation.
+   */
   public static describe(target: IClass, describe: IDescribeOptions): void {
     const existing = annotations.get(target);
     if (existing?.describe !== undefined) {
@@ -22,7 +30,13 @@ export class ClassAnnotations {
     annotations.set(target, { ...existing, describe });
   }
 
-  /** Stores `fragment` on `target`. Throws `SchemaDefinitionError` when the class already has `JsonSchema`. */
+  /**
+   * Stores a manual schema fragment; a second declaration is a definition error.
+   * @param target Class receiving the fragment.
+   * @param fragment Manual JSON Schema keywords to merge into the generated class schema.
+   * @returns No value; stores the fragment for this class.
+   * @throws {SchemaDefinitionError} If `target` already has a schema fragment.
+   */
   public static fragment(target: IClass, fragment: IJsonSchemaFragment): void {
     const existing = annotations.get(target);
     if (existing?.fragment !== undefined) {
@@ -31,7 +45,11 @@ export class ClassAnnotations {
     annotations.set(target, { ...existing, fragment });
   }
 
-  /** Returns the annotations declared directly on `target`. */
+  /**
+   * Returns annotations declared directly on a class, without inheriting parent annotations.
+   * @param target Class whose annotations are read.
+   * @returns Stored annotations, or an empty record when none were declared.
+   */
   public static get(target: IClass): IClassAnnotation {
     return annotations.get(target) ?? {};
   }

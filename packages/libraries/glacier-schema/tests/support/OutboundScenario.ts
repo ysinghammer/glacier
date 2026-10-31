@@ -1,15 +1,21 @@
 import { Schema } from "../../index.js";
 import type { IJsonValue, IResult } from "../../index.js";
 
-/** Declares fresh public one-field schemas without touching internal metadata or compiled closures. */
+/** Supplies isolated one-field schemas for observable outbound API assertions. */
 export class OutboundScenario {
-  /** Serializes a logical value with independently declared public decorators. */
+  /**
+   * Applies property decorators and serializes one value through the package API.
+   * @param value Logical value supplied as the field input.
+   * @param decorators Public property decorators applied in declaration order.
+   * @returns Success JSON data or typed serialization issues from the public API.
+   */
   public static serialize(
     value: unknown,
     ...decorators: readonly PropertyDecorator[]
   ): IResult<IJsonValue> {
-    /** One-field DTO used only through the public schema API. */
+    /** Holds the test value as the schema's sole decorated field. */
     class Holder {
+      /** Value passed to the public serializer. */
       public value: unknown;
     }
     for (const decorator of decorators) decorator(Holder.prototype, "value");

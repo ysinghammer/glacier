@@ -45,6 +45,7 @@ describe("metadata-only compatibility", () => {
       [IsLiteral(null), { direction: "input", wire: "text", coerce: true }],
       [IsEnum([Infinity]), { direction: "input", wire: "json", coerce: false }],
     ] as const) {
+      /** Fixture receiving an unsupported scalar declaration. */
       class Dto {}
       decorate(Dto.prototype, "value");
       expect(() => Schema.assertJsonSchemaCompatibility(Dto, options)).toThrow(
@@ -52,6 +53,7 @@ describe("metadata-only compatibility", () => {
       );
     }
     for (const decorate of [IsLiteral(1n), IsLiteral(null)]) {
+      /** Fixture receiving a scalar declaration accepted with coercion. */
       class Dto {}
       decorate(Dto.prototype, "value");
       expect(() =>
@@ -65,7 +67,9 @@ describe("metadata-only compatibility", () => {
   });
 
   it("checks singleton discriminators after cyclic definitions are complete and rejects renamed/missing/broad fields", () => {
+    /** Variant schema supplying a singleton discriminator value. */
     class Variant {}
+    /** Union root referring back to its variant through a cycle. */
     class Union {}
     IsEnum(["variant"])(Variant.prototype, "kind");
     IsUnion({ discriminator: "kind", variants: { variant: Variant } })(Union);
@@ -79,7 +83,9 @@ describe("metadata-only compatibility", () => {
       IsEnum(["variant", "other"]),
       IsEnum(["other"]),
     ]) {
+      /** Variant receiving the selected discriminator declaration. */
       class BadVariant {}
+      /** Union root expected to reject the invalid variant discriminator. */
       class BadUnion {}
       if (decorate !== undefined) decorate(BadVariant.prototype, "kind");
       IsUnion({ discriminator: "kind", variants: { variant: BadVariant } })(BadUnion);
@@ -87,6 +93,7 @@ describe("metadata-only compatibility", () => {
         SchemaDefinitionError,
       );
     }
+    /** Outer union referencing an incompatible nested union. */
     class Outer {}
     IsUnion({ discriminator: "kind", variants: { variant: Union } })(Outer);
     expect(() => Schema.assertJsonSchemaCompatibility(Outer, OUTPUT)).toThrow(
@@ -101,6 +108,9 @@ describe("metadata-only compatibility", () => {
     let calls = 0;
     /** Constructor and value callbacks are not metadata resolvers. */
     class Dto {
+      /**
+       * Counts construction to prove compatibility inspection uses metadata only.
+       */
       public constructor() {
         calls++;
       }

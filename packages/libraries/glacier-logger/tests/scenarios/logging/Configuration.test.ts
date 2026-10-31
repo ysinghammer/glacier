@@ -5,6 +5,10 @@ import { InvalidLoggerConfigurationError, LoggerFactory } from "../../../index.j
 import type { ILoggerConfiguration } from "../../../index.js";
 import { RecordingTransport } from "../../doubles/RecordingTransport.js";
 
+/**
+ * Builds the minimal valid configuration reused by factory validation scenarios.
+ * @returns A fresh configuration containing one JSON recording transport.
+ */
 function validConfiguration(): ILoggerConfiguration {
   return { level: "info", transports: [{ transport: new RecordingTransport(), format: "json" }] };
 }
@@ -95,6 +99,10 @@ describe("new LoggerFactory", () => {
   });
 
   it("throws InvalidLoggerConfigurationError keeping the reasons", () => {
+    /**
+     * Constructs an invalid factory to assert its configuration rejection.
+     * @returns The newly constructed factory if invalid configuration is accepted.
+     */
     const construct = (): LoggerFactory => new LoggerFactory({ level: "info", transports: [] });
 
     expect(construct).toThrow(InvalidLoggerConfigurationError);

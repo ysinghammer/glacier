@@ -2,10 +2,19 @@ import type { IIssueCode } from "../../failures/IIssueCode.js";
 
 /** Options of the class-level `Refine` decorator. */
 export interface IRefineOptions {
-  /** Location of the issue, using input keys (`Rename` aliases); the root by default. */
+  /**
+   * Issue location using input keys, including `Rename` aliases.
+   * @default []
+   */
   readonly path?: readonly (string | number)[];
-  /** Issue code; `custom` by default. */
+  /**
+   * Stable issue code for the failed refinement.
+   * @default "custom"
+   */
   readonly code?: IIssueCode;
-  /** Issue message; `Refinement failed` by default. */
+  /**
+   * Message used when the refinement rejects.
+   * @default "Refinement failed"
+   */
   readonly message?: string;
 }

@@ -1,10 +1,9 @@
-/**
- * Thrown when a class is declared incorrectly: late decoration after the first parse, conflicting or
- * duplicated type decorators, invalid decorator arguments or unsupported targets. It is a programming
- * error, distinct from `SchemaError`, which reports invalid input.
- */
+/** Definition-time programming failure for invalid schema declarations, distinct from invalid input errors. */
 export class SchemaDefinitionError extends Error {
-  /** Creates the error with a message naming the offending class member. */
+  /**
+   * Constructs a definition error with the supplied diagnostic.
+   * @param message Explanation of the invalid declaration or unsupported operation.
+   */
   public constructor(message: string) {
     super(message);
     this.name = "SchemaDefinitionError";

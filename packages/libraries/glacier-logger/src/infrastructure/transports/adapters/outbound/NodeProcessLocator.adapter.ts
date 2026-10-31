@@ -1,10 +1,11 @@
 import type { IProcessHost } from "../../../../application/transports/ports/outbound/IProcessHost.port.js";
 
-/** Finds the Node `process` object, when there is one. */
+/** Locates and validates the global process host required by Node-specific transports. */
 export class NodeProcessLocator {
   /**
-   * Returns the running Node process.
-   * @throws Error outside Node, where the Node transports cannot work; pass a host explicitly or use the console transport.
+   * Returns the global Node process after checking the members used by these transports.
+   * @returns The validated running Node process host.
+   * @throws Error when no compatible Node process exists; supply a host or use console output.
    */
   public static require(): IProcessHost {
     const candidate: unknown = Reflect.get(globalThis, "process");
@@ -16,6 +17,11 @@ export class NodeProcessLocator {
     return candidate;
   }
 
+  /**
+   * Narrows an unknown global value to the process operations required by the adapters.
+   * @param value Unknown value read from the global `process` property.
+   * @returns Whether the value has the process members checked by Node transports.
+   */
   private static isProcessHost(value: unknown): value is IProcessHost {
     return (
       value instanceof Object &&

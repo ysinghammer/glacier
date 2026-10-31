@@ -1,16 +1,25 @@
 import type { IClass } from "./types/IClass.js";
 import type { IMetadataAddressRejection } from "../addressing/types/IMetadataAddressRejection.js";
 
-/** A validated class owner; instances are aliases and never storage keys. */
+/** A validated class owner and alias mode produced from a constructor or canonical instance.
+ * @property isValid Readonly success discriminator for the resolved target.
+ * @property owner Readonly constructor that owns all associated storage.
+ * @property isInstance Readonly true for an instance alias, false for a constructor.
+ */
 interface IMetadataTarget {
   readonly isValid: true;
   readonly owner: IClass;
   readonly isInstance: boolean;
 }
 
-/** Inspects canonical class descriptors without invoking consumer code. */
+/** Validates constructor and instance targets without invoking consumer methods or accessors. */
 export class MetadataTarget {
-  /** Resolves constructors or, on read paths only, ordinary instance prototypes. */
+  /** Resolves constructors or, on read paths only, ordinary instance prototypes.
+   * @param target Untrusted constructor or possible instance value.
+   * @param isMutation True for write/delete paths, which accept constructors only.
+   * @returns Resolved owner and alias mode, or a typed target rejection.
+   * @remarks Proxy traps during descriptor/prototype inspection may run and their failures propagate.
+   */
   public static normalize(
     target: unknown,
     isMutation: boolean,
@@ -35,7 +44,10 @@ export class MetadataTarget {
     return { isValid: false, code: "invalid-target" };
   }
 
-  /** Checks constructability and matching own data descriptors, without calling the target. */
+  /** Checks constructability and matching own data descriptors without calling the target.
+   * @param target Untrusted value to test as a class constructor.
+   * @returns True for a constructable function with matching prototype constructor descriptors.
+   */
   public static isClass(target: unknown): target is IClass {
     if (typeof target !== "function") return false;
     const prototype: unknown = Object.getOwnPropertyDescriptor(target, "prototype")?.value;
@@ -54,7 +66,10 @@ export class MetadataTarget {
     }
   }
 
-  /** Finds an own constructor data descriptor whose prototype is exactly this object. */
+  /** Finds an own constructor descriptor whose canonical prototype is this object.
+   * @param prototype Prototype object whose owning class is sought.
+   * @returns Matching constructor, or undefined when it is not a canonical class prototype.
+   */
   public static classOfPrototype(prototype: object): IClass | undefined {
     const constructor: unknown = Object.getOwnPropertyDescriptor(prototype, "constructor")?.value;
     if (!MetadataTarget.isClass(constructor)) return undefined;
@@ -62,7 +77,11 @@ export class MetadataTarget {
     return canonical === prototype ? constructor : undefined;
   }
 
-  /** Enumerates class ancestry only; own-only queries never inspect ancestors. */
+  /** Iterates a class and optionally its constructor ancestry, nearest first.
+   * @param owner Starting constructor included as the first result.
+   * @param inheritance Own stops after owner; inherited follows constructable ancestors.
+   * @returns Iterable sequence of class owners in lookup order.
+   */
   public static *owners(owner: IClass, inheritance: "own" | "inherited"): Iterable<IClass> {
     yield owner;
     if (inheritance === "own") return;

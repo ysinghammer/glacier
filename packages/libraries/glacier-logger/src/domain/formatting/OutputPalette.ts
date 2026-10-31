@@ -22,14 +22,21 @@ const CSS_STYLES: Readonly<Record<IOutputTone, string>> = {
   subdued: "color: #8a8a8a",
 };
 
-/** The single place that maps levels to colours, shared by the ANSI (Node) and CSS (browser) targets. */
+/** Maps output tones to the ANSI and CSS styles used by pretty formatters. */
 export class OutputPalette {
-  /** Wraps `text` in the ANSI colour of `tone`, followed by a reset. */
+  /** Applies a tone's ANSI sequence and appends the terminal reset sequence.
+   * @param text - Text to wrap without modification.
+   * @param tone - Level or subdued visual tone to apply.
+   * @returns Text wrapped in ANSI style and reset codes.
+   */
   public static paintAnsi(text: string, tone: IOutputTone): string {
     return `${ANSI_CODES[tone]}${text}${ANSI_RESET}`;
   }
 
-  /** The CSS declaration applied through a `%c` console directive for `tone`. */
+  /** Looks up the CSS declaration for use with a browser console `%c` directive.
+   * @param tone - Level or subdued visual tone to look up.
+   * @returns CSS declaration string for the tone.
+   */
   public static cssStyleFor(tone: IOutputTone): string {
     return CSS_STYLES[tone];
   }

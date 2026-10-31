@@ -4,7 +4,11 @@ import { DistributionContractPrepare } from "./DistributionContractPrepare.js";
 
 /** Prepares genuine compiler and distribution inputs before Vitest starts isolated workers. */
 class ReflectionTestPreparation {
-  /** Rebuilds only owned generated inputs; tool failures retain their actual diagnostics. */
+  /**
+   * Rebuilds compiler and distribution inputs before isolated Vitest workers start.
+   * @returns Resolves with no value after all generated inputs are ready.
+   * @throws {Error} When a compiler cannot start or exits unsuccessfully.
+   */
   public static async run(): Promise<void> {
     await rm(new URL("../artifacts/compiler/", import.meta.url), { recursive: true, force: true });
     await rm(new URL("../artifacts/distribution/", import.meta.url), {
@@ -25,7 +29,10 @@ class ReflectionTestPreparation {
   }
 }
 
-/** Vitest-owned global setup delegates input preparation, never launching another test runner. */
+/**
+ * Prepares generated inputs through the package-owned global setup hook.
+ * @returns Resolves with no value when preparation completes.
+ */
 export default async function setup(): Promise<void> {
   await ReflectionTestPreparation.run();
 }

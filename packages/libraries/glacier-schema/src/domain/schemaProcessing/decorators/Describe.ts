@@ -5,11 +5,9 @@ import type { IDescribeOptions } from "../jsonSchema/types/IDescribeOptions.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 
 /**
- * Class and property decorator adding `title`, `description`, `example` and `deprecated` to the JSON Schema
- * output; `name` (class only) replaces the class name as the key of its definition. It never affects parsing and
- * may be combined with any type decorator in either order. Class annotations are not inherited. Records metadata
- * only; throws `SchemaDefinitionError` for a `name` on a property, an empty `name`, or a target that already has
- * `Describe`.
+ * Adds documentation annotations to generated JSON Schema without changing parsing behavior.
+ * @param options Title, description, example or deprecation metadata; `name` applies only to classes.
+ * @returns A class and property decorator that records the annotations.
  */
 export function Describe(options: IDescribeOptions): ClassDecorator & PropertyDecorator {
   return (target: object, key?: string | symbol): void => {

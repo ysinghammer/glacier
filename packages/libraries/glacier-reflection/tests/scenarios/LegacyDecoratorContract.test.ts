@@ -9,10 +9,21 @@ import {
 
 describe("legacy decorator public contract", () => {
   it("normalizes callbacks to direct locations and returns void without replacing descriptors", () => {
+    /** Provides one throwing getter and a callable member for decorator mapping. */
     class Consumer {
+      /**
+       * Throws on access so decorator handling can prove it preserves descriptors.
+       * @returns Never returns; every read throws.
+       * @throws {Error} Whenever a caller evaluates the getter.
+       */
       public get accessor(): string {
         throw new Error("getter invoked");
       }
+      /**
+       * Returns its input unchanged as a decorated method target.
+       * @param input Text argument represented by the method parameter address.
+       * @returns The same text value.
+       */
       public method(input: string): string {
         return input;
       }
@@ -68,7 +79,9 @@ describe("legacy decorator public contract", () => {
   });
 
   it("snapshots accumulating containers at creation while retaining contained and replacement identities", () => {
+    /** Base class receives the original accumulating decorator values. */
     class Base {}
+    /** Derived class receives later direct decorator contributions. */
     class Derived extends Base {}
     const item = { label: "original" };
     const supplied = [item];
@@ -110,12 +123,23 @@ describe("legacy decorator public contract", () => {
   });
 
   it("inherits parameter annotations by location only and replaces repeated direct annotations", () => {
+    /** Base declares the original method-parameter location. */
     class Base {
+      /**
+       * Returns the base argument for parameter-address inheritance checks.
+       * @param input Text value represented by the inherited parameter declaration.
+       * @returns The same text value.
+       */
       public method(input: string): string {
         return input;
       }
     }
+    /** Derived class replaces the method at the same parameter address. */
     class Derived extends Base {
+      /**
+       * Returns a default value from the narrower override signature.
+       * @returns Empty text.
+       */
       public override method(): string {
         return "";
       }
@@ -146,6 +170,7 @@ describe("legacy decorator public contract", () => {
   });
 
   it("rejects invalid decorator targets and locations atomically with safe boundary codes", () => {
+    /** Target used to verify invalid decorator input leaves existing data unchanged. */
     class Consumer {}
     const metadata = new ValueMetadataDefinition<string>("boundary");
     metadata.set(Consumer, "old");
@@ -191,6 +216,7 @@ describe("legacy decorator public contract", () => {
   });
 
   it("keeps inspection and snapshot exceptions observable without changing existing annotations", () => {
+    /** Target retaining prior annotations during exceptional snapshot checks. */
     class Consumer {}
     const metadata = new ValueMetadataDefinition<string>("inspection");
     metadata.set(Consumer, "old");
@@ -208,6 +234,11 @@ describe("legacy decorator public contract", () => {
     const record = new RecordMetadataDefinition<string>("snapshot");
     record.decorator({ entry: "old" })(Consumer);
     const input = {
+      /**
+       * Throws the captured inspection failure when snapshotting reads this entry.
+       * @returns Never returns; every read throws the captured failure.
+       * @throws {Error} Whenever snapshot preparation evaluates the getter.
+       */
       get entry(): string {
         throw failure;
       },

@@ -5,7 +5,7 @@ import type { ITypeSpec } from "./ITypeSpec.js";
 export interface IFieldDefinition {
   /** The property name the field is read from and written to. */
   readonly name: string;
-  /** The declared value type. */
+  /** Declared type used to validate and transform the field value. */
   readonly type: ITypeSpec;
   /** Replaces the default message of every issue reported for this field when set. */
   readonly message?: string;

@@ -25,7 +25,7 @@ Creates commits that satisfy the repository's commitlint rules (`commitlint.conf
 
 - One commit per logical group of changes.
 - Each task produces its own product-change commit.
-- Each phase ends with a commit that records the evidence in its body. 
+- Each phase ends with a commit that records the evidence in its body.
 - Never bypass hooks (`--no-verify`, `HUSKY=0`).
 
 ## Subject format

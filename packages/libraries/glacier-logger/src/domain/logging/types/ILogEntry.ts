@@ -2,19 +2,22 @@ import type { ISerializedError } from "../../serialization/ISerializedError.js";
 import type { ILogLevel } from "./ILogLevel.js";
 
 /**
- * Normalised log record handed to formatters and transports. Bindings, fields and the error are
- * redacted, JSON-safe plain data. Never mutate it.
+ * Normalized record consumed by formatters and transports. Structured values are sanitized plain
+ * data; members are readonly and consumers must not mutate the entry.
  */
 export interface ILogEntry {
+  /** Severity selected by the logger for this call. */
   readonly level: ILogLevel;
+  /** Timestamp selected by the logger; formatters may render it without changing it. */
   readonly time: Date;
+  /** Logger context associated with the call. */
   readonly context: string;
-  /** The call message, or the error message when the call carried only an error. */
+  /** Call message, falling back to the error message when an error call omits one. */
   readonly message: string;
-  /** Factory bindings merged with child bindings, later layers winning. */
+  /** Sanitized logger bindings, with later child layers taking precedence. */
   readonly bindings: Readonly<Record<string, unknown>>;
-  /** Call fields with every reserved key removed. */
+  /** Sanitized call data with logger-reserved keys removed. */
   readonly fields: Readonly<Record<string, unknown>>;
-  /** The serialised error of an `{ err }` call. */
+  /** Sanitized serialized error; absent when the call did not include `err`. */
   readonly error?: ISerializedError;
 }

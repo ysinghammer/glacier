@@ -14,28 +14,30 @@ import { LoggerConfigurationValidator } from "./LoggerConfigurationValidator.js"
 import type { ITransport } from "./ports/outbound/ITransport.port.js";
 import { TransportFailureError } from "./errors/TransportFailure.error.js";
 
-/** Configuration may contain unredacted bindings, callbacks, and buffered transports. */
+/** Keeps sensitive factory state out of logger object properties. */
 interface ILoggerFactoryState {
+  /** Validated settings shared by loggers created by this factory. */
   readonly runtime: ILoggerRuntime;
+  /** Factory-level fields copied into each created logger. */
   readonly bindings: Readonly<Record<string, unknown>>;
 }
 const LOGGER_FACTORY_STATES = new WeakMap<LoggerFactory, ILoggerFactoryState>();
 
-/**
- * Root of the logging capability. It cannot log: it only creates loggers, one per context, and
- * flushes the transports they share.
- */
+/** Creates context loggers and coordinates flushing of their shared transports. */
 export class LoggerFactory {
-  /** Preserves opaque factory serialization and validates receivers before exposing runtime state. */
+  /** Reads private factory state without making it enumerable.
+   * @returns Validated runtime settings and factory bindings.
+   * @throws TypeError if accessed with a receiver not initialized as a factory.
+   */
   private get state(): ILoggerFactoryState {
     const state = LOGGER_FACTORY_STATES.get(this);
     if (state === undefined) throw new TypeError("Invalid logger factory receiver");
     return state;
   }
 
-  /**
-   * Builds a factory from a configuration.
-   * @throws InvalidLoggerConfigurationError carrying every rejection reason.
+  /** Validates configuration and initializes shared runtime settings.
+   * @param configuration Settings and transport registrations for the factory.
+   * @throws InvalidLoggerConfigurationError when validation finds any rejection reasons.
    */
   constructor(configuration: ILoggerConfiguration) {
     const reasons = LoggerConfigurationValidator.validate(configuration);
@@ -61,7 +63,10 @@ export class LoggerFactory {
     LOGGER_FACTORY_STATES.set(this, { runtime, bindings: { ...configuration.bindings } });
   }
 
-  /** Builds a factory, reporting an invalid configuration as a `rejected` outcome instead of throwing. */
+  /** Validates configuration and returns either a factory or its rejection reasons.
+   * @param configuration Settings and transport registrations to validate.
+   * @returns `created` with the factory, or `rejected` with all validation reasons.
+   */
   public static create(configuration: ILoggerConfiguration): ILoggerFactoryCreationOutcome {
     const reasons = LoggerConfigurationValidator.validate(configuration);
     if (reasons.length > 0) {
@@ -70,9 +75,10 @@ export class LoggerFactory {
     return { outcome: "created", factory: new LoggerFactory(configuration) };
   }
 
-  /**
-   * Creates a logger for `context`. Rejects an empty context and bindings with empty or
-   * reserved keys.
+  /** Creates an immutable logger for a context with factory and optional local bindings.
+   * @param context Non-empty name attached to entries from the logger.
+   * @param options Per-logger bindings; defaults to an empty options object.
+   * @returns `created` with the logger, or `rejected` with all input validation reasons.
    */
   public createLogger(
     context: string,
@@ -97,10 +103,8 @@ export class LoggerFactory {
     };
   }
 
-  /**
-   * Resolves once every transport that supports flushing has delivered its accepted entries.
-   * A transport whose flush fails is reported to `onError`; the others are still drained and
-   * this promise still resolves.
+  /** Drains each distinct configured transport and reports flush failures.
+   * @returns Promise resolves after all flushes; failures are reported and do not reject it.
    */
   public async flush(): Promise<void> {
     const transports = new Set(
@@ -109,6 +113,10 @@ export class LoggerFactory {
     await Promise.all([...transports].map((transport) => this.flushTransport(transport)));
   }
 
+  /** Flushes one transport without allowing its failure to reject the factory flush.
+   * @param transport Configured destination to drain.
+   * @returns Promise resolving after optional transport flushing and failure reporting.
+   */
   private async flushTransport(transport: ITransport): Promise<void> {
     try {
       await transport.flush?.();

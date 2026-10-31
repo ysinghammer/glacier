@@ -3,24 +3,25 @@ import type { IMetadataLookup } from "../addressing/types/IMetadataLookup.js";
 import type { IDynamicClassMetadataAddress } from "../addressing/types/IDynamicClassMetadataAddress.js";
 import type { IMetadataDefinitionsResult } from "./types/IMetadataDefinitionsResult.js";
 import { MetadataDiscoveryOperations } from "./MetadataDiscoveryOperations.js";
-/**
- * Contract of the frozen, nonconstructible operation record; consumers use typeof MetadataDiscovery.
- * Readonly detached calls discover declaration identities, not names, instance state or a class registry.
+/** Readonly frozen facade for discovering definition identities at metadata locations.
+ * Calls inspect declarations, not names, instance state, or a global class registry.
  */
 interface IMetadataDiscovery {
-  /**
-   * Discovers identities once each at one checked address, defaulting to class and inherited lookup.
-   * Own mode restricts to direct declarations. Present undefined/empty collections remain discoverable.
-   * Returns a shallow-frozen identity array without promised ordering, or a typed address rejection.
+  /** Discovers identities at a checked location; class/inherited lookup is the default.
+   * @template R Constructor or instance type used to check the address.
+   * @param target Constructor or canonical instance alias to inspect.
+   * @param address Optional checked address and lookup mode; omitted selects inherited class lookup.
+   * @returns Frozen identity list in unspecified order, or typed target/address rejection.
    */
   readonly definitions: <R extends object>(
     target: R,
     address?: IMetadataReadAddress<NoInfer<R>> & IMetadataLookup,
   ) => IMetadataDefinitionsResult;
-  /**
-   * Discovers identities at a dynamic address without finite-key or tuple guarantees.
-   * Instance aliases permit only class and instance-side locations; static/constructor parameters reject.
-   * Inspection exceptions propagate; no getters or consumer constructors are invoked.
+  /** Discovers identities at an erased location without finite-key or tuple guarantees.
+   * Instance aliases reject static and constructor-parameter locations.
+   * @param target Constructor or canonical instance alias to inspect.
+   * @param address Optional dynamic address and lookup mode; omitted selects inherited class lookup.
+   * @returns Frozen identity list in unspecified order, or typed target/address rejection.
    */
   readonly definitionsDynamic: (
     target: object,

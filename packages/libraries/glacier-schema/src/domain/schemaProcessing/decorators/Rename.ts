@@ -2,10 +2,9 @@ import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
 import { FieldRegistry } from "../schema/FieldRegistry.js";
 
 /**
- * Property decorator reading the field from the input key `inputKey` instead of its property name; the
- * instance still uses the property name and issue paths use the input key. Records metadata only; throws
- * `SchemaDefinitionError` for an empty key or when the property already has `Rename`. Two fields reading
- * the same input key are rejected when the class is first parsed.
+ * Maps an input key to a property name; instances keep the property name and issue paths use the input key.
+ * @param inputKey Non-empty key to read from the input object.
+ * @returns A property decorator that records the input-key mapping.
  */
 export function Rename(inputKey: string): PropertyDecorator {
   return (target, key) => {

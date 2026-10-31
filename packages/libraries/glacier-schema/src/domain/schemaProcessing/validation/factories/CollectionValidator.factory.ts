@@ -8,20 +8,25 @@ import { TypeFailure } from "../TypeFailure.js";
 import type { IValueValidator } from "./ValueValidator.factory.js";
 import type { IValueCoercer } from "../ValueCoercer.js";
 
+/** Collection labels used to construct human-readable size failures. */
 type ICollectionLabel = "Array" | "Tuple" | "Set" | "Map" | "Record";
 
-/** A repeated element and the first element it equals. */
+/** Indices identifying a repeated value and its first occurrence. */
 interface IDuplicate {
+  /** Zero-based index of the first matching value. */
   readonly firstIndex: number;
+  /** Zero-based index of the later matching value. */
   readonly duplicateIndex: number;
 }
 
 /** Builds the validators of arrays, tuples, sets, maps and records from their element validators. */
 export class CollectionValidatorFactory {
   /**
-   * Returns a validator for arrays: type, then size, then every element, then uniqueness when requested.
-   * The accepted value is a new array of the validated elements. Explicit singleton promotion wraps present
-   * scalars only; the optional element coercer runs on promoted values only when scalar coercion is enabled.
+   * Builds an array validator that checks size, entries and optional uniqueness.
+   * @param element Validator applied to each array entry.
+   * @param rules Array size and uniqueness constraints.
+   * @param coerceElement Optional coercer used for promoted singleton values when coercion is enabled.
+   * @returns Validator producing a new array of accepted entries.
    */
   public static array(
     element: IValueValidator,
@@ -47,7 +52,11 @@ export class CollectionValidatorFactory {
     };
   }
 
-  /** Returns a validator for arrays of exactly `elements.length` entries, each checked by its own validator. */
+  /**
+   * Builds a tuple validator requiring exactly one entry per element validator.
+   * @param elements Validators applied at corresponding tuple positions.
+   * @returns Validator producing a tuple-shaped array or positional failures.
+   */
   public static tuple(elements: readonly IValueValidator[]): IValueValidator {
     return (value, context) => {
       if (!Array.isArray(value))
@@ -69,7 +78,12 @@ export class CollectionValidatorFactory {
     };
   }
 
-  /** Returns a validator for sets; like arrays, but the accepted value is a new `Set`. */
+  /**
+   * Builds a set validator that checks entries and optional uniqueness.
+   * @param element Validator applied to each set member.
+   * @param rules Set size and uniqueness constraints.
+   * @returns Validator producing a new Set of accepted entries.
+   */
   public static set(element: IValueValidator, rules: ICollectionRules): IValueValidator {
     return (value, context) => {
       if (!(value instanceof Set))
@@ -87,7 +101,13 @@ export class CollectionValidatorFactory {
     };
   }
 
-  /** Returns a validator for maps; keys and values are validated and the accepted value is a new `Map`. */
+  /**
+   * Builds a map validator checking entry count, keys and values.
+   * @param key Validator applied to every map key.
+   * @param value Validator applied to every map value.
+   * @param rules Minimum and maximum entry counts.
+   * @returns Validator producing a new Map and recording key failures at their entry paths.
+   */
   public static map(
     key: IValueValidator,
     value: IValueValidator,
@@ -131,7 +151,12 @@ export class CollectionValidatorFactory {
     };
   }
 
-  /** Returns a validator for plain objects used as string-keyed dictionaries of one value type. */
+  /**
+   * Builds a validator for a plain object used as a string-keyed dictionary.
+   * @param value Validator applied to each own enumerable value.
+   * @param rules Minimum and maximum entry counts.
+   * @returns Validator producing a new plain object and preserving value issue paths.
+   */
   public static record(value: IValueValidator, rules: ISizeRules): IValueValidator {
     return (input, context) => {
       if (!PlainObject.is(input))
@@ -167,7 +192,15 @@ export class CollectionValidatorFactory {
     };
   }
 
-  /** Shared body of arrays and sets: size, then elements, then uniqueness. */
+  /**
+   * Validates array or set entries after checking collection size.
+   * @param label Collection name used in messages and metadata.
+   * @param items Snapshot of collection entries in iteration order.
+   * @param element Validator applied to every entry.
+   * @param rules Size and optional uniqueness constraints.
+   * @param context Per-parse options and nesting depth.
+   * @returns Accepted entry array or all entry/uniqueness failures.
+   */
   private static validateList(
     label: "Array" | "Set",
     items: readonly unknown[],
@@ -197,7 +230,16 @@ export class CollectionValidatorFactory {
     return { isValid: true, value: output };
   }
 
-  /** Validates one entry and records its failures prefixed with `segment`; returns the accepted value. */
+  /**
+   * Validates one collection entry and prefixes failures with its path segment.
+   * @param validator Entry validator.
+   * @param item Candidate entry value.
+   * @param segment Key or zero-based position used in failure paths.
+   * @param context Per-parse options and nesting depth.
+   * @param failures Mutable accumulator receiving entry failures.
+   * @param location Marks map-key failures when supplied.
+   * @returns Accepted entry value, or undefined when rejected.
+   */
   private static validateAt(
     validator: IValueValidator,
     item: unknown,
@@ -218,17 +260,34 @@ export class CollectionValidatorFactory {
     return undefined;
   }
 
-  /** Accepts `value` when no entry failed, otherwise reports every failure. */
+  /**
+   * Combines a candidate result with its accumulated failures.
+   * @param value Candidate collection result.
+   * @param failures Failures collected while validating its entries.
+   * @returns Success carrying `value` when empty, otherwise a rejected outcome.
+   */
   private static outcome(value: unknown, failures: readonly IValueFailure[]): IValueOutcome {
     return failures.length === 0 ? { isValid: true, value } : { isValid: false, failures };
   }
 
-  /** Wraps one failure as a rejected outcome. */
+  /**
+   * Wraps one failure in a rejected outcome.
+   * @param failure Failure to include.
+   * @returns Rejected outcome containing the failure.
+   */
   private static reject(failure: IValueFailure): IValueOutcome {
     return { isValid: false, failures: [failure] };
   }
 
-  /** Builds the failure of an entry count outside `rules`; `isExact` marks the fixed length of a tuple. */
+  /**
+   * Builds an entry-count failure when a collection violates its size bounds.
+   * @param label Display name of the collection kind.
+   * @param type Stable collection type value included in issue parameters.
+   * @param rules Minimum and maximum entry counts.
+   * @param count Actual number of entries.
+   * @param isExact Whether the configured bounds require one exact size.
+   * @returns Size failure, or undefined when the count is valid.
+   */
   private static sizeFailure(
     label: ICollectionLabel,
     type: string,
@@ -255,7 +314,11 @@ export class CollectionValidatorFactory {
     return undefined;
   }
 
-  /** Finds the first element equal to an earlier one; dates compare by time, others by SameValueZero. */
+  /**
+   * Finds the first repeated element, comparing dates by timestamp and others by SameValueZero.
+   * @param values Validated entries in collection order.
+   * @returns First and duplicate indices, or undefined when all values are distinct.
+   */
   private static firstDuplicate(values: readonly unknown[]): IDuplicate | undefined {
     const seen = new Map<unknown, number>();
     for (const [index, value] of values.entries()) {

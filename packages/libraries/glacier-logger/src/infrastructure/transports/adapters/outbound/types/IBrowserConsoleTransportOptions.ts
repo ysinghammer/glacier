@@ -1,7 +1,10 @@
 import type { IConsoleOutput } from "../../../../../application/transports/ports/outbound/IConsoleOutput.port.js";
 
-/** Options of `BrowserConsoleTransport`. */
+/** Configuration for choosing the console output used by a browser console transport. */
 export interface IBrowserConsoleTransportOptions {
-  /** Console to write to. Defaults to the global `console`. */
+  /**
+   * Console receiving entries; omitted to use the global `console`.
+   * @default Global `console`.
+   */
   readonly console?: IConsoleOutput;
 }

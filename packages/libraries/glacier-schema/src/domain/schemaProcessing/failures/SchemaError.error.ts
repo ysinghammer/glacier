@@ -6,21 +6,33 @@ import { SCHEMA_ERROR_BRAND } from "./SchemaErrorBrand.js";
  * HTTP concepts; adapters map it with `Schema.isError`.
  */
 export class SchemaError extends Error {
-  /** Stable code adapters can match on without relying on the class identity. */
+  /**
+   * Stable validation-failure code for matching without relying on class identity.
+   * @default "SCHEMA_VALIDATION_FAILED"
+   */
   public readonly code = "SCHEMA_VALIDATION_FAILED";
-  /** Brand read by `Schema.isError`. */
+  /**
+   * Brand recognised by `Schema.isError` across package copies.
+   * @default true
+   */
   public readonly [SCHEMA_ERROR_BRAND] = true;
-  /** Every issue found, in field declaration order. */
+  /** Readonly issues from the failed parse, ordered by field declaration. */
   public readonly issues: readonly ISchemaIssue[];
 
-  /** Creates the error from a non-empty issue list. */
+  /**
+   * Constructs the parse failure with a count-based summary message.
+   * @param issues All issues reported by the failed schema parse.
+   */
   public constructor(issues: readonly ISchemaIssue[]) {
     super(`Schema validation failed with ${issues.length} issue${issues.length === 1 ? "" : "s"}`);
     this.name = "SchemaError";
     this.issues = issues;
   }
 
-  /** Returns a JSON-safe description; bigint issue parameters are rendered as `123n` strings. */
+  /**
+   * Creates a JSON-safe error record, rendering bigint parameters as suffixed strings.
+   * @returns Error name, stable code, summary message and issue list with JSON-safe parameters.
+   */
   public toJSON(): {
     readonly name: string;
     readonly code: string;

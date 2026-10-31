@@ -10,13 +10,13 @@ import { ReservedKeys } from "./ReservedKeys.js";
 const ERROR_KEY = "err";
 const ERROR_PATH_PREFIX = `${ERROR_KEY}.`;
 
-/** Normalises log calls into entries. */
+/** Converts calls into safe, normalized records for formatters and transports. */
 export class LogEntries {
   /**
-   * Builds the entry for a call. Level, time and context always come from the logger, so call
-   * fields using reserved keys (possible only by bypassing the types) are dropped rather than
-   * allowed to override them. Bindings, fields and the error are redacted on a copy and then
-   * serialised, so the entry is plain data and creating it never throws.
+   * Normalizes logger metadata and call data without allowing call fields to override owned keys.
+   * Structured values are redacted on copies and serialized to safe plain data.
+   * @param input - Level, timestamp, context, bindings, call, and redaction settings to combine.
+   * @returns An entry with reserved fields removed and any error serialized.
    */
   public static create(input: ILogEntryInput): ILogEntry {
     const fields: Record<string, unknown> = {};
@@ -42,6 +42,11 @@ export class LogEntries {
     return { ...base, message: call.message };
   }
 
+  /** Redacts and serializes a record without changing its input.
+   * @param record - Structured values to sanitize.
+   * @param redaction - Exact paths and replacement text to apply before serialization.
+   * @returns A plain record containing only serialized values.
+   */
   private static sanitise(
     record: Readonly<Record<string, unknown>>,
     redaction: IRedaction,
@@ -50,7 +55,11 @@ export class LogEntries {
     return SafeValueSerializer.serializeRecord(redacted);
   }
 
-  /** Only `err.`-prefixed paths reach into the error; the error itself is never replaced. */
+  /** Applies only `err.` paths to serialized error properties, preserving the error object shape.
+   * @param error - Error whose data is serialized before redaction.
+   * @param redaction - Settings; only paths prefixed with `err.` are used.
+   * @returns Serialized error data with matching properties censored.
+   */
   private static sanitiseError(error: Error, redaction: IRedaction): ISerializedError {
     const paths = redaction.paths
       .filter((path) => path.startsWith(ERROR_PATH_PREFIX))

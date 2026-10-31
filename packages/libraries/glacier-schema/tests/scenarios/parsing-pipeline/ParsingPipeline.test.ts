@@ -10,11 +10,23 @@ import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 describe("SCH-001 Instances are created without running the constructor", () => {
   it("returns a real prototype instance without calling the constructor or field initializers", () => {
     let constructed = 0;
+    /** User fixture proving parsing preserves prototypes without construction. */
     class User {
+      /**
+       * Initializer value overwritten by the parsed input field.
+       * @default "initializer"
+       */
       public name = "initializer";
+
+      /** Counts explicit fixture construction for the no-constructor assertion. */
       public constructor() {
         constructed += 1;
       }
+
+      /**
+       * Formats the parsed name to verify prototype methods remain available.
+       * @returns Greeting containing the current name.
+       */
       public greet(): string {
         return `hi ${this.name}`;
       }
@@ -31,7 +43,9 @@ describe("SCH-001 Instances are created without running the constructor", () => 
 
 describe("SCH-002 Unknown keys are stripped", () => {
   it("copies only declared fields", () => {
+    /** Account fixture with one declared output field. */
     class Account {
+      /** Name retained when parsing strips unknown input keys. */
       public name!: string;
     }
     FieldDeclaration.declare(Account, "name", String, IsString());
@@ -42,7 +56,9 @@ describe("SCH-002 Unknown keys are stripped", () => {
   });
 
   it("ignores properties that the input only inherits", () => {
+    /** Account fixture used to reject inherited input properties. */
     class Account {
+      /** Own input field required by the schema. */
       public name!: string;
     }
     FieldDeclaration.declare(Account, "name", String, IsString());
@@ -62,6 +78,7 @@ describe("SCH-003 Only objects are accepted as input", () => {
     [5, "number"],
     [[], "array"],
   ])("rejects %j with an invalid_type issue at the root", (input, received) => {
+    /** Empty schema fixture receiving an invalid root input. */
     class Empty {}
 
     const result = Schema.safeParse(Empty, input);
@@ -80,6 +97,7 @@ describe("SCH-003 Only objects are accepted as input", () => {
   });
 
   it("accepts a class without declared fields and returns an empty instance", () => {
+    /** Empty schema fixture accepting an object with no declared fields. */
     class Empty {}
 
     const result = Schema.parse(Empty, { ignored: true });
@@ -91,10 +109,14 @@ describe("SCH-003 Only objects are accepted as input", () => {
 
 describe("SCH-004 Schema metadata is frozen after the first parse", () => {
   it("rejects decorating a class, or its ancestors, once a parse compiled it", () => {
+    /** Base fixture compiled together with its derived schema. */
     class Base {
+      /** Identifier field declared before compilation. */
       public id!: string;
     }
+    /** Derived fixture whose late field is rejected after compilation. */
     class Derived extends Base {
+      /** Field used to check post-compilation decorator rejection. */
       public late!: string;
     }
     FieldDeclaration.declare(Base, "id", String, IsString());
@@ -109,8 +131,11 @@ describe("SCH-004 Schema metadata is frozen after the first parse", () => {
   });
 
   it("still allows decorating a class that has not been parsed itself", () => {
+    /** Parsed base class whose unparsed subclass remains mutable. */
     class Base {}
+    /** Unparsed sibling class available for a later declaration. */
     class Sibling extends Base {
+      /** Name field decorated after parsing only the base. */
       public name!: string;
     }
     Schema.parse(Base, {});
@@ -121,7 +146,9 @@ describe("SCH-004 Schema metadata is frozen after the first parse", () => {
 
 describe("SCH-005 Compiled schemas are reused", () => {
   it("returns equal but distinct instances for repeated parses of the same class", () => {
+    /** Item fixture used to check independent results from cached schemas. */
     class Item {
+      /** Stock-keeping identifier copied to each parsed instance. */
       public sku!: string;
     }
     FieldDeclaration.declare(Item, "sku", String, IsString());

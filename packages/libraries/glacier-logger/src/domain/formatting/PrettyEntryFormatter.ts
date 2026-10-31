@@ -12,24 +12,28 @@ const INVALID_TIME_PLACEHOLDER = "??:??:??.???";
 const FIELD_DEPTH = 1;
 
 interface IOutputSegment {
+  /** Literal header text rendered in sequence. */
   readonly text: string;
+  /** Optional emphasis applied when color output is enabled. */
   readonly tone?: IOutputTone;
 }
 
-/**
- * Renders an entry for humans: `HH:mm:ss.SSS LEVEL [context] message`, then indented fields, then
- * the error stack and cause chain. The time is UTC so output does not depend on the machine's time
- * zone. Colour is opt-in through `isColorEnabled`: ANSI codes from `format` (Node) or `%c`
- * styling from `formatStyled` (browser). The same entry always yields the same output.
- */
+/** Formats log entries as readable text or browser-console text and style arguments. */
 export class PrettyEntryFormatter implements IEntryFormatter {
+  /** Color setting copied from constructor options and retained for this formatter's lifetime. */
   private readonly isColorEnabled: boolean;
 
+  /** Creates a formatter with the caller-selected color behavior.
+   * @param options - Whether color styling is enabled; no environment check is performed here.
+   */
   constructor(options: IPrettyFormatterOptions) {
     this.isColorEnabled = options.isColorEnabled;
   }
 
-  /** Returns the output text, with ANSI colour codes only when colour is enabled. */
+  /** Formats the header and body as newline-separated human-readable text.
+   * @param entry - Normalized log record to display.
+   * @returns Text with UTC time and optional ANSI color sequences.
+   */
   public format(entry: ILogEntry): string {
     const header = this.headerSegments(entry)
       .map((segment) => this.renderAnsi(segment))
@@ -37,10 +41,10 @@ export class PrettyEntryFormatter implements IEntryFormatter {
     return [header, ...PrettyEntryFormatter.bodyLines(entry)].join("\n");
   }
 
-  /**
-   * Returns a console format string and its style arguments. Without colour the format has no
-   * `%c` and `styles` is empty. Literal percent signs are escaped so the console never treats
-   * message text as a directive.
+  /** Formats browser-console text and the style arguments corresponding to its `%c` directives.
+   * Literal percent signs are escaped; color-disabled output has no directives.
+   * @param entry - Normalized log record to display.
+   * @returns Console format and styles, with one style pair for each styled segment.
    */
   public formatStyled(entry: ILogEntry): IStyledOutput {
     const styles: string[] = [];
@@ -53,6 +57,10 @@ export class PrettyEntryFormatter implements IEntryFormatter {
     return { format: `${header}${body.join("")}`, styles };
   }
 
+  /** Builds ordered header segments for time, level, context, and message.
+   * @param entry - Normalized record supplying header values.
+   * @returns Segments with visual tones assigned to time, level, and context.
+   */
   private headerSegments(entry: ILogEntry): IOutputSegment[] {
     const label = entry.level.toUpperCase().padEnd(LEVEL_LABEL_WIDTH);
     const message = entry.message.replaceAll("\n", `\n${MESSAGE_CONTINUATION_INDENT}`);
@@ -66,6 +74,10 @@ export class PrettyEntryFormatter implements IEntryFormatter {
     ];
   }
 
+  /** Renders one segment with ANSI styling when configured and toned.
+   * @param segment - Text and optional tone to render.
+   * @returns Segment text, styled only when color is enabled.
+   */
   private renderAnsi(segment: IOutputSegment): string {
     if (!this.isColorEnabled || segment.tone === undefined) {
       return segment.text;
@@ -73,6 +85,11 @@ export class PrettyEntryFormatter implements IEntryFormatter {
     return OutputPalette.paintAnsi(segment.text, segment.tone);
   }
 
+  /** Escapes and renders one browser segment, appending its CSS style arguments if needed.
+   * @param segment - Text and optional tone to render.
+   * @param styles - Mutable style list extended for styled segments.
+   * @returns Console format fragment, including `%c` directives when styled.
+   */
   private renderCss(segment: IOutputSegment, styles: string[]): string {
     const text = PrettyEntryFormatter.escapeDirectives(segment.text);
     if (!this.isColorEnabled || segment.tone === undefined) {
@@ -82,6 +99,10 @@ export class PrettyEntryFormatter implements IEntryFormatter {
     return `%c${text}%c`;
   }
 
+  /** Renders bindings, call fields, and the optional error beneath the header.
+   * @param entry - Normalized record whose body data is rendered.
+   * @returns Indented body lines; call fields override same-named bindings.
+   */
   private static bodyLines(entry: ILogEntry): string[] {
     const lines = PrettyValueRenderer.renderRecord(
       { ...entry.bindings, ...entry.fields },
@@ -93,10 +114,18 @@ export class PrettyEntryFormatter implements IEntryFormatter {
     return lines;
   }
 
+  /** Escapes literal percent characters for console format-string handling.
+   * @param text - Text that must not introduce console directives.
+   * @returns Text with every percent sign doubled.
+   */
   private static escapeDirectives(text: string): string {
     return text.replaceAll("%", "%%");
   }
 
+  /** Formats a date as UTC time with milliseconds or an invalid-time placeholder.
+   * @param time - Timestamp to format.
+   * @returns `HH:mm:ss.SSS` in UTC, or `??:??:??.???` for an invalid date.
+   */
   private static formatTime(time: Date): string {
     if (Number.isNaN(time.getTime())) {
       return INVALID_TIME_PLACEHOLDER;

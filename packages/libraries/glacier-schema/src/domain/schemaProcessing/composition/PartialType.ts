@@ -4,11 +4,11 @@ import type { IDerivedClass } from "./types/IDerivedClass.js";
 import type { IDerivedClassOptions } from "./types/IDerivedClassOptions.js";
 
 /**
- * Creates a class with every field of `source` made optional, for update DTOs. Types, other modifiers and
- * property refinements are kept, but `Default` is dropped so that an update never injects values, and
- * class-level refinements are not carried over because they may need absent fields. Only top-level fields
- * become optional. The result is a new class, not a subclass; it carries no methods. `source` is frozen.
- * Throws `SchemaDefinitionError` for union base classes.
+ * Creates a new schema class with all top-level source fields optional, suitable for partial updates.
+ * @template T Instance type of the source class.
+ * @param source Schema class whose fields are copied and frozen against later decoration.
+ * @param options Optional generated-class name; defaults to `Partial` plus the source name.
+ * @returns Constructor-free `Partial<T>` class; defaults and class refinements are omitted.
  */
 export function PartialType<T extends object>(
   source: abstract new (...arguments_: never[]) => T,

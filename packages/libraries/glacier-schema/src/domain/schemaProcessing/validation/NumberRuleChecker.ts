@@ -2,12 +2,20 @@ import type { INumberRules } from "../schema/types/INumberRules.js";
 import type { IValueFailure } from "./types/IValueFailure.js";
 import type { IValueOutcome } from "./types/IValueOutcome.js";
 
-/** Checks one finite number; created once per field at compile time. */
+/**
+ * Checks numeric constraints on one value accepted by the type validator.
+ * @param value Finite number to check.
+ * @returns Accepted number or its first constraint failure.
+ */
 export type INumberRuleChecker = (value: number) => IValueOutcome;
 
 /** Builds the checker for the constraints of a number or integer field. */
 export class NumberRuleChecker {
-  /** Returns a checker that reports the first violated constraint in the order of `INumberRules`. */
+  /**
+   * Creates a checker that reports the first violated numeric constraint.
+   * @param rules Bounds and divisibility rules to apply in declaration order.
+   * @returns Checker yielding the input on success or one typed failure.
+   */
   public static create(rules: INumberRules): INumberRuleChecker {
     return (value) => {
       const failure = NumberRuleChecker.firstFailure(rules, value);
@@ -17,7 +25,12 @@ export class NumberRuleChecker {
     };
   }
 
-  /** Returns the first violated rule in the order min, max, exclusiveMin, exclusiveMax, multipleOf. */
+  /**
+   * Finds the earliest violated rule in the order min, max, exclusiveMin, exclusiveMax, multipleOf.
+   * @param rules Numeric constraints to inspect.
+   * @param value Finite number already accepted by the type validator.
+   * @returns First constraint failure, or undefined when all rules pass.
+   */
   private static firstFailure(rules: INumberRules, value: number): IValueFailure | undefined {
     const { min, max, exclusiveMin, exclusiveMax, multipleOf } = rules;
     if (min !== undefined && value < min) return NumberRuleChecker.tooSmall(min, true, value);
@@ -38,14 +51,25 @@ export class NumberRuleChecker {
     return undefined;
   }
 
-  /** Tolerates binary floating-point error, so `0.3` is a multiple of `0.1`. */
+  /**
+   * Tests divisibility while tolerating scaled binary floating-point error.
+   * @param value Number being checked.
+   * @param divisor Positive multiple size.
+   * @returns Whether the quotient is sufficiently close to an integer.
+   */
   private static isMultiple(value: number, divisor: number): boolean {
     const quotient = value / divisor;
     const nearest = Math.round(quotient);
     return Math.abs(quotient - nearest) <= Number.EPSILON * Math.max(1, Math.abs(nearest));
   }
 
-  /** Builds the failure of a value below the bound; `isInclusive` is false for `exclusiveMin`. */
+  /**
+   * Builds the failure for a value below its lower bound.
+   * @param limit Lower boundary from the violated rule.
+   * @param isInclusive Whether equality with the boundary is accepted.
+   * @param value Rejected number.
+   * @returns Failure with bound and received-value details.
+   */
   private static tooSmall(limit: number, isInclusive: boolean, value: number): IValueFailure {
     return {
       code: "too_small",
@@ -59,7 +83,13 @@ export class NumberRuleChecker {
     };
   }
 
-  /** Builds the failure of a value above the bound; `isInclusive` is false for `exclusiveMax`. */
+  /**
+   * Builds the failure for a value above its upper bound.
+   * @param limit Upper boundary from the violated rule.
+   * @param isInclusive Whether equality with the boundary is accepted.
+   * @param value Rejected number.
+   * @returns Failure with bound and received-value details.
+   */
   private static tooBig(limit: number, isInclusive: boolean, value: number): IValueFailure {
     return {
       code: "too_big",

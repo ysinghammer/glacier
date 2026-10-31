@@ -2,9 +2,9 @@ import { FieldRegistry } from "../schema/FieldRegistry.js";
 import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
- * Escape hatch property decorator accepting any value, including `undefined` (which leaves the key
- * absent on the instance). Records metadata only; throws `SchemaDefinitionError` when the property
- * already has a type decorator.
+ * Declares an unconstrained field; undefined input leaves the property absent from the instance.
+ * @param options Optional issue-message settings for the field.
+ * @returns A property decorator that registers the unconstrained field.
  */
 export function IsAny(options?: ISchemaDecoratorOptions): PropertyDecorator {
   return (target, key) => FieldRegistry.declare(target, key, { kind: "any" }, options);

@@ -1,17 +1,19 @@
 /** Per-call options of `parse` and `safeParse`; there is no field-level or class-level equivalent. */
 export interface ISchemaParseOptions {
-  /** Promote present scalars to declared arrays, independently of scalar coercion; never objects/null. */
+  /**
+   * Promote present scalars to declared arrays, independently of scalar coercion; never objects/null.
+   * @default false
+   */
   readonly coerceSingletonArrays?: boolean;
   /**
-   * Converts string, number and similar input into the declared type before validation: numeric strings to
-   * numbers, `"true"`/`"false"` to booleans, integer strings to bigints, ISO 8601 strings and numeric
-   * timestamps to dates, and numbers/booleans to strings. Values that cannot be converted are left for
-   * validation to reject. Off by default.
+   * Converts supported scalar input toward the declared type before validation; unconvertible values remain
+   * unchanged for validation. Includes numeric, boolean, bigint, date and string conversions.
+   * @default false
    */
   readonly coerce?: boolean;
   /**
-   * Largest number of nested class levels, the root class included, before parsing reports
-   * `max_depth_exceeded` instead of descending further. Defaults to 64; use a positive integer.
+   * Maximum nested class levels, including the root, before parsing reports `max_depth_exceeded`.
+   * @default 64
    */
   readonly maxDepth?: number;
 }

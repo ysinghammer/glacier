@@ -8,10 +8,11 @@ import { TypeFailure } from "./TypeFailure.js";
 /** Builds the validator of a field whose value is another decorated class. */
 export class NestedSchemaValidator {
   /**
-   * Returns a validator that parses the value with the schema of the class `resolve` returns. The class is
-   * resolved and compiled on first use, so forward references and cycles work; a result that is not a class
-   * throws `SchemaDefinitionError` then. Issues of the nested schema keep their own messages and are
-   * located by their path inside the value; the nested schema runs `levelStep` (default one) levels deeper; a union selecting the root class passes 0.
+   * Creates a validator that lazily resolves and parses a nested class value.
+   * @param resolve Thunk returning the nested class constructor.
+   * @param levelStep Nesting levels added for this value; pass 0 for root-union variants.
+   * @default 1
+   * @returns Validator preserving nested issue paths and messages.
    */
   public static create(resolve: () => unknown, levelStep = 1): IValueValidator {
     let schema: ICompiledSchema<object> | undefined;
@@ -29,7 +30,12 @@ export class NestedSchemaValidator {
     };
   }
 
-  /** Resolves the reference and compiles the class it names. */
+  /**
+   * Resolves the reference and compiles the class it names.
+   * @param resolve Thunk expected to return a class constructor.
+   * @returns Compiled schema for the resolved class.
+   * @throws {SchemaDefinitionError} If the thunk result is not a class constructor.
+   */
   private static compile(resolve: () => unknown): ICompiledSchema<object> {
     const target = resolve();
     if (typeof target !== "function" || !Object.hasOwn(target, "prototype")) {

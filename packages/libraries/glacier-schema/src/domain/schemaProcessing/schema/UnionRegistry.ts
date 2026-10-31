@@ -15,7 +15,13 @@ const classUnions = new WeakMap<IClass, IClassUnion>();
 
 /** Records which classes parse as a discriminated union of their variants; subclasses do not inherit it. */
 export class UnionRegistry {
-  /** Marks `target` as a union. Throws `SchemaDefinitionError` when it is frozen or already a union. */
+  /**
+   * Registers a class as a discriminated union base.
+   * @param target Class parsing as one of its variants.
+   * @param union Discriminator, variant specifications and issue-message override.
+   * @returns No value; stores the class-specific union declaration.
+   * @throws {SchemaDefinitionError} If the class is frozen or already registered as a union.
+   */
   public static declare(target: IClass, union: IClassUnion): void {
     if (CompiledSchemaCache.isFrozen(target)) {
       throw new SchemaDefinitionError(
@@ -28,7 +34,11 @@ export class UnionRegistry {
     classUnions.set(target, union);
   }
 
-  /** Returns the union declared directly on `target`, or `undefined` for ordinary classes and subclasses. */
+  /**
+   * Retrieves union metadata declared directly on a class.
+   * @param target Class whose own union declaration is queried.
+   * @returns Union configuration, or undefined for ordinary classes and subclasses.
+   */
   public static get(target: IClass): IClassUnion | undefined {
     return classUnions.get(target);
   }

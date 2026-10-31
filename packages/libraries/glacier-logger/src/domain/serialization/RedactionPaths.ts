@@ -1,8 +1,11 @@
 const REDACTION_PATH_PATTERN = /^[^.*\s]+(\.[^.*\s]+)*$/;
 
-/** Syntax rules for redaction paths: exact dot-separated segments, no wildcards. */
+/** Validates exact dot-separated redaction paths without wildcard or whitespace segments. */
 export class RedactionPaths {
-  /** True when every segment is non-empty and free of whitespace and wildcards. */
+  /** Checks whether a path contains only valid exact-match segments.
+   * @param path - Candidate path; segments are separated by dots.
+   * @returns `true` when all segments are non-empty and contain no whitespace or wildcards.
+   */
   public static isValid(path: string): boolean {
     return REDACTION_PATH_PATTERN.test(path);
   }

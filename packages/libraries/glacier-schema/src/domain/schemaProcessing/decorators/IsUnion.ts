@@ -7,13 +7,10 @@ import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js
 import type { IUnionOptions } from "./types/IUnionOptions.js";
 
 /**
- * Decorator declaring a discriminated union with an explicit discriminator-to-class mapping. On a property
- * the field must be an object whose `discriminator` value selects the variant class, which then validates
- * and instantiates the whole value; issues point into the variant. On a base class, parsing the base
- * itself selects the variant the same way (subclasses do not inherit this). An unknown or missing
- * discriminator is `invalid_discriminator`. `message` replaces the message of discriminator issues only.
- * Records metadata only; throws `SchemaDefinitionError` for an invalid mapping, a base class listing
- * itself as a variant, or a property that already has a type decorator.
+ * Declares a discriminated union field or base class using an explicit variant mapping.
+ * @param config Discriminator property and non-empty mapping from discriminator values to classes.
+ * @param options Optional message override for discriminator issues.
+ * @returns A class and property decorator that records the union declaration.
  */
 export function IsUnion(
   config: IUnionOptions,

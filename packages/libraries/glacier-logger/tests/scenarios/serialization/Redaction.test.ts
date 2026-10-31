@@ -117,9 +117,23 @@ describe("redaction on copies", () => {
   });
 
   it("keeps class instance behaviour such as toJSON while redacting", () => {
+    /** Models an object with custom JSON conversion used in redaction scenarios. */
     class Account {
+      /**
+       * Mutable account PIN transformed by the instance's JSON representation.
+       * @default `"1234"`
+       */
       public pin = "1234";
+      /**
+       * Mutable account owner retained by JSON conversion.
+       * @default `"ann"`
+       */
       public owner = "ann";
+
+      /**
+       * Exposes account fields as the object representation consumed by serialization.
+       * @returns A new record containing the current owner and PIN values.
+       */
       public toJSON(): unknown {
         return { owner: this.owner, pin: this.pin };
       }
@@ -166,6 +180,11 @@ describe("redaction failures", () => {
   it("returns the censor, not the raw value, for a throwing getter on a redacted path", () => {
     const { logger, entries } = new RecordingLogger({ paths: ["box.inner"] });
     const box = {
+      /**
+       * Simulates an unreadable nested property for redaction fallback coverage.
+       * @returns No value; access always throws before producing a value.
+       * @throws {Error} Whenever serialization reads this deliberately hostile getter.
+       */
       get inner(): never {
         throw new Error("raw inner");
       },
@@ -196,6 +215,11 @@ describe("redaction failures", () => {
   it("censors the whole top-level field when an intermediate step cannot be read", () => {
     const { logger, entries } = new RecordingLogger({ paths: ["wrapper.inner.secret"] });
     const wrapper = {
+      /**
+       * Simulates an unreadable intermediate property during path traversal.
+       * @returns No value; access always throws before producing a value.
+       * @throws {Error} Whenever serialization reads this deliberately hostile getter.
+       */
       get inner(): never {
         throw new Error("cannot descend");
       },

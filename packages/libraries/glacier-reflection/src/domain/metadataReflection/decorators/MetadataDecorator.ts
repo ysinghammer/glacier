@@ -3,9 +3,14 @@ import type { IDynamicClassMetadataAddress } from "../addressing/types/IDynamicC
 import { MetadataTarget } from "../targets/MetadataTarget.js";
 import { MetadataBoundaryError } from "../failures/MetadataBoundary.error.js";
 
-/** Translates legacy invocation shapes to constructor-owned metadata locations. */
+/** Converts legacy metadata callback arguments to constructor-owned canonical locations. */
 export class MetadataDecorator {
-  /** Inspects only canonical descriptors, never consumer getters or constructor bodies. */
+  /** Converts class, member, accessor, and parameter callback forms into an owner/address pair.
+   * @param arguments_ Legacy callback arguments received from the runtime.
+   * @returns Constructor owner and corresponding dynamic address.
+   * @remarks One-argument class callbacks select class metadata; numeric member keys become strings.
+   * @remarks Proxy traps during target descriptor inspection may run and their failures propagate.
+   */
   public static normalize(arguments_: readonly unknown[]): {
     readonly owner: IClass;
     readonly address: IDynamicClassMetadataAddress;
@@ -21,6 +26,11 @@ export class MetadataDecorator {
     return MetadataDecorator.member(targetInfo.owner, targetInfo.side, member, extra);
   }
 
+  /** Resolves a constructor or canonical instance prototype to its owner and side.
+   * @param target Callback target supplied by the decorator runtime.
+   * @returns Constructor owner and static/instance side.
+   * @throws {MetadataBoundaryError} If target is neither a class nor a canonical instance prototype.
+   */
   private static target(target: unknown): {
     readonly owner: IClass;
     readonly side: "instance" | "static";
@@ -33,10 +43,23 @@ export class MetadataDecorator {
     throw new MetadataBoundaryError("invalid-decorator-target");
   }
 
+  /** Enforces the supported legacy callback argument counts.
+   * @param length Number of callback arguments supplied by the runtime.
+   * @returns No value; valid lengths are two or three.
+   * @throws {MetadataBoundaryError} If fewer than two or more than three arguments were supplied.
+   */
   private static validateArity(length: number): void {
     if (length < 2 || length > 3) throw new MetadataBoundaryError("invalid-decorator-location");
   }
 
+  /** Builds constructor- or method-parameter location from the legacy callback shape.
+   * @param owner Constructor that owns the decorated declaration.
+   * @param side Static or instance member side selected from the callback target.
+   * @param member Member key; undefined identifies a static constructor parameter.
+   * @param position Zero-based parameter position supplied by the runtime.
+   * @returns Constructor-parameter or method-parameter address for the owner.
+   * @throws {MetadataBoundaryError} If member and side do not form a supported parameter location.
+   */
   private static parameter(
     owner: IClass,
     side: "instance" | "static",
@@ -50,6 +73,14 @@ export class MetadataDecorator {
     throw new MetadataBoundaryError("invalid-decorator-location");
   }
 
+  /** Builds a property or method address after validating legacy descriptor arguments.
+   * @param owner Constructor that owns the decorated declaration.
+   * @param side Static or instance member side selected from the callback target.
+   * @param member Member key supplied by the runtime.
+   * @param extra Optional third argument; a supplied descriptor must be an object and is not read.
+   * @returns Canonical member address for the owner.
+   * @throws {MetadataBoundaryError} If member is not a string/symbol or extra is non-object.
+   */
   private static member(
     owner: IClass,
     side: "instance" | "static",

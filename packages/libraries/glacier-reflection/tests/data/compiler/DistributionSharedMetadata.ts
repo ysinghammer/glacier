@@ -13,11 +13,22 @@ let constructions = 0;
 /** Genuine emitted declarations share the registration entry's canonical storage graph. */
 @LABEL.decorator("consumer")
 class SharedConsumer {
-  public constructor(public readonly count: number) {
+  /**
+   * Counts construction so metadata reads can prove they do not instantiate consumers.
+   * @param count Value retained as emitted constructor metadata.
+   */
+  public constructor(
+    /** Readonly count retained for emitted constructor metadata. */
+    public readonly count: number,
+  ) {
     constructions++;
   }
 
-  /** Emits the method type, parameter and return metadata without executing the method. */
+  /**
+   * Emits the method type, parameter, and return metadata for this fixture.
+   * @param input Value represented by compiler-emitted parameter metadata.
+   * @returns The input converted to text.
+   */
   @LABEL.decorator("method")
   public describe(input: boolean): string {
     return String(input);
@@ -26,7 +37,10 @@ class SharedConsumer {
 
 /** Reports exact public definition/storage identities inside one actual bundle graph. */
 export class DistributionSharedMetadata {
-  /** Checks recording, frozen whole-value identity, discovery and absence of consumer construction. */
+  /**
+   * Reports shared metadata identities, recording, and consumer construction count.
+   * @returns Public API observations from the shared bundle graph.
+   */
   public static observations(): unknown {
     const parameters = DESIGN_PARAMETER_TYPES_METADATA.read(SharedConsumer);
     const repeated = DESIGN_PARAMETER_TYPES_METADATA.read(SharedConsumer);

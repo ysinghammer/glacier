@@ -5,6 +5,12 @@ import type { Logger } from "../../../index.js";
 import { FakeProcessHost } from "../../doubles/FakeProcessHost.js";
 import { InMemoryFileSystem } from "../../doubles/InMemoryFileSystem.js";
 
+/**
+ * Creates a stdout-backed logger whose process lifecycle is controlled by the test host.
+ * @param host Fake process host observing output and exit-event registrations.
+ * @returns The configured factory and its `Exit` context logger.
+ * @throws {Error} If the fixed valid factory configuration rejects logger creation.
+ */
 function stdoutLogger(host: FakeProcessHost): { factory: LoggerFactory; logger: Logger } {
   const factory = new LoggerFactory({
     level: "info",

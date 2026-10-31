@@ -1,14 +1,14 @@
 import type { IForbiddenKeys } from "./ILogFields.js";
 
-/** A call carrying a message and optional structured fields. */
+/** Message call with optional fields; `err` and logger-owned metadata keys are forbidden. */
 export type IMessageCall = { readonly [field: string]: unknown } & IForbiddenKeys<
   "err" | "level" | "time" | "context"
 > & { readonly message: string };
 
-/** A call carrying an error, an optional message and optional structured fields. */
+/** Error call with optional message and fields; logger-owned metadata keys are forbidden. */
 export type IErrorCall = { readonly [field: string]: unknown } & IForbiddenKeys<
   "level" | "time" | "context"
 > & { readonly err: Error; readonly message?: string };
 
-/** The single argument of every level method. Bare strings are compile errors. */
+/** Permitted argument of each level method; callers pass an object, not a bare string. */
 export type ILogCall = IMessageCall | IErrorCall;

@@ -2,13 +2,12 @@ import type { IEntryFormatter } from "../../application/logging/ports/outbound/I
 import type { ILogEntry } from "../logging/types/ILogEntry.js";
 import { SafeValueSerializer } from "../serialization/SafeValueSerializer.js";
 
-/**
- * Renders an entry as one JSON line ending in `\n`. Key order is `level`, `time` (ISO 8601),
- * `context`, `message`, bindings, fields, then `err`. Values pass through the safe serialiser, so
- * formatting never throws and the same entry always yields the same text.
- */
+/** Formats normalized entries as newline-terminated JSON records. */
 export class JsonEntryFormatter implements IEntryFormatter {
-  /** Returns the JSON line for `entry`, newline included. */
+  /** Serializes entry data in stable key order, including a trailing newline.
+   * @param entry - Normalized record to convert to JSON.
+   * @returns JSON line ordered as level, time, context, message, bindings, fields, optional `err`.
+   */
   public format(entry: ILogEntry): string {
     const record: Record<string, unknown> = {
       level: entry.level,

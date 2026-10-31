@@ -11,6 +11,7 @@ const IPV4 = /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1
 
 /** Syntactic checks for the named string formats; none of them contacts the network or resolves names. */
 export class StringFormats {
+  /** Syntactic recognizers for each supported format; checks never perform network or name resolution. */
   private static readonly formatChecks: Readonly<
     Record<IStringFormat, (value: string) => boolean>
   > = {
@@ -22,17 +23,30 @@ export class StringFormats {
     ipv4: (value) => IPV4.test(value),
   };
 
-  /** Whether `name` is one of the supported formats. */
+  /**
+   * Checks whether a format name is supported by this package.
+   * @param name Untrusted name to narrow to a supported format.
+   * @returns True when the name has a registered syntax checker.
+   */
   public static isKnown(name: string): name is IStringFormat {
     return Object.hasOwn(StringFormats.formatChecks, name);
   }
 
-  /** Whether `value` is a well-formed instance of `format`. */
+  /**
+   * Checks a string against the syntax rule for a named format.
+   * @param format Supported string format to test.
+   * @param value Candidate string value.
+   * @returns True when the value satisfies the local syntax check.
+   */
   public static matches(format: IStringFormat, value: string): boolean {
     return StringFormats.formatChecks[format](value);
   }
 
-  /** An RFC 3339 `full-date` naming a real calendar day. */
+  /**
+   * Checks an RFC 3339 full-date and verifies that its calendar day exists.
+   * @param value Candidate date string in year-month-day form.
+   * @returns True when syntax and calendar components form a real date.
+   */
   private static isDate(value: string): boolean {
     const parts = DATE.exec(value);
     if (parts === null) return false;
@@ -41,7 +55,11 @@ export class StringFormats {
     return calendar.getUTCMonth() === month - 1 && calendar.getUTCDate() === day;
   }
 
-  /** An RFC 3339 `date-time`: a real day, `T`, a time with an offset (leap second 60 allowed). */
+  /**
+   * Checks an RFC 3339 date-time with a real date and timezone offset.
+   * @param value Candidate date-time string.
+   * @returns True when date and time components are in range; second 60 is accepted.
+   */
   private static isDateTime(value: string): boolean {
     const separator = value.search(/t/i);
     if (separator === -1 || !StringFormats.isDate(value.slice(0, separator))) return false;

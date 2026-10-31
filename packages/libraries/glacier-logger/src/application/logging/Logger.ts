@@ -9,31 +9,36 @@ import { TransportDelivery } from "./TransportDelivery.js";
 import { TransportFailureError } from "./errors/TransportFailure.error.js";
 import { InvalidBindingsError } from "./errors/InvalidBindings.error.js";
 
-/** Logger bindings and runtime configuration are not loggable object properties. */
+/** State kept outside logger instances so bindings are not enumerable properties. */
 interface ILoggerState {
+  /** Immutable shared settings used to timestamp, filter, redact, and deliver entries. */
   readonly runtime: ILoggerRuntime;
+  /** Context label attached to entries written by the logger. */
   readonly context: string;
+  /** Logger-specific fields merged into each emitted entry. */
   readonly bindings: Readonly<Record<string, unknown>>;
 }
 const LOGGER_STATES = new WeakMap<Logger, ILoggerState>();
 import type { ITransportRegistration } from "./types/ITransportRegistration.js";
 import type { ILoggerRuntime } from "./types/ILoggerRuntime.js";
 
-/**
- * Writes entries for one context. Obtain it from `LoggerFactory.createLogger`; it is immutable
- * and safe to share. Entries below the global level are dropped, the rest go to every transport
- * whose own minimum level they meet. A transport that throws is reported to `onError`; the call
- * never throws.
- */
+/** Factory-created context logger that writes redacted entries to eligible transports. */
 export class Logger {
-  /** Keeps unredacted bindings out of enumeration and rejects invalid borrowed receivers. */
+  /** Retrieves non-enumerable logger state.
+   * @returns Runtime settings, context, and bindings associated with this logger.
+   * @throws TypeError if accessed with a receiver not initialized as a logger.
+   */
   private get state(): ILoggerState {
     const state = LOGGER_STATES.get(this);
     if (state === undefined) throw new TypeError("Invalid logger receiver");
     return state;
   }
 
-  /** Not for direct use: the factory supplies validated runtime, context and bindings. */
+  /** Initializes a logger from factory-validated state.
+   * @param runtime Shared filtering, redaction, clock, and transport settings.
+   * @param context Non-empty context label attached to each entry.
+   * @param bindings Read-only fields merged into each entry.
+   */
   constructor(
     runtime: ILoggerRuntime,
     context: string,
@@ -42,40 +47,58 @@ export class Logger {
     LOGGER_STATES.set(this, { runtime, context, bindings });
   }
 
-  /** Logs at `trace` level. */
+  /** Emits a trace-level call when enabled by global and transport thresholds.
+   * @param call Message and fields to include in the entry.
+   * @returns No value; matching transports receive the entry.
+   */
   public trace(call: ILogCall): void {
     this.log("trace", call);
   }
 
-  /** Logs at `debug` level. */
+  /** Emits a debug-level call when enabled by global and transport thresholds.
+   * @param call Message and fields to include in the entry.
+   * @returns No value; matching transports receive the entry.
+   */
   public debug(call: ILogCall): void {
     this.log("debug", call);
   }
 
-  /** Logs at `info` level. */
+  /** Emits an info-level call when enabled by global and transport thresholds.
+   * @param call Message and fields to include in the entry.
+   * @returns No value; matching transports receive the entry.
+   */
   public info(call: ILogCall): void {
     this.log("info", call);
   }
 
-  /** Logs at `warn` level. */
+  /** Emits a warn-level call when enabled by global and transport thresholds.
+   * @param call Message and fields to include in the entry.
+   * @returns No value; matching transports receive the entry.
+   */
   public warn(call: ILogCall): void {
     this.log("warn", call);
   }
 
-  /** Logs at `error` level. */
+  /** Emits an error-level call when enabled by global and transport thresholds.
+   * @param call Message and fields to include in the entry.
+   * @returns No value; matching transports receive the entry.
+   */
   public error(call: ILogCall): void {
     this.log("error", call);
   }
 
-  /** Logs at `fatal` level. */
+  /** Emits a fatal-level call when enabled by global and transport thresholds.
+   * @param call Message and fields to include in the entry.
+   * @returns No value; matching transports receive the entry.
+   */
   public fatal(call: ILogCall): void {
     this.log("fatal", call);
   }
 
-  /**
-   * Returns a logger with the same context whose bindings are this logger's bindings overlaid
-   * with `bindings`. This logger is not changed.
-   * @throws InvalidBindingsError when the bindings contain empty or reserved keys.
+  /** Creates a logger with this context and additional bindings, leaving this logger unchanged.
+   * @param bindings Fields overlaid on this logger's bindings; keys must be valid.
+   * @returns New logger using the merged bindings and shared runtime settings.
+   * @throws InvalidBindingsError when bindings contain empty or reserved keys.
    */
   public child(bindings: ILogFields): Logger {
     const violations = Bindings.validate(bindings);
@@ -89,6 +112,11 @@ export class Logger {
     );
   }
 
+  /** Applies global and per-transport thresholds before constructing and delivering an entry.
+   * @param level Severity used for threshold checks and the emitted entry.
+   * @param call Message and fields supplied by the caller.
+   * @returns No value; entries below the global threshold are dropped.
+   */
   private log(level: ILogLevel, call: ILogCall): void {
     if (!LogLevels.isAtLeast(level, this.state.runtime.level)) {
       return;
@@ -108,6 +136,11 @@ export class Logger {
     }
   }
 
+  /** Formats and sends an accepted entry, reporting synchronous destination failures.
+   * @param entry Redacted entry to deliver.
+   * @param registration Destination and rendering choices for this delivery.
+   * @returns No value; synchronous transport failures go to the configured reporter.
+   */
   private deliver(entry: ILogEntry, registration: ITransportRegistration): void {
     try {
       const delivery = new TransportDelivery(entry, registration, this.state.runtime.reportError);

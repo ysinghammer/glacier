@@ -8,7 +8,15 @@ const MAX_ACTIVE_OBJECTS = 64;
 
 /** Copies validated logical values to detached JSON, without getters or consumer toJSON/iterators. */
 export class JsonProjection {
-  /** Projects collections only when allowed, and translates recorded logical DTO names to wire names. */
+  /**
+   * Projects validated values into detached JSON data without invoking accessors or consumer serializers.
+   * @param value Candidate logical output value.
+   * @param names Optional per-object aliases; defaults to an empty weak map.
+   * @param hasCollections Whether collection instances are permitted; defaults to false.
+   * @param active Current ancestors for cycle checks; defaults to an empty set.
+   * @param path Current diagnostic path; defaults to the root.
+   * @returns JSON tree or typed issue describing unsafe or unsupported output.
+   */
   public static copy(
     value: unknown,
     names: WeakMap<object, ReadonlyMap<string, string>> = new WeakMap(),
@@ -19,6 +27,15 @@ export class JsonProjection {
     return JsonProjection.copyValue(value, names, hasCollections, active, path);
   }
 
+  /**
+   * Recursively copies one value while enforcing depth and cycle boundaries.
+   * @param value Value to project.
+   * @param names Object-specific wire aliases.
+   * @param hasCollections Whether collection instances may be converted.
+   * @param active Mutable set of current ancestors.
+   * @param path Current location for any projection issue.
+   * @returns Projected JSON value or a typed safety issue.
+   */
   private static copyValue(
     value: unknown,
     names: WeakMap<object, ReadonlyMap<string, string>>,
@@ -41,6 +58,12 @@ export class JsonProjection {
     }
   }
 
+  /**
+   * Handles JSON primitive values and rejects non-finite numbers.
+   * @param value Candidate primitive.
+   * @param path Current location for a failure.
+   * @returns Primitive result, failure result, or undefined for object-like values.
+   */
   private static primitive(
     value: unknown,
     path: readonly (string | number)[],
@@ -52,6 +75,15 @@ export class JsonProjection {
     return undefined;
   }
 
+  /**
+   * Dispatches an object to its supported collection or record projection.
+   * @param value Object to inspect.
+   * @param names Object-specific wire aliases.
+   * @param hasCollections Whether collection conversion is enabled.
+   * @param active Current ancestor set for cycle detection.
+   * @param path Current location for a failure.
+   * @returns Projected object value or a typed issue.
+   */
   private static copyObject(
     value: object,
     names: WeakMap<object, ReadonlyMap<string, string>>,
@@ -69,6 +101,12 @@ export class JsonProjection {
     return JsonProjection.record(value, names, hasCollections, active, path);
   }
 
+  /**
+   * Converts a valid Date instance to its ISO timestamp string.
+   * @param value Date instance to serialize through built-in intrinsics.
+   * @param path Current location for a failure.
+   * @returns ISO string result, or issue for invalid or incompatible Date objects.
+   */
   private static date(value: Date, path: readonly (string | number)[]): IResult<IJsonValue> {
     try {
       if (Number.isNaN(Date.prototype.getTime.call(value)))
@@ -79,6 +117,14 @@ export class JsonProjection {
     }
   }
 
+  /**
+   * Snapshots set entries through the built-in iterator and projects them as an array.
+   * @param value Set instance to snapshot.
+   * @param names Object-specific wire aliases.
+   * @param active Current ancestor set for cycle detection.
+   * @param path Current location for a failure.
+   * @returns Projected array or an issue for incompatible set instances.
+   */
   private static set(
     value: Set<unknown>,
     names: WeakMap<object, ReadonlyMap<string, string>>,
@@ -93,6 +139,14 @@ export class JsonProjection {
     }
   }
 
+  /**
+   * Snapshots string-keyed map entries as an object before recursive projection.
+   * @param value Map instance to snapshot.
+   * @param names Object-specific wire aliases.
+   * @param active Current ancestor set for cycle detection.
+   * @param path Current location for a failure.
+   * @returns Projected object or an issue for invalid keys or map instances.
+   */
   private static map(
     value: Map<unknown, unknown>,
     names: WeakMap<object, ReadonlyMap<string, string>>,
@@ -113,6 +167,15 @@ export class JsonProjection {
     return JsonProjection.copyValue(record, names, true, active, path);
   }
 
+  /**
+   * Projects array indices using own data descriptors only.
+   * @param value Array whose indexed entries are copied.
+   * @param names Object-specific wire aliases.
+   * @param hasCollections Whether nested collections are permitted.
+   * @param active Current ancestor set for cycle detection.
+   * @param path Current location for failures.
+   * @returns Projected JSON array or the first entry issue.
+   */
   private static array(
     value: unknown[],
     names: WeakMap<object, ReadonlyMap<string, string>>,
@@ -136,6 +199,16 @@ export class JsonProjection {
     return { ok: true, value: output };
   }
 
+  /**
+   * Projects one array index without invoking an accessor.
+   * @param value Source array.
+   * @param index Zero-based array index to read.
+   * @param names Object-specific wire aliases.
+   * @param hasCollections Whether nested collections are permitted.
+   * @param active Current ancestor set for cycle detection.
+   * @param path Parent path for the array.
+   * @returns Projected entry or an issue at the indexed path.
+   */
   private static copyArrayItem(
     value: unknown[],
     index: number,
@@ -153,6 +226,15 @@ export class JsonProjection {
     ]);
   }
 
+  /**
+   * Copies enumerable data properties, applying aliases for registered DTO objects.
+   * @param value Source object.
+   * @param names Object-specific wire aliases.
+   * @param hasCollections Whether nested collections are permitted.
+   * @param active Current ancestor set for cycle detection.
+   * @param path Current object path for failures.
+   * @returns Projected JSON object or the first property issue.
+   */
   private static record(
     value: object,
     names: WeakMap<object, ReadonlyMap<string, string>>,
@@ -183,6 +265,17 @@ export class JsonProjection {
     return { ok: true, value: output };
   }
 
+  /**
+   * Copies one own record property and applies its optional wire alias.
+   * @param value Source record object.
+   * @param key Logical property name to copy.
+   * @param aliases Optional alias map for this object.
+   * @param names Object-specific wire aliases for nested values.
+   * @param hasCollections Whether nested collections are permitted.
+   * @param active Current ancestor set for cycle detection.
+   * @param path Parent path for the record.
+   * @returns Copied key/value, omitted-property success, or a typed issue.
+   */
   private static copyRecordProperty(
     value: object,
     key: string,
@@ -205,7 +298,13 @@ export class JsonProjection {
     return { ok: true, key: aliases?.get(key) ?? key, value: result.value };
   }
 
-  /** Constructs a value-free typed diagnostic for unsafe or non-JSON output. */
+  /**
+   * Constructs a value-free typed issue for unsafe or non-JSON output.
+   * @param code Stable issue code describing the projection failure.
+   * @param path Location of the unsupported value; defaults to the root.
+   * @returns Rejected result containing a safe diagnostic without source values.
+   * @default path: []
+   */
   public static failure(
     code: ISchemaIssueCode,
     path: readonly (string | number)[] = [],

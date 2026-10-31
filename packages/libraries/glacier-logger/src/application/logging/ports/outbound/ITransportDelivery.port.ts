@@ -1,17 +1,23 @@
 import type { IStyledOutput } from "../../../../domain/formatting/types/IStyledOutput.js";
 import type { ILogFormat } from "../../types/ITransportRegistration.js";
 
-/**
- * What a transport gets next to an entry: the entry rendered the way its registration asked for,
- * and the way to report failures that only surface later, such as a rejected asynchronous write.
- */
+/** Provides registered rendering and reporting operations alongside a transport entry. */
 export interface ITransportDelivery {
-  /** The registered format. A console-style transport passes the structured entry for `json`. */
+  /** Format requested by the destination registration. */
   readonly format: ILogFormat;
-  /** The entry as one line of text ending in `\n`, formatted as `format` says. */
+  /**
+   * Renders the entry as one newline-terminated text line.
+   * @returns JSON or pretty representation selected by `format`.
+   */
   text(): string;
-  /** The pretty layout as console format string and styles, coloured when the registration enables it. */
+  /**
+   * Renders a pretty console format string and its style values.
+   * @returns Styled representation, using registration color settings.
+   */
   styled(): IStyledOutput;
-  /** Hands a failure to the configured `onError`. It never throws. */
+  /** Forwards a failure that occurred during or after destination delivery.
+   * @param error Failure to report.
+   * @returns No value; the configured failure reporter handles it.
+   */
   reportError(error: Error): void;
 }

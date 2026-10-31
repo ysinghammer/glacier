@@ -5,9 +5,10 @@ import type { IEnumSource } from "../schema/types/IEnumSource.js";
 import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
- * Property decorator declaring that the field must be one of the values of a TypeScript enum, a
- * const-object or an array of strings and numbers. Records metadata only; throws
- * `SchemaDefinitionError` for a source without values or when the property already has a type decorator.
+ * Declares a field restricted to values from an enum, constant record or scalar list.
+ * @param source Enum-like record or list supplying the accepted string and number values.
+ * @param options Optional issue-message settings for the field.
+ * @returns A property decorator that registers the enum values.
  */
 export function IsEnum(source: IEnumSource, options?: ISchemaDecoratorOptions): PropertyDecorator {
   const values = EnumValues.from(source);

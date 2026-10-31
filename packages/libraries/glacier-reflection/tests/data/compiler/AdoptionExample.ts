@@ -11,14 +11,27 @@ import {
 
 /** An erased interface needs an explicitly supplied runtime dependency identity. */
 interface IRepository {
+  /**
+   * Loads a string through the consumer-supplied repository contract.
+   * @returns Loaded text; the example does not invoke this operation.
+   */
   load(): string;
 }
 
 /** Executable documentation registers before emission and uses the generated root for ordinary operations. */
 export class AdoptionExample {
-  /** Checks adoption outcomes without resolving dependencies or constructing a consumer. */
+  /**
+   * Checks adoption outcomes without resolving dependencies or constructing a consumer.
+   * @returns Number of successful assertions executed by the example.
+   */
   public static run(): number {
     let checks = 0;
+    /**
+     * Counts one satisfied condition and identifies its ordinal when it fails.
+     * @param isSatisfied Boolean result or deferred check to evaluate.
+     * @returns No value; increments the successful-check count.
+     * @throws {Error} When the supplied condition evaluates to false.
+     */
     const check = (isSatisfied: boolean | (() => boolean)): void => {
       const passed = typeof isSatisfied === "function" ? isSatisfied() : isSatisfied;
       if (!passed) throw new Error(`Adoption example failed at check ${checks + 1}`);
@@ -30,13 +43,20 @@ export class AdoptionExample {
     const dependency = new ValueMetadataDefinition<symbol>("dependency");
     const repositoryIdentity = Symbol("repository");
 
+    /** Base fixture carries inherited class and method metadata. */
     @label.decorator("base")
     class Base {
+      /**
+       * Returns text unchanged while carrying legacy method metadata.
+       * @param input Text represented by compiler-emitted parameter metadata.
+       * @returns The same text value.
+       */
       @label.decorator("Describe")
       public describe(input: string): string {
         return input;
       }
     }
+    /** Adds a child constructor identity for inherited metadata reads. */
     class Derived extends Base {}
     check(tags.set(Base, ["a", "b"]).isValid);
     const contribution = ["b", "c"];
@@ -117,9 +137,15 @@ export class AdoptionExample {
     const revealed = label.read(new Derived());
     check(() => revealed.isValid && revealed.isPresent && revealed.value === "base");
 
+    /** Consumer fixture has an erased repository parameter with explicit identity metadata. */
     @label.decorator("consumer")
     class Consumer {
+      /**
+       * Stores the caller's repository contract without constructing or invoking it.
+       * @param repository Interface-typed dependency supplied by the caller.
+       */
       public constructor(
+        /** Readonly erased dependency retained on the fixture consumer. */
         @dependency.decorator(repositoryIdentity) public readonly repository: IRepository,
       ) {}
     }
@@ -145,7 +171,9 @@ export class AdoptionExample {
     check(() => memberType.isValid && memberType.isPresent && memberType.value === Function);
     const returned = DESIGN_RETURN_TYPE_METADATA.read(Base, { kind: "member", member: "describe" });
     check(() => returned.isValid && returned.isPresent && returned.value === String);
+    /** Child fixture inherits the dependency declaration while changing constructor shape. */
     class ChangedConsumer extends Consumer {
+      /** Creates the child with an unused repository implementation. */
       public constructor() {
         super({ load: () => "unused" });
       }

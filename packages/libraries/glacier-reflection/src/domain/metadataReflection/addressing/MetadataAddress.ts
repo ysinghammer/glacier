@@ -1,22 +1,36 @@
 import type { IDiscoveredMetadataAddress } from "./types/IDiscoveredMetadataAddress.js";
 import type { IMetadataAddressRejection } from "./types/IMetadataAddressRejection.js";
 
-/** An independent normalized address and lookup mode, never the caller's record. */
+/** A validated canonical address paired with its effective inheritance mode.
+ * @property isValid Readonly success discriminator, true after valid normalization.
+ * @property address Readonly detached canonical location used by storage operations.
+ * @property inheritance Readonly effective mode; omitted lookup resolves to inherited.
+ */
 interface INormalizedMetadataAddress {
   readonly isValid: true;
   readonly address: IDiscoveredMetadataAddress;
   readonly inheritance: "own" | "inherited";
 }
 
+/** Field allowlist selected for one dynamic address variant.
+ * @property kind Readonly recognized variant whose fields are allowed.
+ * @property fields Readonly exact string keys accepted for that variant and operation.
+ */
 type IAllowedMetadataAddress =
   | { readonly kind: "class"; readonly fields: readonly string[] }
   | { readonly kind: "member"; readonly fields: readonly string[] }
   | { readonly kind: "method-parameter"; readonly fields: readonly string[] }
   | { readonly kind: "constructor-parameter"; readonly fields: readonly string[] };
 
-/** Validates exact address combinations before storage or lookup. */
+/** Validates dynamic metadata locations and converts accepted inputs to canonical addresses. */
 export class MetadataAddress {
-  /** Copies address fields, canonicalizing numeric names and omitted member sides. */
+  /** Validates and detaches an address, canonicalizing numeric names and omitted member sides.
+   * @param input Untrusted address; undefined selects the class location.
+   * @param isMutation True for writes/deletes, which reject lookup modes.
+   * @param isInstance True when a class instance alias restricts allowed locations.
+   * @returns Canonical address and mode, or a typed validation rejection.
+   * @remarks Input getters and proxy traps used during inspection may run; their failures propagate.
+   */
   public static normalize(
     input: unknown,
     isMutation: boolean,
@@ -31,6 +45,12 @@ export class MetadataAddress {
     return MetadataAddress.normalizeObject(input, isMutation, isInstance);
   }
 
+  /** Validates allowed own fields, then builds a detached canonical address.
+   * @param input Object already narrowed to a non-null object with a kind field.
+   * @param isMutation True for writes/deletes, which reject lookup modes.
+   * @param isInstance True when an instance alias restricts allowed locations.
+   * @returns Canonical address and mode, or a typed validation rejection.
+   */
   private static normalizeObject(
     input: object,
     isMutation: boolean,
@@ -69,6 +89,11 @@ export class MetadataAddress {
     );
   }
 
+  /** Returns the accepted fields for a recognized address kind and operation.
+   * @param kind Untrusted discriminator to match against supported kinds.
+   * @param isMutation True when inheritance fields are not permitted.
+   * @returns The variant field allowlist, or undefined for an unknown kind.
+   */
   private static allowedFields(
     kind: unknown,
     isMutation: boolean,
@@ -87,6 +112,11 @@ export class MetadataAddress {
     return { kind, fields: allowed };
   }
 
+  /** Rejects symbol and unknown own keys, including forbidden known fields.
+   * @param input Address object whose own keys and known fields are checked.
+   * @param allowed String field names permitted for its address variant.
+   * @returns True only when every supplied own key is allowed.
+   */
   private static hasOnlyAllowedFields(input: object, allowed: readonly string[]): boolean {
     for (const key of Reflect.ownKeys(input))
       if (typeof key !== "string" || !allowed.includes(key)) return false;
@@ -95,6 +125,10 @@ export class MetadataAddress {
     return true;
   }
 
+  /** Validates a required safe nonnegative integer parameter position.
+   * @param input Address object expected to contain a position field.
+   * @returns The valid numeric position, or a typed address rejection.
+   */
   private static position(
     input: object,
   ): { readonly isValid: true; readonly value: number } | IMetadataAddressRejection {
@@ -105,6 +139,14 @@ export class MetadataAddress {
     return { isValid: true, value: position };
   }
 
+  /** Validates member-side restrictions and returns the canonical member location.
+   * @param input Address object supplying side and member fields.
+   * @param kind Member or method-parameter location being built.
+   * @param position Canonical parameter position; zero for member addresses.
+   * @param inheritance Effective lookup mode selected during normalization.
+   * @param isInstance True when static locations are unavailable.
+   * @returns Canonical member address, or a typed validation rejection.
+   */
   private static memberAddress(
     input: object,
     kind: "member" | "method-parameter",
@@ -137,7 +179,14 @@ export class MetadataAddress {
     return { isValid: true, address, inheritance };
   }
 
-  /** Validates the separately supplied locations mode or an embedded read mode. */
+  /** Validates a lookup option or embedded read mode; mutations cannot select inheritance.
+   * @param input Untrusted lookup record; undefined selects inherited lookup.
+   * @param isMutation True when the operation forbids explicit mode; defaults false.
+   * @param isEmbedded True when other address fields may accompany mode; defaults false.
+   * @default isMutation=false; isEmbedded=false.
+   * @returns Effective lookup mode, or a typed address rejection.
+   * @remarks Input getters and proxy traps used during inspection may run; their failures propagate.
+   */
   public static lookup(
     input: unknown,
     isMutation = false,
@@ -158,7 +207,11 @@ export class MetadataAddress {
     return { isValid: true, mode };
   }
 
-  /** Compares canonical location identity without stringifying symbol keys. */
+  /** Compares canonical location identity without stringifying symbol member keys.
+   * @param first First canonical location to compare.
+   * @param second Second canonical location to compare.
+   * @returns Whether both locations identify the same metadata address.
+   */
   public static equals(
     first: IDiscoveredMetadataAddress,
     second: IDiscoveredMetadataAddress,
@@ -180,7 +233,10 @@ export class MetadataAddress {
     );
   }
 
-  /** Selects only class and instance-side locations for instance aliases. */
+  /** Reports whether an address is available through an instance alias.
+   * @param address Canonical location to check.
+   * @returns True for class or instance-side locations, false otherwise.
+   */
   public static supportsInstance(address: IDiscoveredMetadataAddress): boolean {
     return (
       address.kind === "class" ||

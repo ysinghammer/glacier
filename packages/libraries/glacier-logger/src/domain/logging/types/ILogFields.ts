@@ -1,7 +1,9 @@
 import type { IReservedKey } from "./IReservedKey.js";
 
-/** Forbids `Keys` at the type level while leaving every other property free. */
+/** Builds a readonly string-keyed shape where selected keys are forbidden.
+ * @template Keys - String keys that must not have values.
+ */
 export type IForbiddenKeys<Keys extends string> = { readonly [Key in Keys]?: never };
 
-/** Free-form structured data. Reserved keys are compile errors. */
+/** Free-form structured call fields that exclude logger-owned reserved keys. */
 export type ILogFields = { readonly [field: string]: unknown } & IForbiddenKeys<IReservedKey>;

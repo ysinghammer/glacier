@@ -12,10 +12,14 @@ import type { ITypeSpec } from "./types/ITypeSpec.js";
 /** Writes and reads field declarations on top of `@glacier/reflection` metadata. */
 export class FieldRegistry {
   /**
-   * Records `type` for the decorated property. `target` is what a legacy property decorator receives.
-   * Modifiers already declared on the property are kept. Throws `SchemaDefinitionError` for static or
-   * symbol members, classes already frozen by a parse, a second type decorator on the same property, or
-   * a type contradicting the emitted design type.
+   * Registers a property's type while retaining modifiers already recorded for it.
+   * @param target Prototype passed to a legacy property decorator.
+   * @param key Instance property name to register.
+   * @param type Declared validation type specification.
+   * @param options Optional field issue-message override, or undefined.
+   * @returns No value; stores the declaration in class metadata.
+   * @throws {SchemaDefinitionError} If a type decorator already declared this property.
+   * @throws {SchemaDefinitionError} If the declared type conflicts with emitted design metadata.
    */
   public static declare(
     target: object,
@@ -40,9 +44,13 @@ export class FieldRegistry {
   }
 
   /**
-   * Records `modifiers` for the decorated property, in any decorator order relative to the type decorator.
-   * `decorator` names the calling decorator in errors. Throws `SchemaDefinitionError` for static or symbol
-   * members, classes already frozen by a parse, or a modifier that the property already has.
+   * Adds a property's modifiers independently of type-decorator order.
+   * @param target Prototype passed to a legacy property decorator.
+   * @param key Instance property name to modify.
+   * @param decorator Decorator name used in duplicate-modifier diagnostics.
+   * @param modifiers Modifier values being recorded.
+   * @returns No value; merges the modifier into class metadata.
+   * @throws {SchemaDefinitionError} If the property already has one of these modifiers.
    */
   public static modify(
     target: object,
@@ -64,10 +72,10 @@ export class FieldRegistry {
   }
 
   /**
-   * Returns the effective field definitions of `target` and its ancestors in declaration order, ancestors
-   * first. A subclass type declaration replaces the inherited definition, including its modifiers, but keeps
-   * its position; a subclass entry with only modifiers adds to the inherited definition. Throws
-   * `SchemaDefinitionError` when a field has modifiers but no type decorator anywhere in the hierarchy.
+   * Merges effective field definitions across the class hierarchy in ancestor-first declaration order.
+   * @param target Class whose own and inherited field metadata is read.
+   * @returns Readonly ordered definitions with a type for every field.
+   * @throws {SchemaDefinitionError} If any field has modifiers but no type declaration.
    */
   public static readAll(target: IClass): readonly IFieldDefinition[] {
     const declared = FIELDS_METADATA.read(target);
@@ -93,13 +101,25 @@ export class FieldRegistry {
     });
   }
 
-  /** Reads the fields declared directly on `owner`. */
+  /**
+   * Reads only the fields declared directly on one class.
+   * @param owner Class whose own metadata is read.
+   * @returns Own field declarations in their stored order, or an empty list.
+   */
   private static readOwn(owner: IClass): readonly IFieldDeclaration[] {
     const own = FIELDS_METADATA.read(owner, { kind: "class", inheritance: "own" });
     return own.isValid && own.isPresent ? own.value : [];
   }
 
-  /** Stores `declaration`, replacing the class's earlier entry for the property or appending a new one. */
+  /**
+   * Stores or replaces one field declaration in class metadata.
+   * @param owner Class receiving the updated metadata.
+   * @param label Class-member label used in write errors.
+   * @param own Existing declarations owned by the class.
+   * @param declaration Replacement or new field declaration.
+   * @returns No value; writes the updated ordered declaration list.
+   * @throws {SchemaDefinitionError} If reflection metadata rejects the write.
+   */
   private static write(
     owner: IClass,
     label: string,
@@ -116,7 +136,12 @@ export class FieldRegistry {
     }
   }
 
-  /** Resolves the owning class and rejects classes frozen by a parse. */
+  /**
+   * Resolves the member's class owner and ensures its schema remains mutable.
+   * @param target Instance prototype supplied by the decorator runtime.
+   * @param key Decorated property name.
+   * @returns Owner class, string member name and diagnostic label.
+   */
   private static locate(
     target: object,
     key: string | symbol,
@@ -132,7 +157,13 @@ export class FieldRegistry {
     return { owner, member, label };
   }
 
-  /** Narrows the decorator target to the owning class of an instance member. */
+  /**
+   * Validates and narrows a decorator target to its instance-member class.
+   * @param target Decorator target, expected to be an instance prototype.
+   * @param key Decorated property key.
+   * @returns Constructor that owns the instance property.
+   * @throws {SchemaDefinitionError} If the key is a symbol or the target is a class static side.
+   */
   private static resolveOwner(target: object, key: string | symbol): IClass {
     if (typeof key === "symbol") {
       throw new SchemaDefinitionError("Schema fields must use string property names");

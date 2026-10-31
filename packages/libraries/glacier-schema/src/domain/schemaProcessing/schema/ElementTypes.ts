@@ -6,9 +6,10 @@ import type { ITypeSpec } from "./types/ITypeSpec.js";
 /** Turns the element type argument of a decorator into a type specification. */
 export class ElementTypes {
   /**
-   * Maps `source` to its specification: primitive constructors to their types, other classes to nested
-   * objects, and functions without a `prototype` (arrow functions) to lazy references. Throws
-   * `SchemaDefinitionError` naming `label` for anything else.
+   * Converts a decorator element argument into a scalar, nested-class or lazy type specification.
+   * @param source Primitive constructor, decorated class or lazy class reference.
+   * @param label Field label used in definition diagnostics.
+   * @returns Corresponding field type specification.
    */
   public static resolve(source: IElementType, label: string): ITypeSpec {
     if (source === String) return { kind: "string", rules: {} };
@@ -20,8 +21,11 @@ export class ElementTypes {
   }
 
   /**
-   * Maps a class to a nested object and an arrow function returning a class to a lazy reference, without
-   * treating primitive constructors specially. Throws `SchemaDefinitionError` naming `label` for anything else.
+   * Converts a class or lazy class reference into its nested type specification.
+   * @param source Class constructor or thunk returning a class.
+   * @param label Field label used in definition diagnostics.
+   * @returns Object or lazy type specification for nested validation.
+   * @throws {SchemaDefinitionError} If `source` is not a class or reference function.
    */
   public static resolveClass(source: IClass | (() => IClass), label: string): ITypeSpec {
     if (typeof source !== "function") {

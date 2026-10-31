@@ -20,9 +20,10 @@ const UNSUPPORTED_BUILT_INS: readonly IRuntimeType[] = [
 /** Infers a field's base type from the compiler-emitted `design:type`, when it is informative. */
 export class DesignTypeInference {
   /**
-   * Returns the primitive or class-reference type emitted for `member`, or `undefined` when nothing was
-   * emitted (no `emitDecoratorMetadata`/registration) or the emitted type is uninformative, such as
-   * `Object` for unions and interfaces, or an unsupported built-in container.
+   * Reads informative compiler-emitted design type metadata for one property.
+   * @param target Property-owning class.
+   * @param member String property name to inspect.
+   * @returns Primitive or class design type, or undefined when unavailable or uninformative.
    */
   public static infer(target: IClass, member: string): IDesignType | undefined {
     const result = DESIGN_TYPE_METADATA.readDynamic(target, {
@@ -35,8 +36,12 @@ export class DesignTypeInference {
   }
 
   /**
-   * Returns the class emitted for `member`. Throws `SchemaDefinitionError` naming `label` when the emitted
-   * type is missing or is not a class, so the class must be passed explicitly.
+   * Requires emitted metadata to identify a nested class for one property.
+   * @param target Property-owning class.
+   * @param member String property name to inspect.
+   * @param label Field label used in the definition error.
+   * @returns Emitted nested-class constructor.
+   * @throws {SchemaDefinitionError} If metadata is absent or does not identify a class.
    */
   public static inferClass(target: IClass, member: string, label: string): IClass {
     const inferred = DesignTypeInference.infer(target, member);
@@ -48,7 +53,11 @@ export class DesignTypeInference {
     return inferred.target;
   }
 
-  /** Maps a runtime constructor to the type it denotes. */
+  /**
+   * Maps an emitted runtime constructor to its supported design type.
+   * @param runtimeType Constructor emitted by the TypeScript decorator metadata transform.
+   * @returns Supported primitive/class type, or undefined for uninformative constructors.
+   */
   private static describe(runtimeType: IRuntimeType): IDesignType | undefined {
     if (runtimeType === String) return { kind: "string" };
     if (runtimeType === Number) return { kind: "number" };

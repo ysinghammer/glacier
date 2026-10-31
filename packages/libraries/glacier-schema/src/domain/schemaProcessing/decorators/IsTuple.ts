@@ -5,10 +5,10 @@ import type { IElementType } from "../schema/types/IElementType.js";
 import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
- * Property decorator declaring that the field must be an array with exactly one element per entry of
- * `elements`, in order; each entry is a primitive constructor, a decorated class or a `() => Class`
- * reference. Records metadata only; throws `SchemaDefinitionError` for no elements or an invalid element
- * type, or when the property already has a type decorator.
+ * Declares a fixed-length tuple field and records its ordered element types as metadata.
+ * @param elements Non-empty ordered list of primitive, decorated-class or lazy-reference types.
+ * @param options Optional issue-message settings for the field.
+ * @returns A property decorator that registers the tuple field.
  */
 export function IsTuple(
   elements: readonly IElementType[],

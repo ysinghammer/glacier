@@ -5,12 +5,10 @@ import { FieldRegistry } from "../schema/FieldRegistry.js";
 import type { ISchemaDecoratorOptions } from "./types/ISchemaDecoratorOptions.js";
 
 /**
- * Property decorator declaring that the field is a nested instance of a decorated class, validated with
- * that class's schema; unknown keys are stripped and issue paths continue through the field. `target` is
- * the class, or a `() => Class` reference for forward references and cycles; without it the class comes
- * from the compiler-emitted TypeScript type. Records metadata only; throws `SchemaDefinitionError` when no
- * class can be determined, the argument is not a class or reference, or the property already has a type
- * decorator.
+ * Declares a nested decorated-class field, using its schema and recording the reference as metadata.
+ * @param target Explicit class or lazy reference; when omitted, uses emitted design-type metadata.
+ * @param options Optional issue-message settings for the field.
+ * @returns A property decorator that registers the nested field.
  */
 export function IsObject(
   target?: IClass | (() => IClass),

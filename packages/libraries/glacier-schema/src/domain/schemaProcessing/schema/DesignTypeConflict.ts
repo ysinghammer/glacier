@@ -14,9 +14,11 @@ const EXPECTED_DESIGN_KIND: Readonly<Partial<Record<ITypeSpec["kind"], string>>>
 /** Detects primitive decorators that contradict the compiler-emitted type of their property. */
 export class DesignTypeConflict {
   /**
-   * Returns a description of the conflict between the declared `type` and the emitted design type of
-   * `member`, or `undefined` when they agree, nothing informative was emitted, or the declared type
-   * (literal, enum, any) intentionally accepts any design type.
+   * Compares a primitive field declaration with its emitted design type.
+   * @param target Class owning the decorated property.
+   * @param member Property name whose design type was emitted.
+   * @param type Declared schema type to compare with the compiler metadata.
+   * @returns Conflict description, or undefined when compatible or not informative.
    */
   public static describe(target: IClass, member: string, type: ITypeSpec): string | undefined {
     const expectedKind = EXPECTED_DESIGN_KIND[type.kind];

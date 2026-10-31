@@ -1,9 +1,12 @@
 import type { IBindingViolation } from "./types/IBindingViolation.js";
 import { ReservedKeys } from "./ReservedKeys.js";
 
-/** Invariants and merging of bindings, the structured data attached to every entry of a logger. */
+/** Validates and combines structured data attached to every logger entry. */
 export class Bindings {
-  /** Lists every empty or reserved key. An empty result means the bindings are acceptable. */
+  /** Finds empty and logger-reserved keys in a bindings record.
+   * @param bindings - Read-only key-value data to inspect.
+   * @returns One violation per invalid key; an empty array means no key violations.
+   */
   public static validate(
     bindings: Readonly<Record<string, unknown>>,
   ): readonly IBindingViolation[] {
@@ -21,7 +24,11 @@ export class Bindings {
     return violations;
   }
 
-  /** Returns a new record with `later` layered over `earlier`. Neither input is mutated. */
+  /** Layers later binding values over earlier ones without mutating either input.
+   * @param earlier - Base values retained unless overwritten.
+   * @param later - Values that take precedence for duplicate keys.
+   * @returns A new shallow merged record.
+   */
   public static merge(
     earlier: Readonly<Record<string, unknown>>,
     later: Readonly<Record<string, unknown>>,

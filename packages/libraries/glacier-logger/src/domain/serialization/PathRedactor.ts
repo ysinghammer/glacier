@@ -1,15 +1,18 @@
-/**
- * Replaces the values at exact dot-separated paths with a censor string. It works on copies
- * along each matched path, never mutates the input, and never reads the value it censors.
- */
+/** Censors exact nested property paths on copies without mutating the supplied object. */
 export class PathRedactor {
-  /** Censor used when the configuration does not supply one. */
+  /** Fallback censor text for callers without an explicit replacement.
+   * @default "[Redacted]"
+   */
   public static readonly DEFAULT_CENSOR = "[Redacted]";
 
   /**
-   * Returns `record` with every existing path censored. A missing path is a no-op. If walking a
-   * path fails (for example a throwing getter on an intermediate step), the whole top-level key
-   * of that path is censored so the raw value can never leak.
+   * Censors existing paths on a copy; missing paths are unchanged and path-walk failures censor
+   * that path's top-level property to avoid exposing its value.
+   * @template T - Object shape preserved by the returned copy.
+   * @param record - Object whose own properties may contain values to censor.
+   * @param paths - Exact dot-separated property paths; no wildcard matching is performed.
+   * @param censor - Replacement value for matched paths.
+   * @returns A redacted object retaining the input's TypeScript shape.
    */
   public static redact<T extends object>(record: T, paths: readonly string[], censor: string): T {
     let result = record;
@@ -24,6 +27,13 @@ export class PathRedactor {
     return result;
   }
 
+  /** Recursively locates one path and copies only branches that change.
+   * @template T - Current target type returned unchanged when no match is found.
+   * @param target - Current value at the path being inspected.
+   * @param path - Remaining exact path segments.
+   * @param censor - Replacement for the final matched property.
+   * @returns The original value or a copy with the matched branch replaced.
+   */
   private static redactPath<T>(target: T, path: string, censor: string): T {
     if (typeof target !== "object" || target === null) {
       return target;
@@ -43,6 +53,10 @@ export class PathRedactor {
     return PathRedactor.replaceProperty(target, head, redactedChild);
   }
 
+  /** Separates the first path segment from its optional remainder.
+   * @param path - Dot-separated path to split into its first segment and remainder.
+   * @returns The first segment and `undefined` remainder for a single segment.
+   */
   private static splitPath(path: string): { head: string; rest: string | undefined } {
     const separatorIndex = path.indexOf(".");
     if (separatorIndex === -1) {
@@ -51,7 +65,13 @@ export class PathRedactor {
     return { head: path.slice(0, separatorIndex), rest: path.slice(separatorIndex + 1) };
   }
 
-  /** Copies `target` without invoking getters, replacing one own property with a data value. */
+  /** Copies own descriptors without invoking getters and replaces one own property value.
+   * @template T - Object type preserved by the returned copy.
+   * @param target - Object whose own properties are copied.
+   * @param key - Own property name to replace or add.
+   * @param value - Data value installed for that property.
+   * @returns A shallow copy with the replacement property.
+   */
   private static replaceProperty<T extends object>(target: T, key: string, value: unknown): T {
     const descriptors = Object.getOwnPropertyDescriptors(target);
     Object.defineProperty(descriptors, key, {

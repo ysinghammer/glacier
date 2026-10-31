@@ -2,15 +2,14 @@ import type { IFieldModifiers } from "./IFieldModifiers.js";
 import type { ITypeSpec } from "./ITypeSpec.js";
 
 /**
- * Metadata stored for one field on one class. Modifier decorators can run before the type decorator,
- * so `type` may be missing until it is declared; a subclass may also only add modifiers to an inherited field.
+ * Metadata stored per class field; type is absent until declared, and subclasses may add modifiers only.
  */
 export interface IFieldDeclaration {
-  /** The property name. */
+  /** Property name stored on the parsed instance. */
   readonly name: string;
   /** The declared value type, once a type decorator ran on this class. */
   readonly type?: ITypeSpec;
-  /** Replaces the default message of every issue reported for this field when set. */
+  /** Optional replacement for every default issue message reported for this field. */
   readonly message?: string;
   /** The modifiers declared on this class. */
   readonly modifiers: IFieldModifiers;

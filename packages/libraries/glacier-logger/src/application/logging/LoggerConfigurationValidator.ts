@@ -4,9 +4,12 @@ import { LogLevels } from "../../domain/logging/LogLevels.js";
 import type { ILoggerConfiguration } from "./ILoggerConfiguration.config.js";
 import type { IRejectionReason } from "./types/IRejectionReason.js";
 
-/** Checks a configuration and reports every problem at once. */
+/** Collects configuration validation failures without stopping at the first one. */
 export class LoggerConfigurationValidator {
-  /** Returns all rejection reasons. An empty result means the configuration is valid. */
+  /** Checks global level, destinations, bindings, and redaction paths.
+   * @param configuration Configuration to validate.
+   * @returns Every detected rejection reason; empty when no problem is found.
+   */
   public static validate(configuration: ILoggerConfiguration): readonly IRejectionReason[] {
     const reasons: IRejectionReason[] = [];
 

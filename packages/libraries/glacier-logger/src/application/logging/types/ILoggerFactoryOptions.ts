@@ -1,5 +1,5 @@
-/** Optional settings for `LoggerFactory.createLogger`. */
+/** Per-logger settings supplied to `LoggerFactory.createLogger`. */
 export interface ILoggerFactoryOptions {
-  /** Merged over the factory bindings. Keys must be non-empty and not reserved. */
+  /** Bindings overlaid on factory bindings; omitted to add no fields. */
   readonly bindings?: Readonly<Record<string, unknown>>;
 }

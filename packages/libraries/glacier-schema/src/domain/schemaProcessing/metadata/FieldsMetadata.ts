@@ -2,9 +2,7 @@ import { ListMetadataDefinition } from "@glacier/reflection";
 import type { IFieldDeclaration } from "../schema/types/IFieldDeclaration.js";
 
 /**
- * Class-level list of declared fields in declaration order, accumulated ancestor-first. A subclass entry
- * with a type replaces its ancestor's entry of the same name; one with only modifiers adds to it when the
- * schema is compiled.
+ * Reflection key for each class's own field declarations, stored in declaration order for schema merging.
  */
 export const FIELDS_METADATA = new ListMetadataDefinition<IFieldDeclaration>(
   "glacier-schema:fields",

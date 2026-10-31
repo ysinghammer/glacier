@@ -1,4 +1,7 @@
-/** Source of entry timestamps. Inject a fixed clock to make `time` deterministic. */
+/** Supplies timestamps for log entries. */
 export interface IClock {
+  /** Reads the current timestamp.
+   * @returns Timestamp assigned to a newly created entry.
+   */
   now(): Date;
 }

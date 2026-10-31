@@ -3,28 +3,35 @@ import type { IDiagnosticsOutput } from "./ports/outbound/IDiagnosticsOutput.por
 import type { IClock } from "./ports/outbound/IClock.port.js";
 import type { ITransportRegistration } from "./types/ITransportRegistration.js";
 
-/** Redaction settings: exact dot-separated paths, no wildcards. */
+/** Selects exact log-field paths whose values are replaced before delivery. */
 export interface IRedactConfiguration {
+  /** Paths use non-empty dot-separated segments and do not support wildcards. */
   readonly paths: readonly string[];
+  /** Replacement text for matched values; omitted to use the redactor's default.
+   * @default [Redacted]
+   */
   readonly censor?: string;
 }
 
-/** Everything a `LoggerFactory` needs. Validated when the factory is created. */
+/** Supplies validated settings and destinations used by a logger factory. */
 export interface ILoggerConfiguration {
-  /** Global minimum level, applied before any transport routing. */
+  /** Global minimum level; entries below it are dropped before transport routing. */
   readonly level: ILogLevel;
-  /** Merged into every entry. Keys must be non-empty and not reserved. */
+  /** Factory fields copied into every logger; omitted for no additional bindings. */
   readonly bindings?: Readonly<Record<string, unknown>>;
+  /** Optional exact-path redaction settings; omitted to leave values uncensored. */
   readonly redact?: IRedactConfiguration;
   /**
-   * Receives failures that cannot be thrown to the logging caller. Defaults to one line on
-   * `stderr` (Node) or `console.error` (browser). A throwing handler falls back to that line.
+   * Receives failures isolated from logging calls; omitted to use diagnostics output.
+   * A throwing handler falls back to the diagnostics line.
+   * @param error Failure raised during logging or delivery.
+   * @returns No value; handles the reported failure.
    */
   readonly onError?: (error: Error) => void;
-  /** Destination of the default `onError` line. Defaults to `stderr` on Node, else `console.error`. */
+  /** Destination of the fallback failure line; defaults to Node stderr or browser console. */
   readonly diagnostics?: IDiagnosticsOutput;
-  /** At least one registration is required. */
+  /** Destinations and rendering settings; at least one registration is required. */
   readonly transports: readonly ITransportRegistration[];
-  /** Timestamp source. Defaults to the system clock. */
+  /** Timestamp source; omitted to use the system clock. */
   readonly clock?: IClock;
 }

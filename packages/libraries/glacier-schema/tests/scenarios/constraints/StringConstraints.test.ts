@@ -7,9 +7,16 @@ import { IsString, SchemaDefinitionError, Schema } from "../../../index.js";
 import type { IStringOptions } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
-/** Parses `{ value: input }` against a one-field class declared with the given string options. */
+/**
+ * Parses one unknown input through a fixture decorated with string constraints.
+ * @param options String constraints supplied to the public decorator.
+ * @param input Candidate field value, validated without prior narrowing.
+ * @returns Parsed field value on success or the first validation issue.
+ */
 function parseString(options: IStringOptions, input: unknown) {
+  /** One-field model used for an isolated string parsing assertion. */
   class Holder {
+    /** Field receiving the candidate value and string constraints. */
     public value!: string;
   }
   FieldDeclaration.declare(Holder, "value", String, IsString(options));
@@ -76,7 +83,9 @@ describe("SCH-041 String pattern", () => {
   });
 
   it("is stateless for global and sticky regular expressions", () => {
+    /** One-field model reused to check regexp state across parse calls. */
     class Holder {
+      /** Field whose regexp behavior is under test. */
       public value!: string;
     }
     FieldDeclaration.declare(Holder, "value", String, IsString({ pattern: /a/gy }));
@@ -158,7 +167,9 @@ describe("SCH-044 String constraint declarations", () => {
     ["non-RegExp pattern", { pattern: "abc" as unknown as RegExp }],
     ["unknown format", { format: "phone" as unknown as "email" }],
   ])("rejects %s with SchemaDefinitionError", (_title, options) => {
+    /** One-field model used to exercise invalid string declarations. */
     class Holder {
+      /** Field whose invalid constraint declaration is under test. */
       public value!: string;
     }
 

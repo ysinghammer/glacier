@@ -3,8 +3,13 @@ import type { IJsonSchemaDirection } from "./IJsonSchemaDirection.js";
 
 /** Options of `toJsonSchema`. */
 export interface IJsonSchemaOptions {
-  /** Output describes projected JSON; input (the default) preserves existing generation. */
+  /**
+   * Generation direction; input describes parseable values and output describes projected JSON.
+   * @default "input"
+   */
   readonly direction?: IJsonSchemaDirection;
-  /** The dialect to generate: `draft-2020-12` keeps classes in `$defs`, `openapi-3.1` in `components.schemas`. */
+  /**
+   * Output dialect controlling identifiers, references and placement in `$defs` or `components.schemas`.
+   */
   readonly target: IJsonSchemaTarget;
 }

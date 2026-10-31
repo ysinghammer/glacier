@@ -2,9 +2,15 @@ import type { ICompilerMetadataDecorator } from "../../../../domain/metadataRefl
 import { MetadataBoundaryError } from "../../../../domain/metadataReflection/failures/MetadataBoundary.error.js";
 import { CompilerMetadataRecorder } from "./CompilerMetadataRecorder.adapter.js";
 
-/** The explicit register entry installs only the legacy protocol; physical copies never share activation. */
+/** Installs the compiler's legacy metadata decorator protocol when explicitly activated by the register entry. */
 export class CompilerMetadataBridge {
-  /** Fails without touching occupied descriptors or unrelated Reflect operations. */
+  /** Installs this module copy's metadata handler without changing other Reflect operations.
+   * @returns No value; installs a writable, configurable, non-enumerable handler.
+   * @throws {MetadataBoundaryError} If global Reflect cannot be read or is not an object.
+   * @throws {MetadataBoundaryError} If metadata has an accessor or non-undefined value.
+   * @throws {MetadataBoundaryError} If handler inspection or installation fails.
+   * @remarks An absent property or data property valued undefined passes the ownership check.
+   */
   public static activate(): void {
     let reflectObject: unknown;
     try {
@@ -35,7 +41,14 @@ export class CompilerMetadataBridge {
     }
   }
 
-  /** Rejects keys/shapes immediately; legacy callbacks translate invalid addresses into safe errors. */
+  /**
+   * Prepares supported compiler metadata and returns a decorator that records it on a declaration.
+   * @param key Compiler metadata key; only the three design metadata keys are supported.
+   * @param value Function/undefined type, or a dense array of those for design:paramtypes.
+   * @returns A decorator that records the prepared value on a class or member.
+   * @throws {MetadataBoundaryError} If preparation rejects input or throws during validation.
+   * @see ICompilerMetadataDecorator
+   */
   private static metadata(key: unknown, value: unknown): ICompilerMetadataDecorator {
     let declaration;
     try {

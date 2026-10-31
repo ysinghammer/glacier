@@ -8,6 +8,11 @@ import { RecordingTransport } from "../../doubles/RecordingTransport.js";
 
 const INSTANT = new Date("2026-01-02T03:04:05.000Z");
 
+/**
+ * Creates a trace-level factory with deterministic time and the supplied transport.
+ * @param transport Recording target used by loggers created from the factory.
+ * @returns A factory with one JSON-formatted transport registration.
+ */
 function createFactory(transport: RecordingTransport): LoggerFactory {
   return new LoggerFactory({
     level: "trace",
@@ -16,6 +21,13 @@ function createFactory(transport: RecordingTransport): LoggerFactory {
   });
 }
 
+/**
+ * Creates a logger for a context and unwraps the expected successful outcome.
+ * @param factory Factory used to create the logger.
+ * @param context Non-empty context assigned to the returned logger.
+ * @returns The logger associated with {@link context}.
+ * @throws {Error} If logger creation rejects the supplied context.
+ */
 function loggerOf(factory: LoggerFactory, context: string): Logger {
   const result = factory.createLogger(context);
   if (result.outcome !== "created") {

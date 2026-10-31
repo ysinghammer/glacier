@@ -7,7 +7,13 @@ import type { IClass } from "../../../../domain/metadataReflection/targets/types
 import type { IDynamicClassMetadataAddress } from "../../../../domain/metadataReflection/addressing/types/IDynamicClassMetadataAddress.js";
 import { MetadataTarget } from "../../../../domain/metadataReflection/targets/MetadataTarget.js";
 
-/** Validated compiler data, prepared completely before any class declaration changes. */
+/**
+ * Validated compiler metadata ready for recording, or a rejection explaining unsupported input.
+ * @property isValid Discriminates prepared metadata from rejected compiler input.
+ * @property key Supported design metadata key; present only for prepared metadata.
+ * @property value Runtime type or frozen snapshot of runtime parameter types.
+ * @property code Rejection category; present only when isValid is false.
+ */
 type ICompilerDeclaration =
   | {
       readonly isValid: true;
@@ -21,9 +27,13 @@ type ICompilerDeclaration =
     }
   | { readonly isValid: false; readonly code: ICompilerMetadataRejectionCode };
 
-/** Checks the sole untyped input protocol without changing ordinary value-definition semantics. */
+/** Validates compiler-emitted metadata and records it through the ordinary metadata definitions. */
 export class CompilerMetadataRecorder {
-  /** Validates supported keys and snapshots every dense parameter entry before returning success. */
+  /** Validates supported keys and snapshots every dense parameter entry before returning success.
+   * @param key Unknown key; accepts design:type, design:paramtypes, or design:returntype.
+   * @param value Unknown emitted type; parameter types must be a dense array of functions/undefined.
+   * @returns Prepared value or frozen parameter snapshot, or unsupported-key/value rejection.
+   */
   public static prepare(key: unknown, value: unknown): ICompilerDeclaration {
     if (key !== "design:type" && key !== "design:paramtypes" && key !== "design:returntype") {
       return { isValid: false, code: "unsupported-compiler-key" };
@@ -49,7 +59,11 @@ export class CompilerMetadataRecorder {
     return { isValid: true, key, value: Object.freeze(snapshot) };
   }
 
-  /** Validates the complete class/member address before invoking an ordinary atomic set. */
+  /** Validates the address, then writes the selected design metadata; descriptors must be non-null objects.
+   * @param declaration Valid metadata from prepare; rejected declarations cannot be recorded.
+   * @param arguments_ Class alone, or target/member/optional descriptor; member: string, number, symbol.
+   * @returns Success after recording, or a rejection for an invalid target or member location.
+   */
   public static record(
     declaration: Extract<ICompilerDeclaration, { readonly isValid: true }>,
     arguments_: readonly unknown[],
@@ -82,7 +96,10 @@ export class CompilerMetadataRecorder {
     return result;
   }
 
-  /** Returns compiler-only address rejections; consumer inspection exceptions escape unchanged. */
+  /** Resolves class-only or class/prototype calls; numeric keys become strings, descriptors must be non-null objects.
+   * @param arguments_ Class alone, or target/member/optional descriptor; member: string, number, symbol.
+   * @returns Class/member address and owner/side, or a target/location rejection.
+   */
   private static normalize(arguments_: readonly unknown[]):
     | {
         readonly isValid: true;
@@ -115,7 +132,10 @@ export class CompilerMetadataRecorder {
     return { isValid: true, owner, address: { kind: "member", side, member } };
   }
 
-  /** Narrows runtime representations without claiming constructability or erased source types. */
+  /** Accepts only compiler representations retained at runtime, not erased source types.
+   * @param value Unknown compiler-emitted value to classify.
+   * @returns True for a function or undefined; false for every other runtime value.
+   */
   private static isRepresentation(value: unknown): value is IRuntimeType {
     return typeof value === "function" || value === undefined;
   }

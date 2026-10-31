@@ -1,24 +1,31 @@
 import { MetadataDefinitionOperations } from "./MetadataDefinitionOperations.js";
 import type { IMetadataRead } from "./types/IMetadataRead.js";
-/**
- * A distinct invariant homogeneous dictionary definition; read entries may be absent.
- * Own enumerable string entries accumulate ancestor-first; conflicts replace whole entries, never deep-merge.
- * Outer null-prototype dictionaries snapshot/freeze, including reserved keys; contained values retain identity.
- * Repeated sets replace direct contributions; empty records cannot suppress ancestors.
+/** Defines invariant dictionary metadata with ancestor-first, whole-entry conflict replacement.
+ * Own string entries snapshot/freeze; contained values retain identity and empty sets do not reset ancestors.
+ * @template T Dictionary entry value type retained without cloning.
  */
 export class RecordMetadataDefinition<in out T> extends MetadataDefinitionOperations<
   Readonly<Record<string, T>>,
   Readonly<Record<string, T | undefined>>
 > {
+  /** Private marker that prevents structural identity sharing.
+   * @default undefined
+   */
   private brand: undefined;
+  /** Readonly kind identifying dictionary accumulation semantics. */
   public readonly kind: "record";
-  /** Creates a fresh identity with whole-entry nearest replacement on conflicts. */
+  /** Creates a fresh dictionary definition identity.
+   * @param name Descriptive label; it does not register or share this definition.
+   */
   constructor(name: string) {
     super(name);
     this.kind = "record";
     void this.brand;
   }
-  /** Snapshots only own enumerable string entries, retaining contained value identities. */
+  /** Snapshots own enumerable string entries into a frozen null-prototype record.
+   * @param value Typed dictionary contribution whose entry values retain identity.
+   * @returns Frozen outer record; entries are copied without deep cloning.
+   */
   protected override prepare(
     value: Readonly<Record<string, T>>,
   ): Readonly<Record<string, T | undefined>> {
@@ -27,7 +34,10 @@ export class RecordMetadataDefinition<in out T> extends MetadataDefinitionOperat
     for (const key of Object.keys(value)) result[key] = value[key];
     return Object.freeze(result);
   }
-  /** Accumulates ancestor-first with whole-entry replacement and no inheritance reset. */
+  /** Merges contributions ancestor-first, replacing complete entries from nearer declarations.
+   * @param values Present contributions ordered nearest-first by storage.
+   * @returns Absent for no declarations; otherwise a frozen merged record, including empty records.
+   */
   protected override resolve(
     values: readonly Readonly<Record<string, T | undefined>>[],
   ): IMetadataRead<Readonly<Record<string, T | undefined>>> {

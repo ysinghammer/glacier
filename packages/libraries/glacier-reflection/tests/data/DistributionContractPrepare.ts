@@ -2,14 +2,22 @@ import { spawnSync } from "node:child_process";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
+/** Runtime and declaration targets expected for one generated public entry. */
 interface IDistributionEntry {
+  /** Readonly relative runtime import path required by the distribution export map. */
   readonly import: string;
+  /** Readonly relative declaration path required by the distribution export map. */
   readonly types: string;
 }
 
 /** Builds an isolated consumer containing only the copied distribution and its authored fixtures. */
 export class DistributionContractPrepare {
-  /** Runs existing installed tools with bounded completion and preserved diagnostics. */
+  /**
+   * Runs an installed package tool with bounded completion and preserved diagnostics.
+   * @param arguments_ Arguments passed after `pnpm`.
+   * @returns No value; inherits the command's standard streams.
+   * @throws {Error} When process startup fails or the command exits unsuccessfully.
+   */
   private static command(arguments_: readonly string[]): void {
     const result = spawnSync("pnpm", [...arguments_], {
       cwd: new URL("../..", import.meta.url),
@@ -21,7 +29,11 @@ export class DistributionContractPrepare {
       throw new Error(`Distribution preparation failed: ${arguments_.join(" ")}`);
   }
 
-  /** Copies generated public entries, verifies independent declarations and builds four real bundles. */
+  /**
+   * Prepares an isolated consumer, validates its public types, and builds distribution probes.
+   * @returns Resolves with no value after the consumer, bundles, and record are created.
+   * @throws {Error} When Node cannot resolve the expected export entries.
+   */
   public static async run(): Promise<void> {
     const consumer = new URL("../artifacts/distribution/consumer/", import.meta.url);
     const packageDirectory = new URL("node_modules/@glacier/reflection/", consumer);
@@ -147,8 +159,16 @@ export class DistributionContractPrepare {
     );
   }
 
+  /**
+   * Validates the copied package manifest's exact root and registration export contract.
+   * @param value Untrusted parsed manifest value.
+   * @returns The validated runtime and declaration paths for each public entry.
+   * @throws {Error} When exports, side effects, or runtime dependencies violate the contract.
+   */
   private static validateManifest(value: unknown): {
+    /** Readonly runtime and declaration paths for the package root entry. */
     readonly root: IDistributionEntry;
+    /** Readonly runtime and declaration paths for explicit registration. */
     readonly registration: IDistributionEntry;
   } {
     if (!DistributionContractPrepare.isRecord(value))
@@ -184,10 +204,23 @@ export class DistributionContractPrepare {
     };
   }
 
+  /**
+   * Narrows a non-null, non-array object to a string-keyed record.
+   * @param value Untrusted value to test.
+   * @returns Whether `value` is a record suitable for manifest inspection.
+   */
   private static isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
+  /**
+   * Validates one manifest entry against its required generated paths.
+   * @param value Untrusted export-map entry.
+   * @param expectedImport Required runtime entry path.
+   * @param expectedTypes Required declaration entry path.
+   * @returns The validated import and type paths.
+   * @throws {Error} When the entry is not a record with exactly the expected paths.
+   */
   private static entry(
     value: unknown,
     expectedImport: string,
@@ -204,6 +237,13 @@ export class DistributionContractPrepare {
     return { import: expectedImport, types: expectedTypes };
   }
 
+  /**
+   * Writes a consumer-local Vite configuration for one independent generated bundle.
+   * @param name Bundle name, with `retained` selecting the two-entry retention probe.
+   * @param entry Fixture entry filename stem for ordinary bundle modes.
+   * @param consumer URL of the isolated consumer directory.
+   * @returns Resolves with no value after the configuration file is written.
+   */
   private static async writeBuildConfig(name: string, entry: string, consumer: URL): Promise<void> {
     const retained = name === "retained";
     const entries = retained

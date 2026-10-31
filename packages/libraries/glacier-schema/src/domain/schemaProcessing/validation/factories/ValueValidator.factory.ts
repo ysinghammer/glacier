@@ -10,12 +10,21 @@ import { TypeFailure } from "../TypeFailure.js";
 import { UnionValidatorFactory } from "./UnionValidator.factory.js";
 import { ValueCoercer } from "../ValueCoercer.js";
 
-/** Validates one value against a declared type; created once per field at compile time. */
+/**
+ * Validates one value against a declared type without mutating it.
+ * @param value Candidate value to validate.
+ * @param context Per-parse coercion options and nesting depth.
+ * @returns Accepted value or typed validation failures.
+ */
 export type IValueValidator = (value: unknown, context: IParseContext) => IValueOutcome;
 
 /** Builds the validator closure for each supported field type. */
 export class ValueValidatorFactory {
-  /** Returns a validator that accepts exactly the values `type` declares and never mutates them. */
+  /**
+   * Builds the validator closure for a declared field type.
+   * @param type Scalar, collection, nested-class or union type specification.
+   * @returns Validator for values described by `type`.
+   */
   public static create(type: ITypeSpec): IValueValidator {
     switch (type.kind) {
       case "string":
@@ -93,7 +102,13 @@ export class ValueValidatorFactory {
     }
   }
 
-  /** Runs `checker` on a value that already passed `typeValidator`. */
+  /**
+   * Chains a rule checker after a type validator has accepted a value.
+   * @template TValue Type narrowed by the type validator for the rule checker.
+   * @param typeValidator Validator establishing the checker's input type.
+   * @param checker Additional constraint checker for the narrowed value.
+   * @returns Validator applying both checks in sequence.
+   */
   private static withRules<TValue>(
     typeValidator: IValueValidator,
     checker: (value: TValue) => IValueOutcome,
@@ -105,17 +120,31 @@ export class ValueValidatorFactory {
     };
   }
 
-  /** Wraps one failure as a rejected outcome. */
+  /**
+   * Wraps one failure in a rejected outcome.
+   * @param failure Validation failure to preserve.
+   * @returns Rejected outcome containing that failure.
+   */
   private static reject(failure: IValueFailure): IValueOutcome {
     return { isValid: false, failures: [failure] };
   }
 
-  /** Builds the standard `invalid_type` rejection. */
+  /**
+   * Builds a standard invalid-type outcome.
+   * @param expected Expected runtime type label.
+   * @param value Candidate value that failed the type check.
+   * @returns Rejected outcome describing expected and received types.
+   */
   private static invalidType(expected: string, value: unknown): IValueOutcome {
     return ValueValidatorFactory.reject(TypeFailure.invalidType(expected, value));
   }
 
-  /** Accepts values whose `typeof` equals `expected`. */
+  /**
+   * Creates a validator matching a primitive `typeof` result.
+   * @param expected Primitive typeof label to accept.
+   * @param label Human-readable expected type in failures.
+   * @returns Validator returning the original value or an invalid-type outcome.
+   */
   private static typeOf(expected: "string" | "boolean" | "bigint", label: string): IValueValidator {
     return (value) =>
       typeof value === expected
@@ -123,7 +152,12 @@ export class ValueValidatorFactory {
         : ValueValidatorFactory.invalidType(label, value);
   }
 
-  /** Accepts finite numbers that also satisfy `isAccepted`; NaN and infinities are never numbers here. */
+  /**
+   * Creates a number validator with an additional acceptance predicate.
+   * @param expected Human-readable numeric type label.
+   * @param isAccepted Predicate for finite number or integer requirements.
+   * @returns Validator returning the original number or an invalid-type outcome.
+   */
   private static number(expected: string, isAccepted: (value: number) => boolean): IValueValidator {
     return (value) =>
       typeof value === "number" && isAccepted(value)
@@ -131,7 +165,10 @@ export class ValueValidatorFactory {
         : ValueValidatorFactory.invalidType(expected, value);
   }
 
-  /** Accepts valid `Date` instances; an `Invalid Date` is reported as `invalid_date`. */
+  /**
+   * Creates a validator accepting valid Date instances.
+   * @returns Validator distinguishing invalid instances from invalid date values.
+   */
   private static date(): IValueValidator {
     return (value) => {
       if (!(value instanceof Date)) return ValueValidatorFactory.invalidType("date", value);
@@ -146,7 +183,11 @@ export class ValueValidatorFactory {
     };
   }
 
-  /** Accepts only the literal, compared with strict equality. */
+  /**
+   * Creates a strict-equality validator for one scalar literal.
+   * @param expected Required literal value.
+   * @returns Validator reporting an invalid-literal outcome for other values.
+   */
   private static literal(expected: string | number | boolean | bigint | null): IValueValidator {
     return (value) =>
       value === expected
@@ -158,7 +199,11 @@ export class ValueValidatorFactory {
           });
   }
 
-  /** Accepts only the enum's values. */
+  /**
+   * Creates a validator accepting only members of an enum value list.
+   * @param values Allowed string and number values.
+   * @returns Validator reporting the expected values on rejection.
+   */
   private static enumeration(values: readonly (string | number)[]): IValueValidator {
     const allowed = new Set<unknown>(values);
     return (value) =>
@@ -171,7 +216,11 @@ export class ValueValidatorFactory {
           });
   }
 
-  /** Renders a literal the way a developer would write it. */
+  /**
+   * Formats a scalar literal for validation messages.
+   * @param value Literal to render.
+   * @returns Source-like string representation, including an `n` suffix for bigint.
+   */
   private static show(value: string | number | boolean | bigint | null): string {
     if (typeof value === "string") return JSON.stringify(value);
     if (typeof value === "bigint") return `${value}n`;

@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 
 /** Asserts root inactivity and registration rejection through generated public entries in a fresh realm. */
 class ReflectActivationAssertions {
-  /** Preserves descriptors, exceptional cause and safe message without changing production or retrying activation. */
+  /**
+   * Checks root inactivity and safe registration rejection in the current native realm.
+   * @param mode Reflect condition arranged for the import assertions.
+   * @returns No value; writes a success marker after all assertions pass.
+   */
   public static async run(mode: string | undefined): Promise<void> {
     assert.ok(
       mode === "absent" || mode === "unavailable" || mode === "null" || mode === "throwing",
@@ -17,6 +21,11 @@ class ReflectActivationAssertions {
       assert.equal(Reflect.deleteProperty(globalThis, "Reflect"), true);
     } else if (mode === "throwing") {
       Object.defineProperty(globalThis, "Reflect", {
+        /**
+         * Records access and rethrows the private setup failure.
+         * @returns Never returns; every read throws the captured cause.
+         * @throws {Error} Whenever the synthetic Reflect getter is evaluated.
+         */
         get() {
           getterCalls++;
           throw cause;

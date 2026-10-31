@@ -5,11 +5,10 @@ import { RuleDefinitionCheck } from "../schema/RuleDefinitionCheck.js";
 import type { ICollectionOptions } from "./types/ICollectionOptions.js";
 
 /**
- * Property decorator declaring that the field must be a `Set` whose elements all match `element`: a
- * primitive constructor, a decorated class or a `() => Class` reference. Accepts `min`, `max` and `unique`;
- * the accepted value is a new `Set`. With per-call coercion an array is also accepted. Records metadata
- * only; throws `SchemaDefinitionError` for an invalid element type or size, or when the property already
- * has a type decorator.
+ * Declares a set field whose entries use `element`, and records collection rules as metadata.
+ * @param element Primitive, decorated class or lazy reference describing each entry.
+ * @param options Optional size, uniqueness and issue-message rules.
+ * @returns A property decorator that registers the set field.
  */
 export function IsSet(element: IElementType, options?: ICollectionOptions): PropertyDecorator {
   const { message, ...rules } = options ?? {};

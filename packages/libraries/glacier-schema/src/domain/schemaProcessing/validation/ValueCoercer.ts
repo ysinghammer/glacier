@@ -1,7 +1,11 @@
 import type { ITypeSpec } from "../schema/types/ITypeSpec.js";
 import { PlainObject } from "./PlainObject.js";
 
-/** Converts a raw input value toward the declared type; unconvertible values are returned unchanged. */
+/**
+ * Converts raw input toward a declared type, leaving unconvertible values unchanged.
+ * @param value Raw input value to convert.
+ * @returns Converted scalar or collection, or the original value when unsupported.
+ */
 export type IValueCoercer = (value: unknown) => unknown;
 
 const NUMERIC_TEXT = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
@@ -11,7 +15,11 @@ const ISO_DATE_TEXT =
 
 /** Builds the per-type coercion used when a call passes `{ coerce: true }`. */
 export class ValueCoercer {
-  /** Returns the coercer for `type`; it never throws and never touches `null` or `undefined`. */
+  /**
+   * Builds the coercer for one declared type.
+   * @param type Scalar, collection, object or union specification to coerce toward.
+   * @returns Coercer that leaves nullish and unsupported values unchanged.
+   */
   public static create(type: ITypeSpec): IValueCoercer {
     switch (type.kind) {
       case "string":
@@ -49,12 +57,21 @@ export class ValueCoercer {
     }
   }
 
-  /** Applies `coerce` to an entry unless it is `null` or `undefined`. */
+  /**
+   * Applies a coercer to a non-nullish collection entry.
+   * @param coerce Coercer selected for the entry type.
+   * @param entry Raw entry value.
+   * @returns Unchanged nullish entry or its coerced value.
+   */
   private static coerceEntry(coerce: IValueCoercer, entry: unknown): unknown {
     return entry === undefined || entry === null ? entry : coerce(entry);
   }
 
-  /** Coerces every element of an array; anything else is left for validation to reject. */
+  /**
+   * Creates a coercer for arrays of one element type.
+   * @param element Coercer applied to each array entry.
+   * @returns Coercer preserving non-array inputs for validation.
+   */
   private static toArray(element: IValueCoercer): IValueCoercer {
     return (value) =>
       Array.isArray(value)
@@ -62,7 +79,11 @@ export class ValueCoercer {
         : value;
   }
 
-  /** Coerces the positions of an array that have an element type; extra positions stay unchanged. */
+  /**
+   * Creates a coercer for the declared positions of a tuple.
+   * @param elements Coercers aligned to tuple positions.
+   * @returns Coercer preserving extra tuple entries and non-array inputs.
+   */
   private static toTuple(elements: readonly IValueCoercer[]): IValueCoercer {
     return (value) =>
       Array.isArray(value)
@@ -73,7 +94,11 @@ export class ValueCoercer {
         : value;
   }
 
-  /** Turns arrays and sets of convertible elements into a set of coerced elements. */
+  /**
+   * Creates a set coercer accepting array or set input.
+   * @param element Coercer applied to each member.
+   * @returns Coercer producing a new Set for supported inputs.
+   */
   private static toSet(element: IValueCoercer): IValueCoercer {
     return (value) =>
       Array.isArray(value) || value instanceof Set
@@ -85,7 +110,12 @@ export class ValueCoercer {
         : value;
   }
 
-  /** Turns maps, arrays of `[key, value]` pairs and plain objects into a map of coerced keys and values. */
+  /**
+   * Creates a map coercer for maps, pair arrays and plain-object entries.
+   * @param key Coercer applied to each key.
+   * @param element Coercer applied to each value.
+   * @returns Coercer producing a new Map for supported inputs.
+   */
   private static toMap(key: IValueCoercer, element: IValueCoercer): IValueCoercer {
     return (value) => {
       const entries = ValueCoercer.entriesOf(value);
@@ -99,7 +129,11 @@ export class ValueCoercer {
     };
   }
 
-  /** Lists the entries of a map, an array made only of pairs, or a plain object; otherwise `undefined`. */
+  /**
+   * Extracts entries from a supported map-like input.
+   * @param value Candidate map, pair array or plain object.
+   * @returns Entry snapshot, or undefined when the input shape is unsupported.
+   */
   private static entriesOf(value: unknown): readonly (readonly [unknown, unknown])[] | undefined {
     if (value instanceof Map) return [...value];
     if (PlainObject.is(value)) return Object.entries(value);
@@ -109,7 +143,11 @@ export class ValueCoercer {
     return value.every(isPair) ? value : undefined;
   }
 
-  /** Coerces the values of a plain object into a new plain object. */
+  /**
+   * Creates a dictionary coercer that transforms own enumerable values.
+   * @param element Coercer applied to each dictionary value.
+   * @returns Coercer producing a new plain object for plain-object inputs.
+   */
   private static toRecord(element: IValueCoercer): IValueCoercer {
     return (value) =>
       PlainObject.is(value)
@@ -122,17 +160,17 @@ export class ValueCoercer {
         : value;
   }
 
-  /** Numbers, booleans and bigints become their string form. */
+  /** Converts number, boolean and bigint values to strings; other inputs pass through. */
   private static readonly toString: IValueCoercer = (value) =>
     typeof value === "number" || typeof value === "boolean" || typeof value === "bigint"
       ? String(value)
       : value;
 
-  /** Decimal strings become numbers; empty or non-decimal text such as `"0x10"` is left alone. */
+  /** Converts decimal numeric text to a number; non-decimal or non-string inputs pass through. */
   private static readonly toNumber: IValueCoercer = (value) =>
     typeof value === "string" && NUMERIC_TEXT.test(value.trim()) ? Number(value) : value;
 
-  /** Only `"true"` and `"false"`, in any case, become booleans. */
+  /** Converts case-insensitive `true` and `false` strings; other inputs pass through. */
   private static readonly toBoolean: IValueCoercer = (value) => {
     if (typeof value !== "string") return value;
     const text = value.toLowerCase();
@@ -140,19 +178,23 @@ export class ValueCoercer {
     return text === "false" ? false : value;
   };
 
-  /** Integer strings and safe integers become bigints. */
+  /** Converts integer strings and safe integer numbers to bigint; other inputs pass through. */
   private static readonly toBigInt: IValueCoercer = (value) => {
     if (typeof value === "string" && INTEGER_TEXT.test(value)) return BigInt(value);
     return Number.isSafeInteger(value) ? BigInt(value as number) : value;
   };
 
-  /** ISO 8601 strings and finite timestamps become dates; an impossible calendar date stays invalid. */
+  /** Converts ISO date text and finite timestamps to Date values; other inputs pass through. */
   private static readonly toDate: IValueCoercer = (value) => {
     if (typeof value === "string" && ISO_DATE_TEXT.test(value)) return new Date(value);
     return typeof value === "number" && Number.isFinite(value) ? new Date(value) : value;
   };
 
-  /** Tries each conversion and keeps the first result that is one of the allowed values. */
+  /**
+   * Creates a coercer trying supported scalar conversions against an allowed-value set.
+   * @param allowed Set of accepted literal or enum values.
+   * @returns Coercer selecting the first converted value in the set, or preserving input.
+   */
   private static toAllowed(allowed: ReadonlySet<unknown>): IValueCoercer {
     const conversions = [
       ValueCoercer.toNumber,
