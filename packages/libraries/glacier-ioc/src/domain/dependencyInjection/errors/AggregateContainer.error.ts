@@ -1,11 +1,14 @@
 import { ContainerError } from "./ContainerError.error.js";
 
-/** Reports every problem found by one operation, such as eager graph validation, at once. */
+/** Groups all validation problems from one container operation without discarding their original errors. */
 export class AggregateContainerError extends ContainerError {
   /** Every collected failure, in discovery order; none is dropped or replaced. */
   public readonly causes: readonly Error[];
 
-  /** Creates the error; its message lists each cause and `causes` keeps the originals. */
+  /**
+   * Constructs a grouped validation failure whose message and causes preserve discovery order.
+   * @param causes Errors to report in order; a defensive frozen copy is retained.
+   */
   public constructor(causes: readonly Error[]) {
     const lines = causes.map((cause) => `- ${cause.message}`);
     super(`Container failed with ${causes.length} error(s):\n${lines.join("\n")}`);

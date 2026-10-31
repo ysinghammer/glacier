@@ -1,9 +1,8 @@
-/**
- * Optional hook for DEFAULT-scope providers, detected by its name alone: called once per instance when
- * `close` starts, in the reverse of module initialization order. A failure is reported by `close` after
- * every remaining hook has still run.
- */
+/** Optional default-scope hook run once per instance when close starts, in reverse module order. */
 export interface IOnModuleDestroy {
-  /** Releases what the instance acquired; the returned promise is awaited. */
+  /**
+   * Releases what the instance acquired; the returned promise is awaited.
+   * @returns No value, or a promise fulfilled when this destruction step completes.
+   */
   onModuleDestroy(): void | Promise<void>;
 }

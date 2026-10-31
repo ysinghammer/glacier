@@ -1,9 +1,8 @@
-/**
- * Optional hook for DEFAULT-scope providers, detected by its name alone: called once per instance after every
- * `onModuleDestroy` hook has run, in reverse initialization order. A failure is reported by `close` after
- * every remaining hook has still run.
- */
+/** Optional default-scope hook run once per instance after module destruction, in reverse initialization order. */
 export interface IBeforeContainerShutdown {
-  /** Performs final work before the container shuts down; the returned promise is awaited. */
+  /**
+   * Performs final work before shutdown; the returned promise is awaited.
+   * @returns No value, or a promise fulfilled when this shutdown step completes.
+   */
   beforeContainerShutdown(): void | Promise<void>;
 }

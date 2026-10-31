@@ -1,8 +1,13 @@
 import { ContainerError } from "./ContainerError.error.js";
 
-/** Raised when a lifecycle hook of a provider instance throws or rejects; the original failure is the `cause`. */
+/** Wraps a provider lifecycle-hook failure while preserving the original failure as its cause. */
 export class LifecycleHookError extends ContainerError {
-  /** Creates the error naming the hook and the class of the instance it failed on. */
+  /**
+   * Constructs a lifecycle failure and retains the original thrown value as cause.
+   * @param hook Name of the lifecycle hook that failed.
+   * @param target Provider instance on which the hook ran.
+   * @param cause Original thrown value or rejection reason.
+   */
   public constructor(hook: string, target: object, cause: unknown) {
     super(`Lifecycle hook ${hook} failed on ${target.constructor.name}`, { cause });
   }

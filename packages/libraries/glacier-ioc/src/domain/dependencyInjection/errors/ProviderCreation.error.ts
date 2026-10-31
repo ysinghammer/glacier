@@ -2,9 +2,13 @@ import { ContainerError } from "./ContainerError.error.js";
 import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import { TokenDescription } from "../tokens/TokenDescription.js";
 
-/** Raised when a factory provider throws or rejects while its value is created; the failure is the `cause`. */
+/** Wraps a factory provider failure while preserving the original value as its cause. */
 export class ProviderCreationError extends ContainerError {
-  /** Creates the error naming the token whose factory failed. */
+  /**
+   * Constructs a factory failure and retains the original thrown value as cause.
+   * @param token Token whose factory failed.
+   * @param cause Original thrown value or rejection reason.
+   */
   public constructor(token: ITokenReference, cause: unknown) {
     super(`Factory for ${TokenDescription.describe(token)} failed`, { cause });
   }

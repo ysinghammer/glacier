@@ -1,8 +1,5 @@
 import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 import type { IModuleReference } from "./IModuleReference.js";
 
-/**
- * One entry of a module's `exports`: a provider token made visible to importers, or an imported module
- * whose own exports are re-exported.
- */
+/** Export entry that exposes a provider token or forwards an imported module's exports. */
 export type IModuleExport = ITokenReference | IModuleReference;

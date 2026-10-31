@@ -7,13 +7,14 @@ import type { IModuleReference } from "./types/IModuleReference.js";
 
 const DYNAMIC_PLACEHOLDER = Symbol("dynamic module");
 
-/** Reads `@Module` metadata and merges it with dynamic-module data. */
+/** Reads and validates static module metadata, then merges any runtime module configuration. */
 export class ModuleMetadata {
   /**
-   * Returns the module's metadata. A dynamic module's lists are appended to the static ones and its
-   * `global` flag, when present, overrides the static flag.
-   * Throws `InvalidModuleError` when the class is not decorated with `@Module`, a dynamic module has no
-   * class, or a member has the wrong shape.
+   * Resolves a decorated module and appends dynamic lists to static declarations.
+   * @param reference Decorated module class or dynamic module configuration.
+   * @returns Resolved module class, lists and effective global flag.
+   * @throws {InvalidModuleError} If the reference is neither a class nor an object with `module`.
+   * @throws {InvalidModuleError} If a dynamic reference has no class-valued `module` member.
    */
   public static resolve(reference: IModuleReference): IResolvedModule {
     if (typeof reference === "function") return ModuleMetadata.merge(reference, undefined);
@@ -33,7 +34,12 @@ export class ModuleMetadata {
     return ModuleMetadata.merge(dynamic.module as IClassConstructor, dynamic);
   }
 
-  /** Combines the static declaration with the optional dynamic data. */
+  /** Combines own decorator metadata with optional dynamic configuration.
+   * @param moduleClass Decorated module class to resolve.
+   * @param dynamic Optional runtime configuration merged after static metadata.
+   * @returns Complete resolved module declaration.
+   * @throws {InvalidModuleError} If the class lacks valid own `@Module` metadata.
+   */
   private static merge(
     moduleClass: IClassConstructor,
     dynamic: object | undefined,
@@ -60,7 +66,13 @@ export class ModuleMetadata {
     };
   }
 
-  /** Concatenates the static and dynamic values of one list member. */
+  /** Concatenates one static option list followed by its dynamic additions.
+   * @param moduleClass Module class used to identify invalid metadata.
+   * @param declared Static decorator options.
+   * @param dynamic Optional runtime options.
+   * @param key Name of the list member to read.
+   * @returns New list containing static entries before dynamic entries.
+   */
   private static readLists(
     moduleClass: IClassConstructor,
     declared: object,
@@ -73,7 +85,13 @@ export class ModuleMetadata {
     ];
   }
 
-  /** Reads an optional array member of untrusted module data. */
+  /** Reads an optional array-valued option from untrusted module metadata.
+   * @param moduleClass Module class used to identify invalid metadata.
+   * @param source Options object to read, or `undefined` when absent.
+   * @param key Member name to read.
+   * @returns The array value, or an empty array when absent.
+   * @throws {InvalidModuleError} If a present member is not an array.
+   */
   private static readList(
     moduleClass: IClassConstructor,
     source: object | undefined,
@@ -87,7 +105,12 @@ export class ModuleMetadata {
     return value;
   }
 
-  /** Reads the optional `global` flag of untrusted module data. */
+  /** Reads the optional boolean global flag from untrusted module metadata.
+   * @param moduleClass Module class used to identify invalid metadata.
+   * @param source Options object to read, or `undefined` when absent.
+   * @returns Boolean flag, or `undefined` when absent.
+   * @throws {InvalidModuleError} If a present flag is not boolean.
+   */
   private static readGlobal(
     moduleClass: IClassConstructor,
     source: object | undefined,

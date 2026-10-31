@@ -4,6 +4,7 @@ import { GlacierContainer, Module } from "../../../index.js";
 describe("container serialization safety", () => {
   it("keeps provider credentials out of container and selected-module JSON and spread", async () => {
     const credential = Symbol("credential");
+    /** Root module registering a synthetic secret-valued provider. */
     class RootModule {}
     Module({ providers: [{ provide: credential, useValue: "synthetic-provider-secret" }] })(
       RootModule,

@@ -3,20 +3,31 @@ import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 import type { IInjectedValues } from "./IInjectedValues.js";
 
 /**
- * Provider that creates its value by calling `useFactory` with the resolved `inject` tokens, in order.
- * The factory may be async: its promise is awaited before dependents are constructed. It runs once per container unless a TRANSIENT or REQUEST `scope` applies. Build it with `Providers.factory` so the factory
- * arguments are checked against the token types of the `inject` tuple.
+ * Provider that calls a factory with resolved tokens in order, awaiting asynchronous results.
+ * @template TInject Ordered injected token tuple used to infer factory argument types.
+ * @template TValue Value produced by the factory, synchronously or asynchronously.
+ * @remarks Use `Providers.factory` to check factory arguments against a fixed token tuple.
  */
 export interface IFactoryProvider<
   TInject extends readonly ITokenReference[] = readonly ITokenReference[],
   TValue = unknown,
 > {
-  /** The token consumers request. */
+  /** Token consumers request to receive the factory result. */
   readonly provide: ITokenReference;
-  /** Creates the value, or a promise of it, from the injected arguments; failures surface as `ProviderCreationError`. */
+  /**
+   * Creates the provided value from resolved dependencies.
+   * @param dependencies Values resolved from `inject`, in the declared order.
+   * @returns Factory value or promise; factory failures reject provider creation.
+   */
   readonly useFactory: (...dependencies: IInjectedValues<TInject>) => TValue | Promise<TValue>;
-  /** Tokens resolved and passed to the factory in this order; omitted means no arguments. */
+  /**
+   * Tokens resolved and passed to the factory in order.
+   * @default Empty tuple when omitted.
+   */
   readonly inject?: TInject;
-  /** Lifetime of the provider; omitted means `"default"`. */
+  /**
+   * Lifetime of the factory result.
+   * @default `"default"` when omitted.
+   */
   readonly scope?: IProviderScope;
 }

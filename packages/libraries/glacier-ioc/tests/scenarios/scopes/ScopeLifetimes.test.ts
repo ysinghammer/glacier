@@ -14,14 +14,18 @@ import {
   UnknownDependencyError,
 } from "../../../index.js";
 
+/** Injectable fixture configured to create a fresh instance per resolution. */
 class Transient {}
 Injectable({ scope: "transient" })(Transient);
+/** Injectable fixture cached separately for each request context. */
 class PerRequest {}
 Injectable({ scope: "request" })(PerRequest);
+/** Injectable default-scoped fixture shared by container lookups. */
 class Shared {}
 Injectable()(Shared);
 const factoryToken = new InjectionToken<object>("factory");
 
+/** Root module registering fixtures for provider-scope scenarios. */
 class AppModule {}
 Module({
   providers: [

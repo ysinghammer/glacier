@@ -1,11 +1,8 @@
 import type { IClassConstructor } from "../../providers/types/IClassConstructor.js";
 import type { IModuleOptions } from "./IModuleOptions.js";
 
-/**
- * Module configuration produced at runtime (for example by `forRoot()`). Its members extend, never
- * replace, the metadata declared by `@Module` on `module`.
- */
+/** Runtime module configuration that appends to, rather than replaces, its class's `@Module` metadata. */
 export interface IDynamicModule extends IModuleOptions {
-  /** The `@Module`-decorated class being configured. */
+  /** Decorated module class whose metadata is extended by this configuration. */
   readonly module: IClassConstructor;
 }

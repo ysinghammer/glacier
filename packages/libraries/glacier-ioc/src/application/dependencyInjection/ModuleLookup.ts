@@ -7,64 +7,106 @@ import { ModuleRef } from "../../domain/dependencyInjection/scopes/ModuleRef.js"
 import type { IGetOptions } from "../../domain/dependencyInjection/modules/types/IGetOptions.js";
 import type { InstanceResolver } from "./InstanceResolver.js";
 
-/** The lookup's resolver can retain sensitive provider values and must stay out of serialization. */
+/** Private state for one selected-module view; neither field is exposed through serialization. */
 interface IModuleLookupState {
+  /** Resolver shared with the owning container; it retains provider instances and lifecycle state. */
   readonly resolver: InstanceResolver;
+  /** Selected module whose visibility rules govern every lookup made through this view. */
   readonly module: ModuleNode;
 }
 const MODULE_LOOKUP_STATES = new WeakMap<ModuleLookup, IModuleLookupState>();
 
-/**
- * The container as seen from one module, also injectable as `ModuleRef`; lookups are strict unless
- * `{ strict: false }` is given.
- */
+/** Provides `ModuleRef` lookups from one module; non-strict options search the full container graph. */
 export class ModuleLookup extends ModuleRef {
-  /** Rejects borrowed receivers without exposing the container graph or provider cache. */
+  /** Reads private view state and rejects receivers that were not initialized by this class.
+   * @returns The resolver and selected module associated with this lookup.
+   * @throws {TypeError} The receiver is not a registered `ModuleLookup` instance.
+   */
   private get state(): IModuleLookupState {
     const state = MODULE_LOOKUP_STATES.get(this);
     if (state === undefined) throw new TypeError("Invalid module lookup receiver");
     return state;
   }
 
-  /** Wraps the resolver for one module; created by `GlacierContainer.select`. */
+  /** Creates a view bound to one module and the container's shared resolver.
+   * @param resolver Resolver used to locate and construct providers.
+   * @param module Module that defines this view's default visibility.
+   */
   public constructor(resolver: InstanceResolver, module: ModuleNode) {
     super();
     MODULE_LOOKUP_STATES.set(this, { resolver, module });
   }
 
-  /**
-   * Returns the shared instance of the token as visible to the selected module (own providers, imports'
-   * exports, global exports). `{ strict: false }` also searches every other module of the container.
-   * Throws `UnknownDependencyError` when nothing matches and `InvalidScopeError` for TRANSIENT or REQUEST
-   * providers, which need `resolve`.
+  /** Gets a shared DEFAULT-scoped instance visible from this module.
+   * @param token Token identifying the provider to retrieve.
+   * @param options Lookup options; `false` searches all modules (default: `true`).
+   * @template T Provider value type inferred from the injection token.
+   * @returns The shared provider instance matching `token`.
    */
   public override get<T>(token: InjectionToken<T>, options?: IGetOptions): T;
+  /** Gets a shared DEFAULT-scoped instance visible from this module.
+   * @param token Constructable class identifying the provider to retrieve.
+   * @param options Lookup options; `false` searches all modules (default: `true`).
+   * @template T Object instance type constructed by the class token.
+   * @returns The shared provider instance matching `token`.
+   */
   public override get<T extends object>(token: IConstructableClass<T>, options?: IGetOptions): T;
+  /** Gets a shared DEFAULT-scoped instance visible from this module.
+   * @param token Symbol identifying the provider to retrieve.
+   * @param options Lookup options; `false` searches all modules (default: `true`).
+   * @returns The shared provider instance matching `token`.
+   */
   public override get(token: symbol, options?: IGetOptions): unknown;
+  /** Gets a shared DEFAULT-scoped instance visible from this module.
+   * @param token Token reference identifying the provider to retrieve.
+   * @param options Lookup options; `false` searches all modules (default: `true`).
+   * @returns The shared provider instance matching `token`.
+   */
   public override get(token: ITokenReference, options: IGetOptions = {}): unknown {
     return this.state.resolver.get(token, this.state.module, options.strict ?? true);
   }
 
-  /**
-   * Resolves a provider of any scope as visible to the selected module for a context; no id means a fresh
-   * context. Rejects with `ContextIdMisuseError` for an id not created by `ContainerContext` and with
-   * `UnknownDependencyError` when nothing matches.
+  /** Resolves providers by scope: DEFAULT is shared, REQUEST is context-shared, and TRANSIENT is new.
+   * @param token Token identifying the provider to resolve.
+   * @param contextId Optional `ContainerContext` id; omission creates a fresh context.
+   * @param options Lookup options; omitted `strict` defaults to `true`.
+   * @returns Promise for instance; rejects for invalid context, missing provider, or failed creation.
+   * @template T Provider value type inferred from the injection token.
    */
   public override resolve<T>(
     token: InjectionToken<T>,
     contextId?: ContextId,
     options?: IGetOptions,
   ): Promise<T>;
+  /** Resolves providers by scope: DEFAULT is shared, REQUEST is context-shared, and TRANSIENT is new.
+   * @param token Constructable class identifying the provider to resolve.
+   * @param contextId Optional `ContainerContext` id; omission creates a fresh context.
+   * @param options Lookup options; omitted `strict` defaults to `true`.
+   * @returns Promise for instance; rejects for invalid context, missing provider, or failed creation.
+   * @template T Object instance type constructed by the class token.
+   */
   public override resolve<T extends object>(
     token: IConstructableClass<T>,
     contextId?: ContextId,
     options?: IGetOptions,
   ): Promise<T>;
+  /** Resolves providers by scope: DEFAULT is shared, REQUEST is context-shared, and TRANSIENT is new.
+   * @param token Symbol identifying the provider to resolve.
+   * @param contextId Optional `ContainerContext` id; omission creates a fresh context.
+   * @param options Lookup options; omitted `strict` defaults to `true`.
+   * @returns Promise for instance; rejects for invalid context, missing provider, or failed creation.
+   */
   public override resolve(
     token: symbol,
     contextId?: ContextId,
     options?: IGetOptions,
   ): Promise<unknown>;
+  /** Resolves providers by scope: DEFAULT is shared, REQUEST is context-shared, and TRANSIENT is new.
+   * @param token Token reference identifying the provider to resolve.
+   * @param contextId Optional `ContainerContext` id; omission creates a fresh context.
+   * @param options Lookup options; omitted `strict` defaults to `true`.
+   * @returns Promise for instance; rejects for invalid context, missing provider, or failed creation.
+   */
   public override resolve(
     token: ITokenReference,
     contextId?: ContextId,

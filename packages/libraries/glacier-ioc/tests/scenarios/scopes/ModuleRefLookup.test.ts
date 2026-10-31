@@ -12,20 +12,33 @@ import {
 } from "../../../index.js";
 import { ParameterTypes } from "../module-composition/ParameterTypes.js";
 
+/** Provider private to Inner for strict and non-strict lookup checks. */
 class Hidden {}
+/** Provider visible through the root module. */
 class Shared {}
+/** Request-scoped provider resolved through the module reference. */
 class PerRequest {}
 Injectable({ scope: "request" })(PerRequest);
 
+/** Imported module that keeps Hidden private by exporting nothing. */
 class Inner {}
 Module({ providers: [Hidden], exports: [] })(Inner);
 
+/** Injectable consumer receiving its owning module's reference. */
 class Consumer {
-  public constructor(public readonly moduleRef: ModuleRef) {}
+  /**
+   * Stores the module reference for scoped and visibility lookups.
+   * @param moduleRef Reference bound to the module that provides this consumer.
+   */
+  public constructor(
+    /** Reference bound to the module that provides this consumer. */
+    public readonly moduleRef: ModuleRef,
+  ) {}
 }
 Injectable()(Consumer);
 ParameterTypes.emit(Consumer, [ModuleRef]);
 
+/** Root module that composes Inner with lookup fixture providers. */
 class Root {}
 Module({ imports: [Inner], providers: [Consumer, Shared, PerRequest] })(Root);
 

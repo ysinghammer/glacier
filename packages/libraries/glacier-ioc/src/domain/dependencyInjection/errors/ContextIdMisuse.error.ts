@@ -1,9 +1,13 @@
 import { ContainerError } from "./ContainerError.error.js";
 import type { IContainerErrorOptions } from "./IContainerErrorOptions.js";
 
-/** Raised when a context identifier is used where it is not valid. */
+/** Reports use of a value that is not an allowed resolution context identifier. */
 export class ContextIdMisuseError extends ContainerError {
-  /** Creates the error from the reason the context identifier was misused. */
+  /**
+   * Constructs a context misuse failure with the supplied reason in its message.
+   * @param reason Explanation of why the supplied context identifier is invalid.
+   * @param options Optional underlying cause, preserved by the base error.
+   */
   public constructor(reason: string, options?: IContainerErrorOptions) {
     super(`Context id misuse: ${reason}`, options);
   }

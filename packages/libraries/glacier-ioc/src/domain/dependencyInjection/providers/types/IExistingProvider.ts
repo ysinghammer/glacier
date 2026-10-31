@@ -1,9 +1,9 @@
 import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 
-/** Provider that aliases one token to another so both resolve to the same instance. */
+/** Provider alias that resolves one requested token through another token's registration. */
 export interface IExistingProvider {
-  /** The alias token consumers request. */
+  /** Alias token consumers request. */
   readonly provide: ITokenReference;
-  /** The token whose provider supplies the value. */
+  /** Existing token whose provider supplies the shared value. */
   readonly useExisting: ITokenReference;
 }

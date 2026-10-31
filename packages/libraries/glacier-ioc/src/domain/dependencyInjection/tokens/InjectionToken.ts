@@ -1,17 +1,19 @@
 /**
- * A typed token for dependencies without a class, such as interfaces or configuration values.
- * Every instance owns a fresh symbol, so tokens are unique by identity even with equal descriptions.
- * The type parameter is a compile-time phantom that lets later APIs infer the resolved value type.
+ * Typed identity for non-class dependencies, carrying the resolved value type only at compile time.
+ * @template T Value type resolved when this token is requested.
  */
 export class InjectionToken<T> {
-  /** Compile-time carrier of the resolved value type; it has no runtime representation. */
+  /** Type-only carrier used to infer resolved values; no runtime field is emitted. */
   declare public readonly phantomType: T | undefined;
-  /** Human-readable text included in container error messages. */
+  /** Diagnostic label used in container error messages; it does not determine token identity. */
   public readonly description: string;
-  /** The unique symbol identifying this token inside containers and metadata. */
+  /** Fresh symbol that identifies this token independently of other token instances. */
   public readonly symbol: symbol;
 
-  /** Creates a token with a fresh identity; the description is diagnostic only and never shared. */
+  /**
+   * Creates a token with a fresh symbol identity.
+   * @param description Human-readable diagnostic label; equal labels do not merge identities.
+   */
   public constructor(description: string) {
     this.description = description;
     this.symbol = Symbol(description);

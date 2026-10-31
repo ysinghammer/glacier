@@ -26,6 +26,7 @@ describe("IOC-001 token identity and descriptions", () => {
   });
 
   it("describes classes, anonymous classes and symbols along a dependency path", () => {
+    /** Named class token used to verify readable token descriptions. */
     class Service {}
     const anonymous = (() => class {})();
     const labelled: IToken = Symbol("labelled");

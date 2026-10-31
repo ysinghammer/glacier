@@ -15,40 +15,55 @@ import { ContextIds } from "../../domain/dependencyInjection/scopes/ContextIds.j
 import { ModuleRef } from "../../domain/dependencyInjection/scopes/ModuleRef.js";
 import { ModuleLookup } from "./ModuleLookup.js";
 
-/**
- * Resolves the providers of a module graph by effective scope: DEFAULT registrations are constructed at
- * most once and shared, REQUEST registrations once per context id, TRANSIENT ones on every resolution.
- * Dependencies are resolved from the owning module's point of view, in the same context.
- */
+/** Resolves graph providers by effective scope and resolves dependencies from each registration's module. */
 export class InstanceResolver {
+  /** Validated graph that owns registrations, visibility, profiles, and dependency order. */
   private readonly graph: ModuleGraph;
+  /** In-flight or fulfilled promises for shared DEFAULT registrations.
+   * @default Empty map.
+   */
   private readonly instances = new Map<IProviderRegistration, Promise<unknown>>();
+  /** Fulfilled DEFAULT instances available to synchronous `get` calls.
+   * @default Empty map.
+   */
   private readonly createdDefaults = new Map<IProviderRegistration, unknown>();
+  /** Per-context promise caches for REQUEST registrations.
+   * @default Empty weak map.
+   */
   private readonly requestInstances = new WeakMap<
     ContextId,
     Map<IProviderRegistration, Promise<unknown>>
   >();
+  /** Whether further resolution is forbidden; becomes `true` after `close`.
+   * @default `false`.
+   */
   private isClosed = false;
 
-  /** Creates a resolver over a validated graph; nothing is constructed until the first lookup. */
+  /** Creates a resolver over a validated graph without constructing providers.
+   * @param graph Graph whose registrations this resolver serves.
+   */
   public constructor(graph: ModuleGraph) {
     this.graph = graph;
   }
 
-  /** Marks the resolver closed; every later lookup is rejected with `UseAfterCloseError`. */
+  /** Marks the resolver closed; repeated calls leave it closed.
+   * @returns No value; prevents later operations from resolving providers.
+   */
   public close(): void {
     this.isClosed = true;
   }
 
-  /** Throws `UseAfterCloseError` naming the attempted operation once the resolver is closed. */
+  /** Checks whether resolution remains open for a named operation.
+   * @param operation Description used in the closure error if the resolver is closed.
+   * @returns No value when the resolver remains open.
+   * @throws {UseAfterCloseError} The resolver is closed and the operation is attempted.
+   */
   public assertOpen(operation: string): void {
     if (this.isClosed) throw new UseAfterCloseError(operation);
   }
 
-  /**
-   * Creates every DEFAULT-scope instance, one after another in module dependency order so async factories
-   * finish before their dependents are constructed. Returns the distinct instances that can carry
-   * lifecycle hooks in that order; rejects with the first creation failure.
+  /** Creates DEFAULT providers in dependency order, awaiting each before its dependents.
+   * @returns Promise for hook-capable instances in creation order; rejects if creation fails.
    */
   public async createDefaultInstances(): Promise<readonly object[]> {
     const context = ContainerContext.createContextId();
@@ -65,11 +80,13 @@ export class InstanceResolver {
     return instances;
   }
 
-  /**
-   * Returns the shared instance of the token as seen from `module`; when not `strict`, falls back to a
-   * search over every module. Throws `UseAfterCloseError` after close, `UnknownDependencyError` when no
-   * provider is found and `InvalidScopeError` when the provider is TRANSIENT or REQUEST-bound, which only
-   * `resolve` can serve, or is still being created, which only happens inside a provider during `create`.
+  /** Gets a created DEFAULT instance visible from a module, optionally searching the full graph.
+   * @param token Token reference identifying the provider.
+   * @param module Module whose visibility is searched first.
+   * @param isStrict If `true`, do not fall back to providers outside that visibility.
+   * @returns The shared instance already created for the matching DEFAULT registration.
+   * @throws {InvalidScopeError} The registration is not DEFAULT-scoped.
+   * @throws {InvalidScopeError} The DEFAULT instance is still being constructed.
    */
   public get(token: ITokenReference, module: ModuleNode, isStrict: boolean): unknown {
     this.assertOpen("get a provider");
@@ -89,11 +106,12 @@ export class InstanceResolver {
     return this.createdDefaults.get(registration);
   }
 
-  /**
-   * Resolves the token as seen from `module` for a context: REQUEST providers are shared within the context,
-   * TRANSIENT ones are created anew, DEFAULT ones are the shared singletons. A missing context id means a
-   * fresh context. Rejects with `UseAfterCloseError` after close, `ContextIdMisuseError` for an invalid id,
-   * `UnknownDependencyError` when no provider is found and `ProviderCreationError` when a factory fails.
+  /** Resolves a visible provider according to its scope and context.
+   * @param token Token reference identifying the provider.
+   * @param module Module whose visibility is searched first.
+   * @param isStrict If `true`, do not fall back to providers outside that visibility.
+   * @param contextId Candidate context identifier; validated before provider lookup.
+   * @returns Promise for the instance; rejects if context validation, lookup, or creation fails.
    */
   public async resolve(
     token: ITokenReference,
@@ -106,7 +124,13 @@ export class InstanceResolver {
     return this.resolveValue(this.locate(token, module, isStrict), context);
   }
 
-  /** Finds the registration for a token or throws `UnknownDependencyError`. */
+  /** Finds a provider in the requested visibility or reports the missing token.
+   * @param token Token reference to locate.
+   * @param module Module whose visibility is searched first.
+   * @param isStrict If `true`, do not fall back to the full graph.
+   * @returns Matching provider registration.
+   * @throws {UnknownDependencyError} No registration is visible under the requested search rules.
+   */
   private locate(
     token: ITokenReference,
     module: ModuleNode,
@@ -118,7 +142,11 @@ export class InstanceResolver {
     return registration;
   }
 
-  /** Returns the instance of a registration according to its effective scope; concurrent callers share one creation. */
+  /** Returns the lifetime-specific promise: DEFAULT shared, REQUEST per context, TRANSIENT new each time.
+   * @param registration Provider registration whose effective lifetime controls caching.
+   * @param context Context used for REQUEST-scoped caching and dependency resolution.
+   * @returns The provider promise; TRANSIENT registrations receive a new creation each call.
+   */
   private resolveValue(registration: IProviderRegistration, context: ContextId): Promise<unknown> {
     const { lifetime } = this.graph.profileOf(registration);
     if (lifetime === "transient") return this.create(registration, context);
@@ -136,7 +164,10 @@ export class InstanceResolver {
     return created;
   }
 
-  /** Returns the instances created so far for one context. */
+  /** Gets or creates the REQUEST cache for one context.
+   * @param context Context whose cache is requested.
+   * @returns The mutable registration cache owned by that context.
+   */
   private requestCache(context: ContextId): Map<IProviderRegistration, Promise<unknown>> {
     const known = this.requestInstances.get(context);
     if (known !== undefined) return known;
@@ -145,7 +176,12 @@ export class InstanceResolver {
     return created;
   }
 
-  /** Resolves one validated dependency from the owning module's point of view. */
+  /** Resolves a dependency using its owning module's strict visibility.
+   * @param token Dependency token to resolve.
+   * @param owner Module that registered the dependent provider.
+   * @param context Context shared with the dependent provider.
+   * @returns A promise for the dependency instance.
+   */
   private resolveToken(
     token: ITokenReference,
     owner: ModuleNode,
@@ -154,7 +190,12 @@ export class InstanceResolver {
     return this.resolveValue(this.locate(token, owner, true), context);
   }
 
-  /** Produces the value of one provider according to its kind, awaiting dependencies and async factories. */
+  /** Constructs or supplies one provider value according to its registration kind.
+   * @param registration Provider and owning module being instantiated.
+   * @param context Context shared by the provider and its dependencies.
+   * @returns The supplied or constructed provider value after asynchronous work completes.
+   * @throws {ProviderCreationError} Factory failure makes this async method's promise reject.
+   */
   private async create(registration: IProviderRegistration, context: ContextId): Promise<unknown> {
     const { provider, module } = registration;
     if (provider === ModuleRef.PROVIDER) return new ModuleLookup(this, module);
@@ -176,7 +217,12 @@ export class InstanceResolver {
     return new provider.useClass(...(injected as never[]));
   }
 
-  /** Resolves tokens one after another so dependencies are created in declaration order. */
+  /** Resolves provider dependencies sequentially in declaration order.
+   * @param tokens Dependency tokens to resolve.
+   * @param owner Module that registered the provider needing these dependencies.
+   * @param context Context shared by all resolved dependencies.
+   * @returns A promise for dependency values in the same order as `tokens`.
+   */
   private async resolveAll(
     tokens: readonly ITokenReference[],
     owner: ModuleNode,
@@ -187,7 +233,12 @@ export class InstanceResolver {
     return injected;
   }
 
-  /** Resolves one constructor parameter, yielding `undefined` for a missing `@Optional` dependency. */
+  /** Resolves a constructor dependency, honoring optionality only when no visible provider exists.
+   * @param dependency Constructor dependency metadata, including token and optional status.
+   * @param owner Module that registered the dependent class.
+   * @param context Context shared with the dependent instance.
+   * @returns A promise for the dependency value, or `undefined` for a missing optional dependency.
+   */
   private async resolveDependency(
     dependency: IConstructorDependency,
     owner: ModuleNode,

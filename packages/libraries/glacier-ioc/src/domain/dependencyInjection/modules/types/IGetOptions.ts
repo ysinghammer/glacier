@@ -1,9 +1,8 @@
-/** Options of `get` lookups on the container and on selected modules. */
+/** Controls whether a provider lookup is restricted to the caller's visible module graph. */
 export interface IGetOptions {
   /**
-   * `true` restricts the lookup to what the module sees (own providers, imports' exports, global exports);
-   * `false` additionally searches every module of the container, including private providers.
-   * The container defaults to `false`, a selected module to `true`.
+   * Enables module visibility filtering; the default is `false` on a container and `true` on a module.
+   * @default Context-dependent: container `false`, selected module `true`.
    */
   readonly strict?: boolean;
 }

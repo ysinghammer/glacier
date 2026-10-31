@@ -1,8 +1,8 @@
 import { OPTIONAL_PARAMETER_METADATA } from "../metadata/OptionalParameterMetadata.js";
 
 /**
- * Constructor-parameter decorator allowing the dependency to resolve to `undefined` when it has no provider.
- * Records metadata only.
+ * Marks a constructor dependency as optional when its token has no visible provider.
+ * @returns A parameter decorator that records optionality without resolving the dependency.
  */
 export function Optional(): ParameterDecorator {
   return OPTIONAL_PARAMETER_METADATA.decorator(true);

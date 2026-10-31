@@ -1,10 +1,10 @@
 import type { INormalizedProvider } from "../../providers/types/INormalizedProvider.js";
 import type { ModuleNode } from "../ModuleNode.js";
 
-/** One provider as registered by one module; its identity keys the shared instance of that registration. */
+/** Validated provider registration owned by one module and used as its instance-cache identity. */
 export interface IProviderRegistration {
-  /** The module that owns the provider and resolves its dependencies. */
+  /** Module that owns the provider and supplies its dependency visibility. */
   readonly module: ModuleNode;
-  /** The validated provider. */
+  /** Provider declaration after normalization and validation. */
   readonly provider: INormalizedProvider;
 }

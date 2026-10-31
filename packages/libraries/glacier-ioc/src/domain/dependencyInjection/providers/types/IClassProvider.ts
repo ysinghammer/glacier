@@ -2,12 +2,15 @@ import type { IProviderScope } from "../../metadata/types/IProviderScope.js";
 import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 import type { IClassConstructor } from "./IClassConstructor.js";
 
-/** Provider that creates its value by constructing `useClass` with injected constructor dependencies. */
+/** Provider that constructs a class with resolved constructor dependencies. */
 export interface IClassProvider {
-  /** The token consumers request. */
+  /** Token consumers request to receive the constructed instance. */
   readonly provide: ITokenReference;
-  /** The class to construct once per container unless a TRANSIENT or REQUEST scope applies. */
+  /** Implementation class constructed for this provider. */
   readonly useClass: IClassConstructor;
-  /** Lifetime of the provider; overrides the `@Injectable` scope of `useClass` and defaults to it. */
+  /**
+   * Lifetime override; when omitted, uses `useClass` metadata or `"default"`.
+   * @default The `@Injectable` scope, or `"default"` when undeclared.
+   */
   readonly scope?: IProviderScope;
 }

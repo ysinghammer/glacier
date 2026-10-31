@@ -9,9 +9,15 @@ import {
   type IValueProvider,
 } from "../../index.js";
 
+/** Provider used to verify typed scoped resolution and selected-module lookup. */
 class Service {
+  /**
+   * Identifies this fixture instance in the contract's synchronous lookup check.
+   * @default "service"
+   */
   public readonly name = "service";
 }
+/** Root module that registers the scope contract fixture. */
 class AppModule {}
 Module({ providers: [Service] })(AppModule);
 const token = new InjectionToken<string>("name");

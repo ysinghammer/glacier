@@ -17,18 +17,22 @@ import type { IModuleReference } from "./types/IModuleReference.js";
 import { ModuleMetadata } from "./ModuleMetadata.js";
 import { ModuleNode } from "./ModuleNode.js";
 
-/**
- * The validated set of modules reachable from a root, with one node per module reference. Building it
- * traverses imports, de-duplicates modules and orders them so every module follows its imports.
- */
+/** Validated module graph with one node per reference and imports ordered before their dependents. */
 export class ModuleGraph {
-  /** The module the container was created from. */
+  /** Root module node from which the reachable graph was traversed. */
   public readonly root: ModuleNode;
-  /** Every reachable module, each after the modules it imports (import cycles are reported as errors). */
+  /** Reachable nodes in dependency order; each imported node precedes its importer. */
   public readonly dependencyOrder: readonly ModuleNode[];
+  /** Global nodes whose exports are visible to every module in this graph. */
   private readonly globalModules: readonly ModuleNode[];
+  /** Effective provider lifetimes computed after graph validation. */
   private readonly scopes: ScopeAnalysis;
 
+  /**
+   * Stores the validated graph and prepares its global lookup and scope indexes.
+   * @param root Root node used to create the container.
+   * @param dependencyOrder Reachable nodes with imports before importers.
+   */
   private constructor(root: ModuleNode, dependencyOrder: readonly ModuleNode[]) {
     this.root = root;
     this.dependencyOrder = dependencyOrder;
@@ -39,9 +43,10 @@ export class ModuleGraph {
     );
   }
 
-  /**
-   * Builds the graph, validating module metadata, provider shapes, class metadata, scopes, exports,
-   * unsatisfied provider dependencies, scopes and circular module or provider dependencies up front. Throws one `AggregateContainerError` listing every problem found; nothing is constructed.
+  /** Builds and validates all modules and providers reachable from a root without constructing providers.
+   * @param root Decorated module class or dynamic module used as the graph root.
+   * @returns Validated graph with dependency order and provider scope profiles.
+   * @throws {AggregateContainerError} If validation finds problems or no root node is produced.
    */
   public static build(root: IModuleReference): ModuleGraph {
     const problems: Error[] = [];
@@ -68,12 +73,21 @@ export class ModuleGraph {
     return new ModuleGraph(rootNode, dependencyOrder);
   }
 
-  /** Returns the effective scope of a registration, with REQUEST bubbled up from its dependencies. */
+  /**
+   * Gets the precomputed effective lifetime, including bubbled request binding.
+   * @param registration Provider registration in this graph.
+   * @returns Effective lifetime and request-binding state.
+   */
   public profileOf(registration: IProviderRegistration): IScopeProfile {
     return this.scopes.profileOf(registration);
   }
 
-  /** Finds the provider visible to a module: own, imports' exports, then global modules' exports. */
+  /**
+   * Looks up a token using module visibility: own providers, imported exports, then global exports.
+   * @param module Module whose visibility rules apply.
+   * @param token Token to find.
+   * @returns Matching registration, or `undefined` when no visible provider exists.
+   */
   public findVisible(
     module: ModuleNode,
     token: ITokenReference,
@@ -81,7 +95,11 @@ export class ModuleGraph {
     return module.findVisible(token, this.globalModules);
   }
 
-  /** Finds a provider anywhere in the container, preferring dependents over their dependencies. */
+  /**
+   * Searches all modules, preferring a dependent module over its dependencies.
+   * @param token Token to find.
+   * @returns First matching registration, or `undefined` when absent.
+   */
   public findAnywhere(token: ITokenReference): IProviderRegistration | undefined {
     for (const node of [...this.dependencyOrder].reverse()) {
       const found = node.findOwn(token);
@@ -90,9 +108,10 @@ export class ModuleGraph {
     return undefined;
   }
 
-  /**
-   * Returns the node for a module class or dynamic module, preferring an exact reference match.
-   * Throws `InvalidModuleError` when the module is not part of the container.
+  /** Selects a graph node by exact reference first, then by module class.
+   * @param reference Module class or dynamic module reference to select.
+   * @returns Matching module node.
+   * @throws {InvalidModuleError} If the referenced class is not part of this graph.
    */
   public select(reference: IModuleReference): ModuleNode {
     const exact = this.dependencyOrder.find((node) => node.reference === reference);
@@ -104,9 +123,13 @@ export class ModuleGraph {
     return found;
   }
 
-  /**
-   * Visits a module once, then its imports, appending the node after them; returns undefined on failure.
-   * `importing` holds the modules currently being visited, so reaching one of them again is an import cycle.
+  /** Traverses one module and its imports, recording problems and appending valid nodes after imports.
+   * @param reference Module class or dynamic module currently being visited.
+   * @param nodes Nodes already created, keyed by their original reference.
+   * @param dependencyOrder Mutable post-order output of successfully resolved nodes.
+   * @param importing Ancestor nodes on the active traversal path for cycle detection.
+   * @param problems Mutable collection of validation errors found during traversal.
+   * @returns Existing or newly visited node; `undefined` when resolution fails.
    */
   private static visit(
     reference: IModuleReference,
@@ -149,7 +172,12 @@ export class ModuleGraph {
     }
   }
 
-  /** Validates and registers each declared provider, collecting the failures of invalid ones. */
+  /** Validates each declared provider and registers valid declarations, collecting failures.
+   * @param node Module node that owns these providers.
+   * @param declared Untrusted provider declarations from module metadata.
+   * @param problems Mutable collection receiving normalization or metadata failures.
+   * @returns No value; valid declarations are registered and failures are collected.
+   */
   private static registerProviders(
     node: ModuleNode,
     declared: readonly unknown[],
@@ -169,13 +197,22 @@ export class ModuleGraph {
     });
   }
 
-  /** Checks a class provider's constructor metadata and scope so resolution can read them without failing. */
+  /** Checks constructor metadata and scope for a class provider before graph use.
+   * @param provide Token registered for the implementation.
+   * @param implementation Class instantiated by the provider.
+   * @returns No value; metadata-reader failures propagate to the traversal caller.
+   */
   private static inspectClass(provide: ITokenReference, implementation: IClassConstructor): void {
     InjectionMetadata.readDependencies(implementation);
     ProviderScopes.assertValid(provide, InjectionMetadata.readScope(implementation));
   }
 
-  /** Classifies exports as re-exports of imported modules or as provider tokens. */
+  /** Records exports as imported-module re-exports or provider tokens, reporting invalid entries.
+   * @param node Module declaring these exports.
+   * @param exported Untrusted export entries to classify.
+   * @param problems Mutable collection receiving invalid-export errors.
+   * @returns No value; valid exports are recorded and invalid entries are collected.
+   */
   private static declareExports(
     node: ModuleNode,
     exported: readonly IModuleExport[],

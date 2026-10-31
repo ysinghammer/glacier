@@ -1,9 +1,12 @@
 import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 
-/** Provider that returns a ready-made value exactly as supplied, including `undefined`. */
+/**
+ * Provider that supplies the given value unchanged on every lookup, including `undefined`.
+ * @template T Value supplied to consumers; defaults to `unknown`.
+ */
 export interface IValueProvider<T = unknown> {
-  /** The token consumers request. */
+  /** Token consumers request to receive this value. */
   readonly provide: ITokenReference;
-  /** The value handed out unchanged on every lookup. */
+  /** Readonly reference to the exact value returned on each lookup. */
   readonly useValue: T;
 }

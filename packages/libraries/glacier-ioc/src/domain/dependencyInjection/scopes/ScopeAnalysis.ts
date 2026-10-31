@@ -5,21 +5,29 @@ import { ProviderDependencies } from "../modules/ProviderDependencies.js";
 import type { IScopeProfile } from "./IScopeProfile.js";
 import { ProviderScopes } from "./ProviderScopes.js";
 
-/** Computes the effective scope of every provider, bubbling REQUEST up through dependents. */
+/** Computes effective provider lifetimes and propagates request binding through dependents. */
 export class ScopeAnalysis {
+  /** Global modules consulted when resolving each registration's dependencies. */
   private readonly globalModules: readonly ModuleNode[];
+  /**
+   * Cached effective profiles keyed by registration identity.
+   * @default Empty map before profile analysis.
+   */
   private readonly profiles = new Map<IProviderRegistration, IScopeProfile>();
 
+  /**
+   * Creates an empty profile index for the module graph.
+   * @param globalModules Global nodes used during dependency visibility checks.
+   */
   private constructor(globalModules: readonly ModuleNode[]) {
     this.globalModules = globalModules;
   }
 
-  /**
-   * Analyses every registration of a graph whose dependencies were already validated: every required
-   * dependency is satisfied and there are no cycles. A provider depending on a REQUEST provider becomes
-   * REQUEST, as does a transitive dependent; TRANSIENT never bubbles, but a TRANSIENT provider with a REQUEST
-   * dependency stays transient and still makes its own dependents REQUEST. An alias takes the lifetime of its
-   * target.
+  /** Profiles registrations after graph validation, assuming dependencies are satisfied and acyclic.
+   * @param registrations Provider registrations whose profiles are required.
+   * @param globalModules Global nodes consulted for dependency visibility.
+   * @returns Analysis index with every supplied registration profiled.
+   * @remarks Request binding bubbles; transience does not. Aliases inherit target lifetime.
    */
   public static create(
     registrations: readonly IProviderRegistration[],
@@ -30,7 +38,11 @@ export class ScopeAnalysis {
     return analysis;
   }
 
-  /** Returns the effective scope of a registration, computing and remembering it on first use. */
+  /**
+   * Gets a registration's effective lifetime, computing and caching it when absent.
+   * @param registration Registration to profile.
+   * @returns Effective lifetime and request-binding state.
+   */
   public profileOf(registration: IProviderRegistration): IScopeProfile {
     const known = this.profiles.get(registration);
     if (known !== undefined) return known;
@@ -39,6 +51,10 @@ export class ScopeAnalysis {
     return profile;
   }
 
+  /** Resolves dependency profiles and applies declared-scope bubbling rules.
+   * @param registration Registration whose dependencies determine its effective profile.
+   * @returns Computed lifetime and request-binding state.
+   */
   private compute(registration: IProviderRegistration): IScopeProfile {
     const { provider, module } = registration;
     const dependencies = ProviderDependencies.of(registration).flatMap((dependency) => {
@@ -55,7 +71,10 @@ export class ScopeAnalysis {
     return { lifetime: isRequestBound ? "request" : "default", isRequestBound };
   }
 
-  /** An alias is transient exactly when its target is, so it never caches a transient instance. */
+  /** Derives alias lifetime from its resolved target profiles.
+   * @param targets Profiles of the aliased provider's dependencies.
+   * @returns `"transient"` when a target is transient; otherwise `"default"`.
+   */
   private static aliasScope(targets: readonly IScopeProfile[]): IProviderScope {
     return targets.some((target) => target.lifetime === "transient") ? "transient" : "default";
   }

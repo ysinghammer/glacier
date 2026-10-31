@@ -4,11 +4,13 @@ import type { IProviderRegistration } from "./types/IProviderRegistration.js";
 import type { ModuleNode } from "./ModuleNode.js";
 import { ProviderDependencies } from "./ProviderDependencies.js";
 
-/** Checks the provider dependencies of a module graph without constructing anything. */
+/** Finds missing required provider dependencies and provider cycles without constructing instances. */
 export class DependencyValidation {
   /**
-   * Returns one error per required dependency that no provider satisfies and one per dependency cycle.
-   * `@Optional` dependencies without a provider are fine; optional ones that exist still take part in cycles.
+   * Validates dependency visibility and cycles across registered providers.
+   * @param nodes Modules whose registrations are checked.
+   * @param globalModules Modules whose exports are visible throughout the graph.
+   * @returns Errors in traversal order; optional missing dependencies are omitted.
    */
   public static validate(
     nodes: readonly ModuleNode[],

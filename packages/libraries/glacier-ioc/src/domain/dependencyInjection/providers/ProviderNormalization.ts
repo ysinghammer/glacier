@@ -8,12 +8,16 @@ import type { INormalizedProvider } from "./types/INormalizedProvider.js";
 
 const PROVIDER_KINDS = ["useClass", "useValue", "useFactory", "useExisting"] as const;
 
-/** Validates untrusted provider declarations and expands the class shorthand into explicit form. */
+/** Validates provider declarations and expands bare classes into normalized class providers. */
 export class ProviderNormalization {
   /**
-   * Returns the validated provider; a bare class becomes `{ provide, useClass }`.
-   * Throws `InvalidProviderError` when the shape is not exactly one provider kind with a valid token and
-   * matching members. `position` only labels errors for declarations whose token itself is unusable.
+   * Validates an untrusted declaration and expands bare class shorthand.
+   * @param candidate Untrusted module provider declaration.
+   * @param position Zero-based declaration index used to label entries without a valid token.
+   * @returns Normalized provider with explicit token and provider kind.
+   * @throws {InvalidProviderError} If the declaration is not an object or class.
+   * @throws {InvalidProviderError} If its `provide` member is not a class, symbol or injection token.
+   * @throws {InvalidProviderError} If it declares zero or multiple provider kinds.
    */
   public static normalize(candidate: unknown, position: number): INormalizedProvider {
     if (ProviderNormalization.isClass(candidate)) {
@@ -46,7 +50,14 @@ export class ProviderNormalization {
     return candidate as INormalizedProvider;
   }
 
-  /** Checks the members belonging to the single declared provider kind. */
+  /**
+   * Validates the fields required by the selected provider kind.
+   * @param provide Valid token used to identify failures.
+   * @param kind The single provider kind declared by the record.
+   * @param record Untrusted provider fields.
+   * @returns No value; returns when all kind-specific members are valid.
+   * @throws {InvalidProviderError} If a class, alias, factory or inject field has an invalid shape.
+   */
   private static assertKindMembers(
     provide: ITokenReference,
     kind: (typeof PROVIDER_KINDS)[number],
@@ -78,7 +89,13 @@ export class ProviderNormalization {
     }
   }
 
-  /** Checks the optional `scope`, which only class and factory providers can carry. */
+  /** Validates optional scope presence and provider-kind compatibility.
+   * @param provide Provider token associated with the scope.
+   * @param kind Declared provider kind.
+   * @param record Untrusted provider fields containing the optional scope.
+   * @returns No value; returns when scope is absent or compatible.
+   * @throws {InvalidScopeError} If value or alias providers declare a scope.
+   */
   private static assertScope(
     provide: ITokenReference,
     kind: (typeof PROVIDER_KINDS)[number],
@@ -91,12 +108,20 @@ export class ProviderNormalization {
     ProviderScopes.assertValid(provide, record["scope"]);
   }
 
-  /** Arrow functions and methods have no prototype and cannot be constructed, so they are not classes. */
+  /**
+   * Narrows functions to constructable class-like values.
+   * @param candidate Untrusted value to test.
+   * @returns `true` when the value is a function with a prototype.
+   */
   private static isClass(candidate: unknown): candidate is IClassConstructor {
     return typeof candidate === "function" && "prototype" in candidate;
   }
 
-  /** Accepts the token forms consumers may supply; string tokens are intentionally rejected. */
+  /**
+   * Narrows values to supported consumer token references.
+   * @param candidate Untrusted value to test.
+   * @returns `true` for a class, symbol or `InjectionToken` instance.
+   */
   public static isTokenReference(candidate: unknown): candidate is ITokenReference {
     return (
       ProviderNormalization.isClass(candidate) ||
@@ -105,7 +130,11 @@ export class ProviderNormalization {
     );
   }
 
-  /** Stands in for the token of a declaration that has none, so the error still names its position. */
+  /**
+   * Creates a diagnostic token for a declaration without a usable token.
+   * @param position Zero-based provider declaration index.
+   * @returns Unique symbol identifying that declaration position.
+   */
   private static placeholder(position: number): symbol {
     return Symbol(`providers[${position}]`);
   }

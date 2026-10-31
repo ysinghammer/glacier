@@ -10,16 +10,22 @@ import {
 } from "../../../index.js";
 import { ParameterTypes } from "./ParameterTypes.js";
 
+/** Private dependency owned by Provider. */
 class Secret {}
+/** Exported dependency owned by Provider. */
 class Shared {}
+/** Provider available only inside the Outsider module. */
 class Consumer {}
 
+/** Module exporting Shared while retaining Secret privately. */
 class Provider {}
 Module({ providers: [Secret, Shared], exports: [Shared] })(Provider);
 
+/** Independent module used to verify provider visibility boundaries. */
 class Outsider {}
 Module({ providers: [Consumer] })(Outsider);
 
+/** Module that imports Provider and observes only its exports. */
 class Importer {}
 Module({ imports: [Provider] })(Importer);
 
@@ -38,6 +44,7 @@ describe("IOC-011 private and exported providers", () => {
   });
 
   it("does not expose providers of modules that are not imported", async () => {
+    /** Root importing two independent modules for visibility checks. */
     class Root {}
     Module({ imports: [Outsider, Provider] })(Root);
     const container = await GlacierContainer.create(Root);
@@ -47,9 +54,18 @@ describe("IOC-011 private and exported providers", () => {
   });
 
   it("fails a dependency on a private provider of an imported module with its path", async () => {
+    /** Consumer that illegally requests Provider's private dependency. */
     class NeedsSecret {
-      public constructor(public readonly secret: Secret) {}
+      /**
+       * Stores the private dependency if graph validation permits it.
+       * @param secret Private Provider dependency requested by the consumer.
+       */
+      public constructor(
+        /** Secret is private to Provider and must not be injected here. */
+        public readonly secret: Secret,
+      ) {}
     }
+    /** Module that imports Provider but tries to consume Secret. */
     class ImportingConsumer {}
     Module({ imports: [Provider], providers: [NeedsSecret] })(ImportingConsumer);
     ParameterTypes.emit(NeedsSecret, [Secret]);
@@ -61,6 +77,7 @@ describe("IOC-011 private and exported providers", () => {
 
   it("resolves an exported provider's own private dependencies inside its module", async () => {
     const token = new InjectionToken<string>("exported-value");
+    /** Module that resolves an exported token using its own private Secret. */
     class Owner {}
     Module({
       providers: [
@@ -73,6 +90,7 @@ describe("IOC-011 private and exported providers", () => {
       ],
       exports: [token],
     })(Owner);
+    /** Consumer module that imports Owner's exported token. */
     class Consumer2 {}
     Module({ imports: [Owner] })(Consumer2);
 
@@ -82,6 +100,7 @@ describe("IOC-011 private and exported providers", () => {
   });
 
   it("rejects exports that the module neither provides nor imports", async () => {
+    /** Module with an export that is neither provided nor imported. */
     class Broken {}
     Module({ exports: [Secret] })(Broken);
 
@@ -91,8 +110,10 @@ describe("IOC-011 private and exported providers", () => {
 
 describe("IOC-012 re-exports", () => {
   it("makes an imported module's exports visible through a re-exporting module", async () => {
+    /** Module re-exporting Provider's exports through the module reference. */
     class Facade {}
     Module({ imports: [Provider], exports: [Provider] })(Facade);
+    /** Root consuming the re-exported module API. */
     class Application {}
     Module({ imports: [Facade] })(Application);
 
@@ -103,8 +124,10 @@ describe("IOC-012 re-exports", () => {
   });
 
   it("re-exports an imported token by listing the token itself", async () => {
+    /** Module re-exporting Shared directly by token. */
     class Facade {}
     Module({ imports: [Provider], exports: [Shared] })(Facade);
+    /** Root consuming the directly re-exported token. */
     class Application {}
     Module({ imports: [Facade] })(Application);
 
@@ -114,8 +137,10 @@ describe("IOC-012 re-exports", () => {
   });
 
   it("does not leak imports that are not re-exported", async () => {
+    /** Module importing Provider without exposing its exports. */
     class Hidden {}
     Module({ imports: [Provider] })(Hidden);
+    /** Root importing Hidden to verify re-export boundaries. */
     class Application {}
     Module({ imports: [Hidden] })(Application);
 

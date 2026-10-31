@@ -1,11 +1,14 @@
 import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import type { IFactoryProvider } from "./types/IFactoryProvider.js";
 
-/** Builders that give provider declarations stronger compile-time checking than a bare object literal. */
+/** Provider declaration builders that preserve tuple-based factory argument inference. */
 export class Providers {
   /**
-   * Returns the given factory provider unchanged while inferring the `inject` tuple, so a factory whose
-   * parameters do not match the injected token types fails to compile. Performs no runtime work.
+   * Preserves an inject tuple so TypeScript checks corresponding factory argument types.
+   * @template TInject Ordered tokens injected into the factory.
+   * @template TValue Value returned by the factory.
+   * @param provider Factory provider declaration to preserve.
+   * @returns The same provider declaration, unchanged at runtime.
    */
   public static factory<const TInject extends readonly ITokenReference[], TValue>(
     provider: IFactoryProvider<TInject, TValue>,

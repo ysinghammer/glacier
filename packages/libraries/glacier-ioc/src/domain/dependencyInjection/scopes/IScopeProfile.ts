@@ -1,9 +1,9 @@
 import type { IProviderScope } from "../metadata/types/IProviderScope.js";
 
-/** The effective lifetime of one registered provider after scope bubbling. */
+/** Effective lifetime and request-binding state calculated for one provider registration. */
 export interface IScopeProfile {
-  /** `"transient"` when declared so, `"request"` when declared or bubbled from a dependency, else `"default"`. */
+  /** Effective cache lifetime after dependency scope bubbling. */
   readonly lifetime: IProviderScope;
-  /** Whether the provider is or depends on a REQUEST provider, so its dependents bubble to REQUEST. */
+  /** True when this provider or a dependency is request-bound, regardless of transient lifetime. */
   readonly isRequestBound: boolean;
 }

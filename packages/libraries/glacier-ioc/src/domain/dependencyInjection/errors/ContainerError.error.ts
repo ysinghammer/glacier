@@ -1,11 +1,12 @@
 import type { IContainerErrorOptions } from "./IContainerErrorOptions.js";
 
-/**
- * Base class of every exceptional container failure, letting callers catch all of them at once.
- * The subclass name becomes `name`, and an optional cause is preserved through `Error.cause`.
- */
+/** Base exceptional container error; subclasses retain their class name and optional cause. */
 export class ContainerError extends Error {
-  /** Creates the error; `options.cause` wraps an underlying failure without replacing it. */
+  /**
+   * Constructs a named container failure with an optional preserved cause.
+   * @param message Diagnostic message exposed through `Error.message`.
+   * @param options Optional underlying cause, preserved as `Error.cause`.
+   */
   public constructor(message: string, options?: IContainerErrorOptions) {
     super(message, options);
     this.name = new.target.name;

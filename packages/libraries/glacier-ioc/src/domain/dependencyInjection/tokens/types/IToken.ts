@@ -1,4 +1,4 @@
 import type { IClass } from "@glacier/reflection";
 
-/** Identity of a dependency: a class constructor or a symbol; string tokens are intentionally unsupported. */
+/** Normalized dependency identity: a class constructor or symbol, never a string. */
 export type IToken = IClass | symbol;

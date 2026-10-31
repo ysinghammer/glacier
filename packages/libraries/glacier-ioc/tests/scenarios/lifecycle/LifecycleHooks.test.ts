@@ -22,13 +22,21 @@ import { LifecycleRecorder, type IRecordedHook } from "../../doubles/LifecycleRe
 const HOOKS_PER_TARGET = 5;
 const SHUTDOWN_CALLS_OF_THREE_TARGETS = 9;
 
-/** Builds Root -> Feature -> Shared, so module dependency order is Shared, Feature, Root. */
+/**
+ * Builds a three-level module graph whose dependency order is Shared, Feature, then Root.
+ * @param recorder Records hooks installed on each module.
+ * @param failing Optional per-target hook failures; omitted targets have no configured failures.
+ * @returns The Root module reference for container creation.
+ */
 function layeredModules(
   recorder: LifecycleRecorder,
   failing: Readonly<Record<string, readonly IRecordedHook[]>> = {},
 ): IModuleReference {
+  /** Leaf module initialized before its importing modules. */
   class Shared {}
+  /** Middle module that imports Shared. */
   class Feature {}
+  /** Root module that imports Feature. */
   class Root {}
   const providerFor = (name: string): { provide: InjectionToken<object>; useValue: object } => ({
     provide: new InjectionToken<object>(name),
@@ -61,6 +69,7 @@ describe("IOC-030 startup hooks run in module dependency order", () => {
     const original = new InjectionToken<object>("original");
     const alias = new InjectionToken<object>("alias");
     const plain = new InjectionToken<string>("plain");
+    /** Module registering a shared hook target, its alias, and hook-free values. */
     class Root {}
     Module({
       providers: [
@@ -155,6 +164,7 @@ describe("IOC-032 only DEFAULT-scope instances receive hooks", () => {
     const defaults = new InjectionToken<object>("default");
     const transient = new InjectionToken<object>("transient");
     const request = new InjectionToken<object>("request");
+    /** Module used to verify scoped-provider lifecycle exclusion. */
     class Root {}
     Module({
       providers: [
@@ -212,6 +222,7 @@ describe("IOC-033 hook failures on close do not skip other cleanup", () => {
 describe("IOC-034 a closed container rejects further use", () => {
   it("throws UseAfterCloseError from get, resolve, select and module lookups", async () => {
     const token = new InjectionToken<string>("name");
+    /** Module used to verify behavior after container shutdown. */
     class Root {}
     Module({ providers: [{ provide: token, useValue: "value" }] })(Root);
     const container = await GlacierContainer.create(Root);
@@ -229,6 +240,7 @@ describe("IOC-034 a closed container rejects further use", () => {
   it("wraps the rejection of a synchronous lookup of a provider that is still being created", async () => {
     const early = new InjectionToken<string>("early");
     const late = new InjectionToken<string>("late");
+    /** Module registering a provider that requests a late synchronous lookup. */
     class Root {}
     Module({
       providers: [
@@ -248,6 +260,7 @@ describe("IOC-034 a closed container rejects further use", () => {
   });
 
   it("closes a container without hooks", async () => {
+    /** Empty module for shutdown behavior without lifecycle targets. */
     class Root {}
     Module({})(Root);
 

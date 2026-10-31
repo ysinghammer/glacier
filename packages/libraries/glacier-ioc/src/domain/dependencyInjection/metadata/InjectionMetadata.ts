@@ -10,11 +10,13 @@ import { OPTIONAL_PARAMETER_METADATA } from "./OptionalParameterMetadata.js";
 
 const DEFAULT_SCOPE: IProviderScope = "default";
 
-/** Reads the declarations written by `@Injectable`, `@Inject` and `@Optional` without constructing anything. */
+/** Reads class and constructor injection declarations without creating provider instances. */
 export class InjectionMetadata {
   /**
-   * Returns the scope declared by `@Injectable` directly on the class, `"default"` when undeclared.
-   * Throws `InvalidProviderError` when the target is not a readable class.
+   * Reads a class's own `@Injectable` scope, using `"default"` when no scope is declared.
+   * @param target Class whose own scope metadata is read.
+   * @returns Declared provider scope or `"default"`.
+   * @throws {InvalidProviderError} If the class metadata cannot be read.
    */
   public static readScope(target: IClass): IProviderScope {
     const result = INJECTABLE_SCOPE_METADATA.read(target, {
@@ -28,11 +30,11 @@ export class InjectionMetadata {
   }
 
   /**
-   * Returns the constructor dependencies of the class in parameter order. Explicit `@Inject` tokens win;
-   * otherwise the compiler-emitted `design:paramtypes` entry is used, which needs
-   * `@glacier/reflection/register` and `emitDecoratorMetadata`.
-   * Throws `InvalidProviderError` when emitted metadata is missing for a class with constructor parameters,
-   * or when a parameter has neither an `@Inject` token nor a usable emitted class.
+   * Reads dependencies by parameter position, preferring `@Inject` to emitted class types.
+   * @param target Class whose constructor metadata is read.
+   * @returns Frozen dependencies in constructor parameter order.
+   * @throws {InvalidProviderError} If parameter types are missing for a non-empty constructor.
+   * @remarks Implicit types require reflection registration and `emitDecoratorMetadata`.
    */
   public static readDependencies(target: IClass): readonly IConstructorDependency[] {
     InjectionMetadata.readScope(target);
@@ -57,7 +59,14 @@ export class InjectionMetadata {
     );
   }
 
-  /** Picks the explicit token or falls back to a usable emitted class. */
+  /**
+   * Selects an explicit token or a supported emitted class type.
+   * @param target Class declaring the parameter.
+   * @param position Zero-based constructor parameter position.
+   * @param emittedType Compiler-emitted runtime type for that parameter.
+   * @returns Explicit token when present, otherwise the emitted class token.
+   * @throws {InvalidProviderError} If neither source provides an injectable token.
+   */
   private static resolveToken(target: IClass, position: number, emittedType: IRuntimeType): IToken {
     const explicit = INJECT_TOKEN_METADATA.readDynamic(target, {
       kind: "constructor-parameter",
@@ -74,7 +83,12 @@ export class InjectionMetadata {
     );
   }
 
-  /** Reads whether `@Optional` was declared for the parameter. */
+  /**
+   * Reads whether `@Optional` is declared on a constructor parameter.
+   * @param target Class declaring the parameter.
+   * @param position Zero-based constructor parameter position.
+   * @returns `true` only when valid optional metadata is present and enabled.
+   */
   private static isOptional(target: IClass, position: number): boolean {
     const result = OPTIONAL_PARAMETER_METADATA.readDynamic(target, {
       kind: "constructor-parameter",

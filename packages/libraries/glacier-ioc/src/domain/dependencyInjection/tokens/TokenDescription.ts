@@ -4,16 +4,24 @@ import type { ITokenReference } from "./types/ITokenReference.js";
 const PATH_SEPARATOR = " -> ";
 const ANONYMOUS_CLASS_DESCRIPTION = "<anonymous class>";
 
-/** Renders tokens and dependency paths as stable diagnostic text for error messages. */
+/** Formats token references and ordered dependency paths for container diagnostics. */
 export class TokenDescription {
-  /** Describes one token: class name, `InjectionToken(description)` or `Symbol(description)`. */
+  /**
+   * Formats one token using its class name or symbol description.
+   * @param token Token reference to describe.
+   * @returns Diagnostic label, including an anonymous-class fallback when needed.
+   */
   public static describe(token: ITokenReference): string {
     if (token instanceof InjectionToken) return `InjectionToken(${token.description})`;
     if (typeof token === "symbol") return token.toString();
     return token.name === "" ? ANONYMOUS_CLASS_DESCRIPTION : token.name;
   }
 
-  /** Describes an ordered dependency path from the requested token to the failing one. */
+  /**
+   * Formats a dependency path from its first token through its final token.
+   * @param path Ordered token references in the path.
+   * @returns Labels joined by the diagnostic path separator; empty input returns an empty string.
+   */
   public static describePath(path: readonly ITokenReference[]): string {
     return path.map((token) => TokenDescription.describe(token)).join(PATH_SEPARATOR);
   }

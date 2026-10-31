@@ -2,10 +2,10 @@ import type { IInjectableOptions } from "../metadata/types/IInjectableOptions.js
 import { INJECTABLE_SCOPE_METADATA } from "../metadata/InjectableScopeMetadata.js";
 
 /**
- * Class decorator that marks a class as a provider and declares its scope (default `"default"`).
- * Records metadata only; nothing is constructed or registered. The scope is read from the class itself,
- * never inherited. Compiler-emitted constructor types additionally require
- * `@glacier/reflection/register` and `emitDecoratorMetadata`.
+ * Marks a class as injectable and records its own provider scope; it does not construct or register it.
+ * @param options Scope declaration; omitted options or scope selects `"default"`.
+ * @returns A class decorator that records metadata on the decorated class only.
+ * @remarks Implicit constructor types require reflection registration and emitted metadata.
  */
 export function Injectable(options: IInjectableOptions = {}): ClassDecorator {
   return INJECTABLE_SCOPE_METADATA.decorator(options.scope ?? "default");

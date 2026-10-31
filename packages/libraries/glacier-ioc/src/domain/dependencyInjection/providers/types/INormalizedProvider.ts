@@ -3,7 +3,7 @@ import type { IExistingProvider } from "./IExistingProvider.js";
 import type { IFactoryProvider } from "./IFactoryProvider.js";
 import type { IValueProvider } from "./IValueProvider.js";
 
-/** A validated provider with the shorthand expanded; its `provide` is always a plain token. */
+/** Validated explicit provider form; bare classes are expanded and supplied token references are preserved. */
 export type INormalizedProvider =
   | IClassProvider
   | IValueProvider

@@ -4,9 +4,13 @@ import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 import { TokenIdentity } from "../tokens/TokenIdentity.js";
 import type { IProviderRegistration } from "./types/IProviderRegistration.js";
 
-/** Lists what a registered provider needs in order to be constructed. */
+/** Derives the ordered dependencies required to create a registered provider. */
 export class ProviderDependencies {
-  /** Returns the dependencies of the provider; a validated class provider reads its constructor metadata. */
+  /**
+   * Reads dependencies from the provider form; value providers require none.
+   * @param registration Registration whose normalized provider is inspected.
+   * @returns Dependencies in resolution argument order.
+   */
   public static of(registration: IProviderRegistration): readonly IConstructorDependency[] {
     const { provider } = registration;
     if ("useValue" in provider) return [];
@@ -19,6 +23,12 @@ export class ProviderDependencies {
     return InjectionMetadata.readDependencies(provider.useClass);
   }
 
+  /**
+   * Creates a required dependency entry using normalized token identity.
+   * @param position Zero-based dependency position.
+   * @param token Token reference requested at that position.
+   * @returns Non-optional constructor dependency record.
+   */
   private static required(position: number, token: ITokenReference): IConstructorDependency {
     return { position, token: TokenIdentity.of(token), isOptional: false };
   }

@@ -9,6 +9,13 @@ import {
   type IModuleReference,
 } from "../../../index.js";
 
+/**
+ * Creates a candidate module and returns its aggregated validation causes.
+ * @param root Untrusted candidate passed to the public container creation API.
+ * @returns Readonly causes from the aggregate container error.
+ * @throws {unknown} Creation fails with a non-aggregate error.
+ * @throws {Error} Creation succeeds without producing validation causes.
+ */
 async function problemsOf(root: unknown): Promise<readonly Error[]> {
   try {
     await GlacierContainer.create(root as IModuleReference);
@@ -21,6 +28,7 @@ async function problemsOf(root: unknown): Promise<readonly Error[]> {
 
 describe("IOC-017 invalid modules are rejected eagerly", () => {
   it("rejects an undecorated module class", async () => {
+    /** Undecorated class rejected as a module reference. */
     class Plain {}
 
     const [problem, ...rest] = await problemsOf(Plain);
@@ -38,8 +46,10 @@ describe("IOC-017 invalid modules are rejected eagerly", () => {
   });
 
   it("rejects non-array lists and non-boolean flags", async () => {
+    /** Module with a malformed providers collection. */
     class Lists {}
     Module({ providers: "nope" as never })(Lists);
+    /** Module with a malformed global flag. */
     class Flag {}
     Module({ global: "yes" as never })(Flag);
 
@@ -49,6 +59,7 @@ describe("IOC-017 invalid modules are rejected eagerly", () => {
   });
 
   it("rejects exports that are not tokens or imported modules", async () => {
+    /** Module with an invalid non-token export. */
     class Bad {}
     Module({ exports: ["name" as never] })(Bad);
 
@@ -56,9 +67,12 @@ describe("IOC-017 invalid modules are rejected eagerly", () => {
   });
 
   it("collects problems from every module, including invalid providers", async () => {
+    /** Import target without module metadata. */
     class Undecorated {}
+    /** Module containing a malformed provider declaration. */
     class BadProvider {}
     Module({ providers: [{ provide: Symbol("x") } as never] })(BadProvider);
+    /** Root collecting module and provider validation failures. */
     class Root {}
     Module({ imports: [Undecorated, BadProvider], exports: [Undecorated] })(Root);
 

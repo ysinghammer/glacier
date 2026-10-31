@@ -1,12 +1,12 @@
-/**
- * Opaque identity of one resolution context: REQUEST-scoped providers share one instance per context id.
- * Obtain ids from `ContainerContext.createContextId()`; ids carry no behavior and are never reused.
- */
+/** Identity grouping request-scoped instances; the container keys contexts by the `ContextId` object. */
 export class ContextId {
-  /** Sequence number distinguishing this id from every other id of the process, for diagnostics only. */
+  /** Sequence value supplied at construction and exposed for diagnostics; it does not determine identity. */
   public readonly sequence: number;
 
-  /** Wraps a sequence number; created by `ContainerContext`. */
+  /**
+   * Stores a diagnostic sequence; use `ContainerContext.createContextId()` for allocated ids.
+   * @param sequence Numeric diagnostic value stored on this id.
+   */
   public constructor(sequence: number) {
     this.sequence = sequence;
   }

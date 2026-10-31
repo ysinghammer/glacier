@@ -1,2 +1,2 @@
-/** Lifetime of a provider instance: one per container, one per resolution, or one per context id. */
+/** Provider lifetime: container-shared `default`, per-resolution `transient`, or per-context `request`. */
 export type IProviderScope = "default" | "transient" | "request";

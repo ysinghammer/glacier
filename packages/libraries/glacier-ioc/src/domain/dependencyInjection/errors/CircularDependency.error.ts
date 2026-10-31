@@ -3,12 +3,16 @@ import { TokenDescription } from "../tokens/TokenDescription.js";
 import { ContainerError } from "./ContainerError.error.js";
 import type { IContainerErrorOptions } from "./IContainerErrorOptions.js";
 
-/** Raised when providers depend on each other in a cycle; the message shows the cycle path. */
+/** Identifies a provider or module dependency cycle and preserves its ordered token path. */
 export class CircularDependencyError extends ContainerError {
   /** Tokens along the cycle, ending with the token that closes it. */
   public readonly dependencyPath: readonly ITokenReference[];
 
-  /** Creates the error with the full cycle included in its message. */
+  /**
+   * Constructs a cycle error with the dependency path in its message and stored data.
+   * @param dependencyPath Ordered tokens in the cycle, including its closing token.
+   * @param options Optional Error cause preserved by the base error.
+   */
   public constructor(dependencyPath: readonly ITokenReference[], options?: IContainerErrorOptions) {
     super(`Circular dependency: ${TokenDescription.describePath(dependencyPath)}`, options);
     this.dependencyPath = Object.freeze([...dependencyPath]);

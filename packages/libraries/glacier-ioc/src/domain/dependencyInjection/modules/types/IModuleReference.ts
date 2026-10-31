@@ -1,5 +1,5 @@
 import type { IClassConstructor } from "../../providers/types/IClassConstructor.js";
 import type { IDynamicModule } from "./IDynamicModule.js";
 
-/** A module as listed in `imports` or passed to the container: a decorated class or a dynamic module. */
+/** Module reference accepted by imports and container creation: a decorated class or dynamic module. */
 export type IModuleReference = IClassConstructor | IDynamicModule;

@@ -3,12 +3,17 @@ import { TokenDescription } from "../tokens/TokenDescription.js";
 import { ContainerError } from "./ContainerError.error.js";
 import type { IContainerErrorOptions } from "./IContainerErrorOptions.js";
 
-/** Raised when a provider scope is unsupported or conflicts with its dependents or dependencies. */
+/** Identifies an unsupported provider lifetime or a scope incompatibility along a dependency path. */
 export class InvalidScopeError extends ContainerError {
   /** Tokens from the requested one to the provider with the invalid scope. */
   public readonly dependencyPath: readonly ITokenReference[];
 
-  /** Creates the error from the dependency path and the reason the scope is invalid. */
+  /**
+   * Constructs a scope validation failure with its dependency path and reason.
+   * @param dependencyPath Tokens from the requested provider to the invalid scope.
+   * @param reason Specific scope validation failure.
+   * @param options Optional underlying cause, preserved by the base error.
+   */
   public constructor(
     dependencyPath: readonly ITokenReference[],
     reason: string,

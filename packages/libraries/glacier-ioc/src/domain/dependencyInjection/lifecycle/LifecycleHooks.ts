@@ -1,15 +1,20 @@
 import type { ILifecycleHookName } from "./types/ILifecycleHookName.js";
 
-/** Duck-typed discovery and invocation of lifecycle hooks on provider instances. */
+/** Detects object hook targets and invokes optional lifecycle methods with their instance as `this`. */
 export class LifecycleHooks {
-  /** Whether a provider value can carry hooks; primitives cannot. */
+  /**
+   * Tests whether a resolved value can expose lifecycle methods.
+   * @param value Any resolved provider value.
+   * @returns `true` for non-null objects; functions and primitives return `false`.
+   */
   public static canHaveHooks(value: unknown): value is object {
     return typeof value === "object" && value !== null;
   }
 
-  /**
-   * Calls the named hook on the target when it has one and awaits its result; targets without the hook are
-   * skipped. Rejects with whatever the hook throws or rejects with.
+  /** Calls and awaits a callable hook on its target; a missing or non-callable hook is skipped.
+   * @param target Provider instance whose hook is inspected and called.
+   * @param hook Lifecycle method name to invoke.
+   * @returns A promise fulfilled after the hook completes, or rejected with its failure.
    */
   public static async invoke(target: object, hook: ILifecycleHookName): Promise<void> {
     const candidate: unknown = Reflect.get(target, hook);

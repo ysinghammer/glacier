@@ -2,16 +2,16 @@ import type { IClassConstructor } from "../../providers/types/IClassConstructor.
 import type { IModuleExport } from "./IModuleExport.js";
 import type { IModuleReference } from "./IModuleReference.js";
 
-/** The merged `@Module` and dynamic-module metadata of one module, with every member present. */
+/** Complete module declaration after static and dynamic metadata have been merged. */
 export interface IResolvedModule {
-  /** The decorated module class. */
+  /** Decorated class that declares this module. */
   readonly moduleClass: IClassConstructor;
-  /** Providers as declared; shapes are validated when they are registered. */
+  /** Raw provider declarations; normalization happens during graph registration. */
   readonly providers: readonly unknown[];
-  /** Imported modules, static metadata first. */
+  /** Imported module references, with static entries before dynamic additions. */
   readonly imports: readonly IModuleReference[];
-  /** Exported tokens and re-exported modules, static metadata first. */
+  /** Export entries, with static entries before dynamic additions. */
   readonly exports: readonly IModuleExport[];
-  /** Whether the module's exports are visible container-wide. */
+  /** Whether exports are visible throughout the container. */
   readonly isGlobal: boolean;
 }

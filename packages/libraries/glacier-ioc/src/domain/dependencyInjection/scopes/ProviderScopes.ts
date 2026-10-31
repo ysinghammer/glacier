@@ -6,14 +6,24 @@ import type { ITokenReference } from "../tokens/types/ITokenReference.js";
 
 const PROVIDER_SCOPES: readonly IProviderScope[] = ["default", "transient", "request"];
 
-/** Validates and reads the scope a provider declares, before bubbling is applied. */
+/** Validates supported provider scope literals and reads declarations before scope bubbling. */
 export class ProviderScopes {
-  /** Whether the untrusted value is one of the supported scope literals. */
+  /**
+   * Checks an untrusted value against the supported scope literals.
+   * @param candidate Value to test.
+   * @returns `true` when the value is a supported provider scope.
+   */
   public static isValid(candidate: unknown): candidate is IProviderScope {
     return PROVIDER_SCOPES.some((scope) => scope === candidate);
   }
 
-  /** Throws `InvalidScopeError` when the untrusted scope is not a supported literal. */
+  /**
+   * Validates a scope value for a provider token.
+   * @param provide Provider token associated with the scope.
+   * @param candidate Untrusted scope value to validate.
+   * @returns No value; returns normally when the scope is valid.
+   * @throws {InvalidScopeError} If the value is not a supported scope literal.
+   */
   public static assertValid(provide: ITokenReference, candidate: unknown): void {
     if (ProviderScopes.isValid(candidate)) return;
     throw new InvalidScopeError(
@@ -22,9 +32,9 @@ export class ProviderScopes {
     );
   }
 
-  /**
-   * Returns the scope the provider itself declares: the provider object's `scope`, else the class's
-   * `@Injectable` scope for class providers, else `"default"`. Aliases and values are always `"default"`.
+  /** Reads the provider's own declared scope without applying dependency bubbling.
+   * @param provider Validated normalized provider declaration.
+   * @returns Declared scope, using class metadata or `"default"` as applicable.
    */
   public static declaredBy(provider: INormalizedProvider): IProviderScope {
     if ("useValue" in provider || "useExisting" in provider) return "default";

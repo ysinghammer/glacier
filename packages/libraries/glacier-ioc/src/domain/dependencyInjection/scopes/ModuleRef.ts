@@ -4,38 +4,71 @@ import type { IValueProvider } from "../providers/types/IValueProvider.js";
 import type { InjectionToken } from "../tokens/InjectionToken.js";
 import type { ContextId } from "./ContextId.js";
 
-/**
- * Lookup of providers from one module, injectable into that module's providers by class token.
- * Every module owns a `ModuleRef` provider that the container binds to the module; it is not exported.
- */
+/** Module-scoped lookup API backed by a private built-in provider bound to each owning module. */
 export abstract class ModuleRef {
-  /** Built-in registration of the module-bound `ModuleRef`; the container replaces its placeholder value. */
+  /**
+   * Placeholder registration replaced with the module-bound reference during container setup.
+   * @default Placeholder value is `undefined` until container binding.
+   */
   public static readonly PROVIDER: IValueProvider = { provide: ModuleRef, useValue: undefined };
 
   /**
-   * Returns the shared instance of a DEFAULT-scope provider visible to the module (`strict` defaults to
-   * `true`). Throws `InvalidScopeError` for TRANSIENT/REQUEST providers, which need `resolve`, and
-   * `UnknownDependencyError` when nothing matches.
+   * Gets a visible default-scope provider synchronously; module lookups are strict by default.
+   * @template T Resolved value type carried by the injection token.
+   * @param token Typed token identifying the provider.
+   * @param options Optional visibility override; omitted means strict lookup.
+   * @returns Shared default-scope provider value.
    */
   public abstract get<T>(token: InjectionToken<T>, options?: IGetOptions): T;
+  /**
+   * Gets a visible default-scope class provider synchronously.
+   * @template T Constructed class instance type.
+   * @param token Class identifying the provider.
+   * @param options Optional visibility override; omitted means strict lookup.
+   * @returns Shared default-scope class instance.
+   */
   public abstract get<T extends object>(token: IConstructableClass<T>, options?: IGetOptions): T;
+  /**
+   * Gets a visible default-scope symbol provider synchronously.
+   * @param token Symbol identifying the provider.
+   * @param options Optional visibility override; omitted means strict lookup.
+   * @returns Provider value, whose type is unknown for an untyped symbol.
+   */
   public abstract get(token: symbol, options?: IGetOptions): unknown;
 
   /**
-   * Resolves a provider of any scope for a context; without an id a fresh context is used.
-   * Rejects with `ContextIdMisuseError` for an id not created by `ContainerContext` and with
-   * `UnknownDependencyError` when nothing matches.
+   * Resolves a provider of any scope, sharing request-scoped values for the supplied context.
+   * @template T Resolved value type carried by the injection token.
+   * @param token Typed token identifying the provider.
+   * @param contextId Context identity; omitted resolution receives a fresh isolated identity.
+   * @param options Optional visibility override; omitted means strict lookup.
+   * @returns Promise of the provider value; rejects if lookup or construction fails.
    */
   public abstract resolve<T>(
     token: InjectionToken<T>,
     contextId?: ContextId,
     options?: IGetOptions,
   ): Promise<T>;
+  /**
+   * Resolves a class provider of any scope for the supplied context.
+   * @template T Constructed class instance type.
+   * @param token Class identifying the provider.
+   * @param contextId Context identity; omitted resolution receives a fresh isolated identity.
+   * @param options Optional visibility override; omitted means strict lookup.
+   * @returns Promise of the class instance; rejects if lookup or construction fails.
+   */
   public abstract resolve<T extends object>(
     token: IConstructableClass<T>,
     contextId?: ContextId,
     options?: IGetOptions,
   ): Promise<T>;
+  /**
+   * Resolves a symbol provider of any scope for the supplied context.
+   * @param token Symbol identifying the provider.
+   * @param contextId Context identity; omitted resolution receives a fresh isolated identity.
+   * @param options Optional visibility override; omitted means strict lookup.
+   * @returns Promise of the unknown-typed value; rejects if lookup or construction fails.
+   */
   public abstract resolve(
     token: symbol,
     contextId?: ContextId,

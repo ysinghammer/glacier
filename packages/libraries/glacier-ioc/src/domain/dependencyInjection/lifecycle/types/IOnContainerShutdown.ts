@@ -1,9 +1,8 @@
-/**
- * Optional hook for DEFAULT-scope providers, detected by its name alone: called once per instance after every
- * `beforeContainerShutdown` hook has run, in reverse initialization order. A failure is reported by `close`
- * after every remaining hook has still run.
- */
+/** Optional default-scope hook run after pre-shutdown hooks, in reverse initialization order. */
 export interface IOnContainerShutdown {
-  /** Completes shutdown of the instance; the returned promise is awaited. */
+  /**
+   * Completes shutdown of the instance; the returned promise is awaited.
+   * @returns No value, or a promise fulfilled when this shutdown step completes.
+   */
   onContainerShutdown(): void | Promise<void>;
 }

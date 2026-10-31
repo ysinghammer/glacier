@@ -8,12 +8,16 @@ import {
   UnknownDependencyError,
 } from "../../../index.js";
 
+/** Provider omitted from Inner's exports. */
 class Private {}
+/** Provider exported by Inner for strict lookup checks. */
 class Public {}
 
+/** Module exposing Public while retaining Private as an internal provider. */
 class Inner {}
 Module({ providers: [Private, Public], exports: [Public] })(Inner);
 
+/** Module importing Inner without re-exporting its private provider. */
 class Outer {}
 Module({ imports: [Inner] })(Outer);
 
@@ -41,9 +45,12 @@ describe("IOC-015 strict and non-strict lookup", () => {
   });
 
   it("prefers what the root sees over an unrelated module's provider of the same token", async () => {
+    /** Same token provided by two modules to verify root lookup precedence. */
     class Shadowed {}
+    /** Unrelated module that provides its own Shadowed instance. */
     class Other {}
     Module({ providers: [Shadowed] })(Other);
+    /** Root importing Other and providing its own Shadowed instance. */
     class Root {}
     Module({ imports: [Other], providers: [Shadowed] })(Root);
     const container = await GlacierContainer.create(Root);
@@ -53,6 +60,7 @@ describe("IOC-015 strict and non-strict lookup", () => {
   });
 
   it("rejects selecting a module that is not part of the container", async () => {
+    /** Decorated module that is not reachable from the test container. */
     class Stranger {}
     Module({})(Stranger);
 
@@ -71,10 +79,13 @@ describe("IOC-015 strict and non-strict lookup", () => {
 
 describe("IOC-016 module de-duplication", () => {
   it("creates one module instance and one provider instance when imported twice", async () => {
+    /** First module importing Inner. */
     class Left {}
+    /** Second module importing Inner twice. */
     class Right {}
     Module({ imports: [Inner] })(Left);
     Module({ imports: [Inner, Inner] })(Right);
+    /** Root importing Inner through both branches and directly. */
     class Root {}
     Module({ imports: [Left, Right, Inner] })(Root);
     const container = await GlacierContainer.create(Root);
@@ -88,18 +99,28 @@ describe("IOC-016 module de-duplication", () => {
   });
 
   it("shares one instance of a provider exported through several importers", async () => {
+    /** Provider whose construction count verifies shared module identity. */
     class Counted {
+      /**
+       * Number of times the container constructs this fixture.
+       * @default 0
+       */
       public static constructions = 0;
+      /** Increments the construction count for the sharing assertion. */
       public constructor() {
         Counted.constructions += 1;
       }
     }
+    /** Module owning and exporting Counted. */
     class Source {}
     Module({ providers: [Counted], exports: [Counted] })(Source);
+    /** First importing module for Source. */
     class A {}
+    /** Second importing module for Source. */
     class B {}
     Module({ imports: [Source] })(A);
     Module({ imports: [Source] })(B);
+    /** Root importing Source through both branches. */
     class Root {}
     Module({ imports: [A, B, Source] })(Root);
     const container = await GlacierContainer.create(Root);

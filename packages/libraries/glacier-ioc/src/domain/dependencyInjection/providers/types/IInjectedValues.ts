@@ -2,6 +2,10 @@ import type { IClassConstructor } from "./IClassConstructor.js";
 import type { InjectionToken } from "../../tokens/InjectionToken.js";
 import type { ITokenReference } from "../../tokens/types/ITokenReference.js";
 
+/**
+ * Resolves the value type represented by one injection token.
+ * @template TToken Token whose injected runtime value type is derived.
+ */
 type IInjectedValue<TToken> =
   TToken extends InjectionToken<infer TValue>
     ? TValue
@@ -10,8 +14,9 @@ type IInjectedValue<TToken> =
       : unknown;
 
 /**
- * Maps an `inject` token tuple to the argument types a factory receives: an `InjectionToken<T>` yields `T`,
- * a class yields its instance, and a symbol yields `unknown`. A non-tuple token list accepts any factory.
+ * Maps fixed tuples to factory args: typed tokens yield values, classes instances, symbols unknown.
+ * Broad token lists produce `never[]` rather than positional inference.
+ * @template TInject Ordered token list used to derive factory argument types.
  */
 export type IInjectedValues<TInject extends readonly ITokenReference[]> =
   readonly ITokenReference[] extends TInject

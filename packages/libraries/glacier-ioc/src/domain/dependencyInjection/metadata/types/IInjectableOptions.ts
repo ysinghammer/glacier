@@ -1,7 +1,10 @@
 import type { IProviderScope } from "./IProviderScope.js";
 
-/** Options of `@Injectable`. */
+/** Scope options recorded by the `@Injectable` decorator. */
 export interface IInjectableOptions {
-  /** Provider lifetime; omitted means `"default"`. */
+  /**
+   * Provider lifetime declared directly on the class.
+   * @default `"default"` when omitted.
+   */
   readonly scope?: IProviderScope;
 }

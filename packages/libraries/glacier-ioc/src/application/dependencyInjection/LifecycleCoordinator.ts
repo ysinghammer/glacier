@@ -2,22 +2,20 @@ import { LifecycleHookError } from "../../domain/dependencyInjection/errors/Life
 import type { ILifecycleHookName } from "../../domain/dependencyInjection/lifecycle/types/ILifecycleHookName.js";
 import { LifecycleHooks } from "../../domain/dependencyInjection/lifecycle/LifecycleHooks.js";
 
-/**
- * Runs the lifecycle hooks of DEFAULT-scope instances. Targets are given in initialization order: module
- * dependency order, so dependencies come before their dependents. Startup runs each hook phase over all
- * targets in that order; shutdown runs its phases over the reverse order.
- */
+/** Runs lifecycle phases over default instances in dependency order, reversing that order for shutdown. */
 export class LifecycleCoordinator {
+  /** Readonly reference to default instances, ordered with dependencies before dependents. */
   private readonly targets: readonly object[];
 
-  /** Creates a coordinator over instances listed in initialization order. */
+  /** Creates a coordinator over default instances in their initialization order.
+   * @param targets Instances in module dependency order; the readonly list is retained as supplied.
+   */
   public constructor(targets: readonly object[]) {
     this.targets = targets;
   }
 
-  /**
-   * Awaits every `onModuleInit` hook, then every `onContainerInit` hook, one at a time. Stops at the first
-   * failing hook and returns it as a `LifecycleHookError`; returns `undefined` when startup succeeded.
+  /** Awaits `onModuleInit`, then `onContainerInit`, stopping at the first failed hook.
+   * @returns `undefined` on success, or the first failure as a `LifecycleHookError`.
    */
   public async initialize(): Promise<LifecycleHookError | undefined> {
     const startup: readonly ILifecycleHookName[] = ["onModuleInit", "onContainerInit"];
@@ -28,10 +26,8 @@ export class LifecycleCoordinator {
     return undefined;
   }
 
-  /**
-   * Awaits `onModuleDestroy`, then `beforeContainerShutdown`, then `onContainerShutdown` over the reverse of
-   * initialization order. A failing hook never skips the remaining hooks; every failure is returned in
-   * the order it occurred as `LifecycleHookError`s, empty when shutdown succeeded.
+  /** Awaits shutdown hooks in reverse order without skipping targets after failures.
+   * @returns All hook failures in occurrence order, or an empty list when shutdown succeeds.
    */
   public async shutdown(): Promise<readonly LifecycleHookError[]> {
     const reversed = [...this.targets].reverse();
@@ -47,7 +43,12 @@ export class LifecycleCoordinator {
     return failures;
   }
 
-  /** Invokes one hook on each target in order; with `isStoppingOnFailure` it returns at the first failure. */
+  /** Invokes one hook on each target and optionally stops after its first failure.
+   * @param hook Lifecycle operation to invoke on each target.
+   * @param targets Instances visited in the supplied order.
+   * @param isStoppingOnFailure Whether to stop after the first captured hook failure.
+   * @returns Captured failures in visit order; empty when every invocation succeeds.
+   */
   private async runPhase(
     hook: ILifecycleHookName,
     targets: readonly object[],

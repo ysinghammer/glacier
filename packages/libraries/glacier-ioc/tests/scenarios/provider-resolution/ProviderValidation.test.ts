@@ -1,6 +1,7 @@
 // @scenario IOC-010
 import { describe, expect, it } from "vitest";
 
+/** Base module declaration used to submit arbitrary provider shapes. */
 class TestRoot {}
 Module()(TestRoot);
 import {
@@ -14,10 +15,15 @@ import {
   type IProvider,
 } from "../../../index.js";
 
+/** Valid class provider included in provider-shape scenarios. */
 class Service {}
 const token = new InjectionToken<string>("token");
 
-/** Feeds a malformed declaration through the public boundary the way untrusted JavaScript callers would. */
+/**
+ * Passes candidate declarations through the public container creation boundary.
+ * @param providers Untrusted provider declarations to validate.
+ * @returns Promise resolving to a container or rejecting when declarations are invalid.
+ */
 async function createWith(...providers: unknown[]): Promise<GlacierContainer> {
   return GlacierContainer.create({
     module: TestRoot,
@@ -25,6 +31,13 @@ async function createWith(...providers: unknown[]): Promise<GlacierContainer> {
   });
 }
 
+/**
+ * Runs a creation action and returns its aggregate validation causes.
+ * @param action Operation expected to reject with an aggregate container error.
+ * @returns Readonly causes from the aggregate error.
+ * @throws {unknown} The action rejects with a non-aggregate failure.
+ * @throws {Error} The action resolves instead of reporting invalid input.
+ */
 async function problemsOf(action: () => Promise<unknown>): Promise<readonly Error[]> {
   try {
     await action();
@@ -104,8 +117,16 @@ describe("IOC-010 invalid provider shapes are rejected", () => {
   });
 
   it("rejects a class whose constructor metadata is unavailable", async () => {
+    /** Provider fixture with constructor metadata unavailable to the container. */
     class NeedsMetadata {
-      public constructor(public readonly service: Service) {}
+      /**
+       * Stores the dependency whose parameter type cannot be resolved.
+       * @param service Service dependency used to require emitted parameter metadata.
+       */
+      public constructor(
+        /** Service dependency used to require emitted parameter metadata. */
+        public readonly service: Service,
+      ) {}
     }
 
     const causes = await problemsOf(() => createWith(NeedsMetadata));
@@ -115,6 +136,7 @@ describe("IOC-010 invalid provider shapes are rejected", () => {
   });
 
   it("rejects classes declaring an unknown scope", async () => {
+    /** Class provider carrying an unsupported scope literal. */
     class Unknown {}
     Injectable({ scope: "singleton" as never })(Unknown);
 
