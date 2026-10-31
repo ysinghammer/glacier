@@ -6,7 +6,7 @@ import type { IContextEntry } from "./IContextEntry.js";
  */
 export class ContextKey<T> {
   /** Human-readable name used in diagnostics only. */
-  readonly description: string;
+  public readonly description: string;
 
   private constructor(description: string) {
     this.description = description;
