@@ -180,9 +180,30 @@ recording this proposal does not authorize publishing, pushing, opening a PR or 
 
 ## Baseline removal review
 
-The following separate story-008/task-003 commit removes Express, its types, the typed baseline
+Separate removal commit **`a1425388690e3e8e48d9a2d263d4f72f447604a1`** removes Express, its types, the typed baseline
 server/process, temporary Express correctness scenario and baseline selector. The permanent
 Glacier harness and its correctness tests remain; manifests and lockfile contain no Express
 or Express type packages. The measured baseline is preserved in the immutable add/measurement
 commit above, not rewritten away. Raw measurements remain ignored/local. Subsequent runs on this
 machine can use this Glacier baseline; runs elsewhere require their own earlier Glacier evidence.
+
+A fresh post-removal run used the current Glacier-only command and unchanged primary load,
+at parent baseline commit `4120475c4c26032b0b7a9666ef2c1e9d43ad3101` plus the removal delta
+retained in `a1425388690e3e8e48d9a2d263d4f72f447604a1`. The Glacier server/client/workload code
+was unchanged; only dependency/baseline removal and the CLI selector changed. Completion was
+2026-10-31 **19:44:39.166 UTC**. It verifies the permanent harness runs without Express:
+
+| Sample | Requests/s | p50 ms | p95 ms | p99 ms | Server RSS MiB | Server heap-used MiB | Client RSS MiB |
+| -----: | ---------: | -----: | -----: | -----: | -------------: | -------------------: | -------------: |
+|      1 |      41415 |  0.705 |  1.387 |  2.322 |         241.80 |                39.33 |         151.25 |
+|      2 |      41271 |  0.700 |  1.397 |  2.378 |         241.80 |                51.77 |         151.88 |
+|      3 |      41420 |  0.705 |  1.389 |  2.326 |         241.80 |                62.57 |         150.00 |
+|      4 |      41468 |  0.706 |  1.390 |  2.236 |         241.92 |                38.26 |         150.56 |
+|      5 |      41692 |  0.701 |  1.382 |  2.233 |         241.92 |                34.78 |         151.14 |
+
+Median **41,420 requests/s**; post-warmup server RSS/heap **241.34 / 45.82 MiB**;
+maximum sampled RSS **242.125 MiB**. All **750,000 measured + 30,000 warmup** bodies correct,
+zero incorrect/transport errors/diagnostics, four expected rejections and **780,004 final logs**.
+Raw file `GlacierBenchmark-1793475879167.json`, SHA-256
+`d74323580dc1bf8ae0474dd42f2b50cb7036f5ebae6eea79b3457906fa35e563`.
+This additional run is not another Express comparison, approval of the target, or a CI timing gate.

@@ -517,3 +517,11 @@ then separate client processes for warmup and each sample. Raw JSON stays under 
 [BenchmarkHarness](tests/scenarios/request-handling/BenchmarkHarness.test.ts) exercises short real
 correctness checks during CI, with no latency/throughput thresholds. See [BENCHMARKS.md](BENCHMARKS.md)
 for measurement limits and the separately approved future release decision.
+
+Local phase-08 verification completed on 2026-10-31: compiled consumers, public type contracts,
+real loopback/lifecycle regressions and short benchmark correctness pass under the exact workspace
+engines with 100% production-file V8 gates. The one-time same-machine Express comparison is recorded
+in [BENCHMARKS.md](BENCHMARKS.md), including the separate add/measurement and removal commit identities;
+Express and its types are not lasting dependencies. The comparison showed lower Glacier throughput,
+not a speedup. Numeric release bounds are **proposed, not approved**, and no release/publication,
+remote CI/security execution, deployed-stack or browser compatibility is implied by local acceptance.
