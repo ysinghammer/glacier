@@ -6,7 +6,7 @@ start resources or activate compiler reflection. TypeScript and pnpm are workspa
 
 ## Current implementation boundary
 
-This is the phase-07 request pipeline and OpenAPI capability, **not a release or performance claim**.
+The v1 implementation has local consumer/transport verification, **not release authorization or a portable performance claim**.
 It provides explicit GET/POST/PUT/PATCH/DELETE handlers, all request binders, external
 authentication with method-level public opt-out, bounded JSON bodies, strict repeatable
 response contracts, HEAD/OPTIONS and Expect handling, alongside immutable cookies/requests.
@@ -22,7 +22,8 @@ transport/request/log draining and metadata-only OpenAPI 3.1 generation are impl
 `HttpEndpointMetadata.read(Class)` and `server.registration` are deliberate
 immutable public documentation contracts, with no instances/listeners/callbacks or OpenAPI dependency.
 Concurrent close calls share one promise; closing during startup cancels the one-use listener.
-No Express dependency, benchmark, browser compatibility or deployed-service E2E claim.
+The dedicated benchmark is separate from CI; see [measurement methodology](BENCHMARKS.md).
+There is no browser compatibility or deployed-service E2E claim.
 
 ## Metadata-only OpenAPI
 
@@ -443,3 +444,76 @@ decorators and logging exclusion through a compiled public-root consumer.
 [`ServerLifecycle`](tests/contracts/ServerLifecycle.test-d.ts) checks readonly finite-limit and
 listen/address/close types separately. Real lifecycle, framing, deadline and cooperative cancellation
 evidence is linked in the request-handling scenario index.
+
+## Compiled consumer and integration boundaries
+
+The complete [consumer composition](tests/data/consumer/ConsumerComposition.ts) imports
+`@glacier/reflection/register` **before importing decorated modules**. Both compiler flags
+are enabled in [its actual compiler configuration](tsconfig.consumer.json). It is compiled
+to native ESM by TypeScript, then executed in a separate Node process by
+[ConsumerIntegration](tests/scenarios/request-handling/ConsumerIntegration.test.ts).
+The assertions check actual recorded String/DTO parameter and field representations, not
+Vitest's decorator emission. Imports must be ordered before declaration evaluation; registration
+cannot recover earlier missed metadata. Do not assume erased interfaces/generics are runtime types.
+
+Its [application operation](tests/data/consumer/UpdateItem.use-case.ts) has no Glacier/HTTP
+imports and returns a typed authorization outcome. The [controller](tests/data/consumer/Items.controller.ts)
+alone converts a denial to [a mapped business Error](tests/data/consumer/ItemAccess.error.ts).
+Authentication establishes the actor; authorization still checks the actor against the requested
+item in application code. Successful responses contain logical `label` data, which output validation
+projects to `displayLabel`, removing internal fields before serialization. Invalid input does not
+reach the operation. Safe cookie defaults and same-scope clearing are observed on the real wire.
+
+### Standalone or optional existing IoC
+
+Standalone composition explicitly constructs the operation and controller, passes shared controller
+instances to `HttpServer.create`, and separately calls `listen`. No IoC dependency is needed.
+Applications already using [the existing IoC library](../glacier-ioc/README.md) can instead register
+the controller and its dependencies as DEFAULT providers in their own module, await
+`GlacierContainer.create(ApplicationModule)`, and pass `container.get(ItemsController)` in
+`controllers`. HTTP never calls `get`, resolves request scopes, discovers providers, constructs
+controllers or runs container hooks. This is an optional composition recipe, not an HTTP dependency
+or an assertion that this fixture runs IoC. If HTTP startup fails, application composition must
+close resources that it already started and preserve both startup and cleanup failures.
+
+### OIDC and diagnostics
+
+The compiled fixture uses a **deterministic authentication stub**, not real token verification.
+Production composition supplies `authentication.authenticate: (request) => verifier.authenticate(request)`
+where the application-owned outbound adapter verifies credentials with its real identity provider
+and returns a nonempty subject or `undefined`. Supply the static Bearer challenge separately.
+HTTP performs no discovery/JWKS/network calls, cryptography, login, sessions or automatic proxy trust.
+Document that same external contract with an explicit OpenID Connect scheme in `OpenApi.generate`;
+server-mode generation checks whether authentication is configured, not whether a verifier is secure.
+
+The fixture logs only the provided completion metadata and excludes session cleanup with
+`ApiSkipResponseLogging`. Real logging adapters must avoid secrets even when handling their own
+failure diagnostics: the diagnostic callback receives private application exceptions, unlike the
+response-log whitelist. Logging promises are supervised and bounded; overflow/failure is observable,
+not guaranteed delivery. HTTP drains them during close. Production diagnostics must be synchronous
+and nonthrowing and should report safe context rather than raw error messages/stacks.
+
+### Shutdown and offline documents
+
+Application signal handling belongs outside HTTP. Await `server.close()` **before** disposing its
+dependencies (or awaiting `container.close()` in optional IoC composition). A rejected close is not
+proof that arbitrary consumer promises stopped; coordinate them before dependency disposal and keep
+cleanup failures observable. Imports/create install no automatic signal handlers.
+
+The fixture calls `OpenApi.generate({ controllers: [ItemsController], ... })` before constructing
+the operation/controller. No dependency or OIDC endpoint is contacted. An application/build script
+may serialize the returned JSON with `JSON.stringify` and explicitly write it using Node filesystem
+APIs; HTTP supplies no file writer, UI or specification endpoint. Documentation can be generated
+offline even when runtime service dependencies are unavailable.
+
+## Dedicated benchmark
+
+Run `pnpm exec turbo run bench --filter=@glacier/http -- 32 15000 3000 5` from the workspace root.
+The arguments are concurrency, measured requests per sample, warmup requests and repeated samples.
+The task is explicitly uncached and is **not** a dependency of `ci`; each run compiles authored
+[Node-only support](tests/support/benchmarks/BenchmarkHarness.ts), starts a fresh server process,
+then separate client processes for warmup and each sample. Raw JSON stays under ignored
+`tests/artifacts/runs/`; generated support stays under ignored `tests/artifacts/benchmarks/`.
+[BenchmarkHarness](tests/scenarios/request-handling/BenchmarkHarness.test.ts) exercises short real
+correctness checks during CI, with no latency/throughput thresholds. See [BENCHMARKS.md](BENCHMARKS.md)
+for measurement limits and the separately approved future release decision.

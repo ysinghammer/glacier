@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "rootDir": "tests/data/consumer",
+    "outDir": "tests/artifacts/consumer",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": ["tests/data/consumer/**/*.ts"],
+  "exclude": ["tests/artifacts", "dist", "node_modules"]
+}

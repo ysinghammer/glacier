@@ -38,3 +38,12 @@ contracts separately. [CompiledErrors](../../data/compiler/CompiledErrors.ts) pr
 and exclusion decorators, executed by ErrorMappings.
 [ServerLifecycle](../../contracts/ServerLifecycle.test-d.ts) checks erased lifecycle/limit contracts.
 OpenAPI remains deferred.
+
+# Consumer and benchmark verification
+
+- [ConsumerIntegration](ConsumerIntegration.test.ts): separately compiled public-root ESM consumer,
+  actual compiler metadata, typed application authorization/controller error translation,
+  projected wire names, authentication/rejection, safe cookies, offline docs and drained close.
+- [BenchmarkHarness](BenchmarkHarness.test.ts): separate real server/client processes, fixed work,
+  consumed/validated GET/POST bodies, cumulative logging correctness and invalid CLI configuration.
+  No timing threshold or portable performance assertion.

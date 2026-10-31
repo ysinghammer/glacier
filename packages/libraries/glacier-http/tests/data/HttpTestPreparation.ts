@@ -4,13 +4,19 @@ import { spawnSync } from "node:child_process";
 class HttpTestPreparation {
   /** Compiles only test-owned consumer inputs; generated files remain ignored under artifacts. */
   public static run(): void {
-    const result = spawnSync("pnpm", ["exec", "tsc", "--project", "tsconfig.fixtures.json"], {
-      cwd: new URL("../..", import.meta.url),
-      stdio: "inherit",
-      timeout: 120_000,
-    });
-    if (result.error !== undefined) throw result.error;
-    if (result.status !== 0) throw new Error("HTTP consumer compilation failed");
+    for (const project of [
+      "tsconfig.fixtures.json",
+      "tsconfig.benchmarks.json",
+      "tsconfig.consumer.json",
+    ]) {
+      const result = spawnSync("pnpm", ["exec", "tsc", "--project", project], {
+        cwd: new URL("../..", import.meta.url),
+        stdio: "inherit",
+        timeout: 120_000,
+      });
+      if (result.error !== undefined) throw result.error;
+      if (result.status !== 0) throw new Error("HTTP consumer compilation failed");
+    }
   }
 }
 

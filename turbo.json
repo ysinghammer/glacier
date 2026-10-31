@@ -40,6 +40,10 @@
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.base.json"],
       "outputs": ["dist/**"]
     },
+    "@glacier/http#bench": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
     "ci": {
       "dependsOn": ["//#lint:check", "//#format:check", "lint:types", "build", "test"]
     }
