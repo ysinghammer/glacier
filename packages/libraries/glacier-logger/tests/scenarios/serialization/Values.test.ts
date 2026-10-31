@@ -91,7 +91,7 @@ describe("value serialisation", () => {
 
   it("treats a DataView and class instances as plain objects", () => {
     class Point {
-      x = 1;
+      public x = 1;
     }
 
     expect(fieldsOf({ view: new DataView(new ArrayBuffer(2)), point: new Point() })).toEqual({

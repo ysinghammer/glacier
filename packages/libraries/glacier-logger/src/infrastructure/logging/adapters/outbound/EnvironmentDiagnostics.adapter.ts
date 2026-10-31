@@ -6,16 +6,16 @@ interface ILineStream {
 
 /** Writes to `process.stderr` when running on Node and to `console.error` everywhere else. */
 export class EnvironmentDiagnostics implements IDiagnosticsOutput {
-  write(line: string): void {
-    const stderr = EnvironmentDiagnostics.#findStderr();
-    if (!EnvironmentDiagnostics.#isLineStream(stderr)) {
+  public write(line: string): void {
+    const stderr = EnvironmentDiagnostics.findStderr();
+    if (!EnvironmentDiagnostics.isLineStream(stderr)) {
       console.error(line);
       return;
     }
     stderr.write(`${line}\n`);
   }
 
-  static #findStderr(): unknown {
+  private static findStderr(): unknown {
     const host: unknown = Reflect.get(globalThis, "process");
     if (!(host instanceof Object)) {
       return undefined;
@@ -23,7 +23,7 @@ export class EnvironmentDiagnostics implements IDiagnosticsOutput {
     return Reflect.get(host, "stderr");
   }
 
-  static #isLineStream(value: unknown): value is ILineStream {
+  private static isLineStream(value: unknown): value is ILineStream {
     return value instanceof Object && typeof Reflect.get(value, "write") === "function";
   }
 }

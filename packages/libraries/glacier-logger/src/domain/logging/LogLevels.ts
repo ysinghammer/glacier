@@ -12,12 +12,12 @@ const LEVEL_VALUES: Readonly<Record<ILogLevel, number>> = {
 /** Level parsing and comparison. Numeric severities stay internal to this class. */
 export class LogLevels {
   /** Narrows an untrusted value to a known level name. */
-  static isLogLevel(value: unknown): value is ILogLevel {
+  public static isLogLevel(value: unknown): value is ILogLevel {
     return typeof value === "string" && Object.hasOwn(LEVEL_VALUES, value);
   }
 
   /** Returns `true` when `level` is at or above `minimum` in severity. */
-  static isAtLeast(level: ILogLevel, minimum: ILogLevel): boolean {
+  public static isAtLeast(level: ILogLevel, minimum: ILogLevel): boolean {
     return LEVEL_VALUES[level] >= LEVEL_VALUES[minimum];
   }
 }

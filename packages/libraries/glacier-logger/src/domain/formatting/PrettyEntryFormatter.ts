@@ -23,18 +23,18 @@ interface IOutputSegment {
  * styling from `formatStyled` (browser). The same entry always yields the same output.
  */
 export class PrettyEntryFormatter implements IEntryFormatter {
-  readonly #isColorEnabled: boolean;
+  private readonly isColorEnabled: boolean;
 
   constructor(options: IPrettyFormatterOptions) {
-    this.#isColorEnabled = options.isColorEnabled;
+    this.isColorEnabled = options.isColorEnabled;
   }
 
   /** Returns the output text, with ANSI colour codes only when colour is enabled. */
-  format(entry: ILogEntry): string {
-    const header = this.#headerSegments(entry)
-      .map((segment) => this.#renderAnsi(segment))
+  public format(entry: ILogEntry): string {
+    const header = this.headerSegments(entry)
+      .map((segment) => this.renderAnsi(segment))
       .join("");
-    return [header, ...PrettyEntryFormatter.#bodyLines(entry)].join("\n");
+    return [header, ...PrettyEntryFormatter.bodyLines(entry)].join("\n");
   }
 
   /**
@@ -42,22 +42,22 @@ export class PrettyEntryFormatter implements IEntryFormatter {
    * `%c` and `styles` is empty. Literal percent signs are escaped so the console never treats
    * message text as a directive.
    */
-  formatStyled(entry: ILogEntry): IStyledOutput {
+  public formatStyled(entry: ILogEntry): IStyledOutput {
     const styles: string[] = [];
-    const header = this.#headerSegments(entry)
-      .map((segment) => this.#renderCss(segment, styles))
+    const header = this.headerSegments(entry)
+      .map((segment) => this.renderCss(segment, styles))
       .join("");
-    const body = PrettyEntryFormatter.#bodyLines(entry).map(
-      (line) => `\n${PrettyEntryFormatter.#escapeDirectives(line)}`,
+    const body = PrettyEntryFormatter.bodyLines(entry).map(
+      (line) => `\n${PrettyEntryFormatter.escapeDirectives(line)}`,
     );
     return { format: `${header}${body.join("")}`, styles };
   }
 
-  #headerSegments(entry: ILogEntry): IOutputSegment[] {
+  private headerSegments(entry: ILogEntry): IOutputSegment[] {
     const label = entry.level.toUpperCase().padEnd(LEVEL_LABEL_WIDTH);
     const message = entry.message.replaceAll("\n", `\n${MESSAGE_CONTINUATION_INDENT}`);
     return [
-      { text: PrettyEntryFormatter.#formatTime(entry.time), tone: "subdued" },
+      { text: PrettyEntryFormatter.formatTime(entry.time), tone: "subdued" },
       { text: " " },
       { text: label, tone: entry.level },
       { text: " " },
@@ -66,23 +66,23 @@ export class PrettyEntryFormatter implements IEntryFormatter {
     ];
   }
 
-  #renderAnsi(segment: IOutputSegment): string {
-    if (!this.#isColorEnabled || segment.tone === undefined) {
+  private renderAnsi(segment: IOutputSegment): string {
+    if (!this.isColorEnabled || segment.tone === undefined) {
       return segment.text;
     }
     return OutputPalette.paintAnsi(segment.text, segment.tone);
   }
 
-  #renderCss(segment: IOutputSegment, styles: string[]): string {
-    const text = PrettyEntryFormatter.#escapeDirectives(segment.text);
-    if (!this.#isColorEnabled || segment.tone === undefined) {
+  private renderCss(segment: IOutputSegment, styles: string[]): string {
+    const text = PrettyEntryFormatter.escapeDirectives(segment.text);
+    if (!this.isColorEnabled || segment.tone === undefined) {
       return text;
     }
     styles.push(OutputPalette.cssStyleFor(segment.tone), "");
     return `%c${text}%c`;
   }
 
-  static #bodyLines(entry: ILogEntry): string[] {
+  private static bodyLines(entry: ILogEntry): string[] {
     const lines = PrettyValueRenderer.renderRecord(
       { ...entry.bindings, ...entry.fields },
       FIELD_DEPTH,
@@ -93,11 +93,11 @@ export class PrettyEntryFormatter implements IEntryFormatter {
     return lines;
   }
 
-  static #escapeDirectives(text: string): string {
+  private static escapeDirectives(text: string): string {
     return text.replaceAll("%", "%%");
   }
 
-  static #formatTime(time: Date): string {
+  private static formatTime(time: Date): string {
     if (Number.isNaN(time.getTime())) {
       return INVALID_TIME_PLACEHOLDER;
     }

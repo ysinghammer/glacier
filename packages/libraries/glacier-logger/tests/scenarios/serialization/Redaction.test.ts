@@ -118,9 +118,9 @@ describe("redaction on copies", () => {
 
   it("keeps class instance behaviour such as toJSON while redacting", () => {
     class Account {
-      pin = "1234";
-      owner = "ann";
-      toJSON(): unknown {
+      public pin = "1234";
+      public owner = "ann";
+      public toJSON(): unknown {
         return { owner: this.owner, pin: this.pin };
       }
     }

@@ -9,10 +9,10 @@ const LINE_END = "\n";
 
 /** Renders one entry for one registration, on demand, so unused renderings cost nothing. */
 export class TransportDelivery implements ITransportDelivery {
-  readonly format: ILogFormat;
-  readonly #entry: ILogEntry;
-  readonly #pretty: PrettyEntryFormatter;
-  readonly #reportError: (error: Error) => void;
+  public readonly format: ILogFormat;
+  private readonly entry: ILogEntry;
+  private readonly pretty: PrettyEntryFormatter;
+  private readonly reportErrorValue: (error: Error) => void;
 
   constructor(
     entry: ILogEntry,
@@ -20,25 +20,25 @@ export class TransportDelivery implements ITransportDelivery {
     reportError: (error: Error) => void,
   ) {
     this.format = registration.format;
-    this.#entry = entry;
-    this.#pretty = new PrettyEntryFormatter({
+    this.entry = entry;
+    this.pretty = new PrettyEntryFormatter({
       isColorEnabled: registration.isColorEnabled ?? false,
     });
-    this.#reportError = reportError;
+    this.reportErrorValue = reportError;
   }
 
-  text(): string {
+  public text(): string {
     if (this.format === "json") {
-      return new JsonEntryFormatter().format(this.#entry);
+      return new JsonEntryFormatter().format(this.entry);
     }
-    return `${this.#pretty.format(this.#entry)}${LINE_END}`;
+    return `${this.pretty.format(this.entry)}${LINE_END}`;
   }
 
-  styled(): IStyledOutput {
-    return this.#pretty.formatStyled(this.#entry);
+  public styled(): IStyledOutput {
+    return this.pretty.formatStyled(this.entry);
   }
 
-  reportError(error: Error): void {
-    this.#reportError(error);
+  public reportError(error: Error): void {
+    this.reportErrorValue(error);
   }
 }

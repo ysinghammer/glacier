@@ -14,6 +14,9 @@ const CONSOLE_METHOD_BY_LEVEL: Readonly<Record<ILogLevel, keyof IConsoleOutput>>
   fatal: "error",
 };
 
+// Injected consoles can retain prior log entries; serialization must not traverse their state.
+const CONSOLE_OUTPUTS = new WeakMap<BrowserConsoleTransport, IConsoleOutput>();
+
 /**
  * Writes each entry straight to the console, unbuffered: `trace` and `debug` use `console.debug`,
  * `info` uses `console.info`, `warn` uses `console.warn`, and `error` and `fatal` use
@@ -22,19 +25,24 @@ const CONSOLE_METHOD_BY_LEVEL: Readonly<Record<ILogLevel, keyof IConsoleOutput>>
  * format string and its `%c` styles.
  */
 export class BrowserConsoleTransport implements ITransport {
-  readonly #console: IConsoleOutput;
-
-  constructor(options: IBrowserConsoleTransportOptions = {}) {
-    this.#console = options.console ?? console;
+  /** Preserves opaque transport output and rejects invalid borrowed receivers. */
+  private get console(): IConsoleOutput {
+    const output = CONSOLE_OUTPUTS.get(this);
+    if (output === undefined) throw new TypeError("Invalid console transport receiver");
+    return output;
   }
 
-  write(entry: ILogEntry, delivery: ITransportDelivery): void {
+  constructor(options: IBrowserConsoleTransportOptions = {}) {
+    CONSOLE_OUTPUTS.set(this, options.console ?? console);
+  }
+
+  public write(entry: ILogEntry, delivery: ITransportDelivery): void {
     const method = CONSOLE_METHOD_BY_LEVEL[entry.level];
     if (delivery.format === "json") {
-      this.#console[method](entry);
+      this.console[method](entry);
       return;
     }
     const styled = delivery.styled();
-    this.#console[method](styled.format, ...styled.styles);
+    this.console[method](styled.format, ...styled.styles);
   }
 }

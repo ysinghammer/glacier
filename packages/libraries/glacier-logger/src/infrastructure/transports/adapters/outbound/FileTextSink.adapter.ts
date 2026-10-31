@@ -4,19 +4,19 @@ import type { ITextSink } from "../../../../application/transports/ports/outboun
 
 /** Appends batches to one file, creating its parent directories first. Nothing stays open between batches. */
 export class FileTextSink implements ITextSink {
-  readonly #path: string;
-  readonly #fileSystem: IFileSystem;
+  private readonly path: string;
+  private readonly fileSystem: IFileSystem;
 
   constructor(path: string, fileSystem: IFileSystem) {
-    this.#path = path;
-    this.#fileSystem = fileSystem;
+    this.path = path;
+    this.fileSystem = fileSystem;
   }
 
-  async write(text: string): Promise<void> {
-    const directory = FilePaths.parentDirectory(this.#path);
+  public async write(text: string): Promise<void> {
+    const directory = FilePaths.parentDirectory(this.path);
     if (directory !== undefined) {
-      await this.#fileSystem.ensureDirectory(directory);
+      await this.fileSystem.ensureDirectory(directory);
     }
-    await this.#fileSystem.appendText(this.#path, text);
+    await this.fileSystem.appendText(this.path, text);
   }
 }

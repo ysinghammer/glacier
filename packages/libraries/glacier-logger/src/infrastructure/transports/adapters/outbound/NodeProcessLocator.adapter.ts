@@ -6,9 +6,9 @@ export class NodeProcessLocator {
    * Returns the running Node process.
    * @throws Error outside Node, where the Node transports cannot work; pass a host explicitly or use the console transport.
    */
-  static require(): IProcessHost {
+  public static require(): IProcessHost {
     const candidate: unknown = Reflect.get(globalThis, "process");
-    if (!NodeProcessLocator.#isProcessHost(candidate)) {
+    if (!NodeProcessLocator.isProcessHost(candidate)) {
       throw new Error(
         "Node transports need a Node.js process. Use the console transport in browsers.",
       );
@@ -16,7 +16,7 @@ export class NodeProcessLocator {
     return candidate;
   }
 
-  static #isProcessHost(value: unknown): value is IProcessHost {
+  private static isProcessHost(value: unknown): value is IProcessHost {
     return (
       value instanceof Object &&
       typeof Reflect.get(value, "pid") === "number" &&

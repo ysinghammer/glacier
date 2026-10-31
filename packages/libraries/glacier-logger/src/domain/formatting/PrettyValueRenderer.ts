@@ -10,20 +10,20 @@ const CANONICAL_ERROR_KEYS: ReadonlySet<string> = new Set(["type", "message", "s
  */
 export class PrettyValueRenderer {
   /** Renders `record` as lines starting at `depth` indentation levels. */
-  static renderRecord(record: Readonly<Record<string, unknown>>, depth: number): string[] {
+  public static renderRecord(record: Readonly<Record<string, unknown>>, depth: number): string[] {
     const safeRecord = SafeValueSerializer.serializeRecord(record);
-    return PrettyValueRenderer.#renderEntries(safeRecord, depth);
+    return PrettyValueRenderer.renderEntries(safeRecord, depth);
   }
 
   /** Renders a serialised error under `label`, with its stack, extra properties and cause chain. */
-  static renderError(label: string, error: unknown, depth: number): string[] {
+  public static renderError(label: string, error: unknown, depth: number): string[] {
     const safeError = SafeValueSerializer.serializeWithin(error, new Set(), 0);
-    return PrettyValueRenderer.#renderErrorValue(label, safeError, depth);
+    return PrettyValueRenderer.renderErrorValue(label, safeError, depth);
   }
 
-  static #renderErrorValue(label: string, value: unknown, depth: number): string[] {
-    if (!PrettyValueRenderer.#isSerializedError(value)) {
-      return PrettyValueRenderer.#renderEntries({ [label]: value }, depth);
+  private static renderErrorValue(label: string, value: unknown, depth: number): string[] {
+    if (!PrettyValueRenderer.isSerializedError(value)) {
+      return PrettyValueRenderer.renderEntries({ [label]: value }, depth);
     }
     const description =
       typeof value["stack"] === "string" ? value["stack"] : `${value["type"]}: ${value["message"]}`;
@@ -37,20 +37,20 @@ export class PrettyValueRenderer {
     const extraProperties = Object.fromEntries(
       Object.entries(value).filter(([key]) => !CANONICAL_ERROR_KEYS.has(key)),
     );
-    lines.push(...PrettyValueRenderer.#renderEntries(extraProperties, depth + 1));
+    lines.push(...PrettyValueRenderer.renderEntries(extraProperties, depth + 1));
     if ("cause" in value) {
-      lines.push(...PrettyValueRenderer.#renderErrorValue("cause", value["cause"], depth + 1));
+      lines.push(...PrettyValueRenderer.renderErrorValue("cause", value["cause"], depth + 1));
     }
     return lines;
   }
 
-  static #renderEntries(record: Readonly<Record<string, unknown>>, depth: number): string[] {
+  private static renderEntries(record: Readonly<Record<string, unknown>>, depth: number): string[] {
     return Object.entries(record).flatMap(([key, value]) =>
-      PrettyValueRenderer.#renderEntry(key, value, depth),
+      PrettyValueRenderer.renderEntry(key, value, depth),
     );
   }
 
-  static #renderEntry(key: string, value: unknown, depth: number): string[] {
+  private static renderEntry(key: string, value: unknown, depth: number): string[] {
     const pad = INDENT.repeat(depth);
     if (typeof value === "object" && value !== null) {
       const children = Object.entries(value);
@@ -59,7 +59,7 @@ export class PrettyValueRenderer {
       }
       return [
         `${pad}${key}:`,
-        ...PrettyValueRenderer.#renderEntries(Object.fromEntries(children), depth + 1),
+        ...PrettyValueRenderer.renderEntries(Object.fromEntries(children), depth + 1),
       ];
     }
     const text = String(value);
@@ -70,7 +70,7 @@ export class PrettyValueRenderer {
     return [`${pad}${key}:`, ...text.split("\n").map((line) => `${nestedPad}${line}`)];
   }
 
-  static #isSerializedError(value: unknown): value is Record<string, unknown> {
+  private static isSerializedError(value: unknown): value is Record<string, unknown> {
     return (
       typeof value === "object" &&
       value !== null &&

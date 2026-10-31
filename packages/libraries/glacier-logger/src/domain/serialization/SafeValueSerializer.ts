@@ -16,7 +16,9 @@ const INVALID_DATE_PLACEHOLDER = "[Invalid Date]";
  */
 export class SafeValueSerializer {
   /** Serialises each own enumerable property of a record, keeping the record shape. */
-  static serializeRecord(record: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  public static serializeRecord(
+    record: Readonly<Record<string, unknown>>,
+  ): Record<string, unknown> {
     return SafeValueSerializer.serializeProperties(
       record,
       Object.keys(record),
@@ -29,16 +31,16 @@ export class SafeValueSerializer {
    * Serialises a value reached through `ancestors`, the objects currently being serialised.
    * Used by the error serialiser so cycles spanning both are detected.
    */
-  static serializeWithin(value: unknown, ancestors: Set<object>, depth: number): unknown {
+  public static serializeWithin(value: unknown, ancestors: Set<object>, depth: number): unknown {
     try {
-      return SafeValueSerializer.#serializeUnsafe(value, ancestors, depth);
+      return SafeValueSerializer.serializeUnsafe(value, ancestors, depth);
     } catch {
       return UNSERIALIZABLE_PLACEHOLDER;
     }
   }
 
   /** Serialises the named properties of `target`. A throwing getter yields a placeholder. */
-  static serializeProperties(
+  public static serializeProperties(
     target: object,
     keys: readonly string[],
     ancestors: Set<object>,
@@ -55,12 +57,12 @@ export class SafeValueSerializer {
     return Object.fromEntries(entries);
   }
 
-  static #serializeUnsafe(value: unknown, ancestors: Set<object>, depth: number): unknown {
+  private static serializeUnsafe(value: unknown, ancestors: Set<object>, depth: number): unknown {
     if (value === null) {
       return null;
     }
     if (typeof value === "object") {
-      return SafeValueSerializer.#serializeObject(value, ancestors, depth);
+      return SafeValueSerializer.serializeObject(value, ancestors, depth);
     }
     switch (typeof value) {
       case "string":
@@ -78,7 +80,7 @@ export class SafeValueSerializer {
     }
   }
 
-  static #serializeObject(value: object, ancestors: Set<object>, depth: number): unknown {
+  private static serializeObject(value: object, ancestors: Set<object>, depth: number): unknown {
     if (ancestors.has(value)) {
       return CIRCULAR_PLACEHOLDER;
     }
@@ -87,13 +89,13 @@ export class SafeValueSerializer {
     }
     ancestors.add(value);
     try {
-      return SafeValueSerializer.#serializeContents(value, ancestors, depth + 1);
+      return SafeValueSerializer.serializeContents(value, ancestors, depth + 1);
     } finally {
       ancestors.delete(value);
     }
   }
 
-  static #serializeContents(value: object, ancestors: Set<object>, depth: number): unknown {
+  private static serializeContents(value: object, ancestors: Set<object>, depth: number): unknown {
     if (value instanceof Date) {
       return Number.isNaN(value.getTime()) ? INVALID_DATE_PLACEHOLDER : value.toISOString();
     }
@@ -101,13 +103,13 @@ export class SafeValueSerializer {
       return ErrorSerializer.serializeWithin(value, ancestors, depth);
     }
     if (value instanceof Map) {
-      return SafeValueSerializer.#serializeItems(value.entries(), ancestors, depth);
+      return SafeValueSerializer.serializeItems(value.entries(), ancestors, depth);
     }
     if (value instanceof Set) {
-      return SafeValueSerializer.#serializeItems(value.values(), ancestors, depth);
+      return SafeValueSerializer.serializeItems(value.values(), ancestors, depth);
     }
-    if (Array.isArray(value) || SafeValueSerializer.#isTypedArray(value)) {
-      return SafeValueSerializer.#serializeItems(Array.from(value), ancestors, depth);
+    if (Array.isArray(value) || SafeValueSerializer.isTypedArray(value)) {
+      return SafeValueSerializer.serializeItems(Array.from(value), ancestors, depth);
     }
     if ("toJSON" in value && typeof value.toJSON === "function") {
       const json: unknown = value.toJSON();
@@ -116,7 +118,7 @@ export class SafeValueSerializer {
     return SafeValueSerializer.serializeProperties(value, Object.keys(value), ancestors, depth);
   }
 
-  static #serializeItems(
+  private static serializeItems(
     items: Iterable<unknown>,
     ancestors: Set<object>,
     depth: number,
@@ -124,7 +126,7 @@ export class SafeValueSerializer {
     return Array.from(items, (item) => SafeValueSerializer.serializeWithin(item, ancestors, depth));
   }
 
-  static #isTypedArray(value: object): value is ArrayLike<number | bigint> {
+  private static isTypedArray(value: object): value is ArrayLike<number | bigint> {
     return ArrayBuffer.isView(value) && !(value instanceof DataView);
   }
 }

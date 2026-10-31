@@ -7,17 +7,17 @@ import type { IConsoleOutput, ILogLevel } from "../../../index.browser.js";
 type ConsoleCall = readonly [method: string, args: readonly unknown[]];
 
 class RecordingConsole implements IConsoleOutput {
-  readonly calls: ConsoleCall[] = [];
-  debug(...data: unknown[]): void {
+  public readonly calls: ConsoleCall[] = [];
+  public debug(...data: unknown[]): void {
     this.calls.push(["debug", data]);
   }
-  info(...data: unknown[]): void {
+  public info(...data: unknown[]): void {
     this.calls.push(["info", data]);
   }
-  warn(...data: unknown[]): void {
+  public warn(...data: unknown[]): void {
     this.calls.push(["warn", data]);
   }
-  error(...data: unknown[]): void {
+  public error(...data: unknown[]): void {
     this.calls.push(["error", data]);
   }
 }
@@ -39,6 +39,32 @@ function loggerFor(
 }
 
 describe("browser console transport", () => {
+  it("keeps injected console records out of serialization and rejects borrowed receivers", () => {
+    const output = new RecordingConsole();
+    output.info("synthetic-console-secret");
+    const transport = new BrowserConsoleTransport({ console: output });
+    expect(JSON.stringify(transport)).toBe("{}");
+    expect({ ...transport }).toEqual({});
+    const borrowed: unknown = Object.create(transport);
+    const result = new LoggerFactory({
+      level: "info",
+      transports: [
+        {
+          format: "json",
+          transport: {
+            write(entry, delivery) {
+              expect(() => transport.write.call(borrowed, entry, delivery)).toThrow(TypeError);
+              transport.write(entry, delivery);
+            },
+          },
+        },
+      ],
+    }).createLogger("ReceiverSafety");
+    if (result.outcome !== "created") throw new Error("Expected logger creation");
+    result.logger.info({ message: "valid receiver" });
+    expect(output.calls).toHaveLength(2);
+  });
+
   it("maps levels to console methods and passes the entry object in json mode", () => {
     const output = new RecordingConsole();
     const created = loggerFor("json", output);

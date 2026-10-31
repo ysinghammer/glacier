@@ -7,7 +7,7 @@ import type { IRejectionReason } from "./types/IRejectionReason.js";
 /** Checks a configuration and reports every problem at once. */
 export class LoggerConfigurationValidator {
   /** Returns all rejection reasons. An empty result means the configuration is valid. */
-  static validate(configuration: ILoggerConfiguration): readonly IRejectionReason[] {
+  public static validate(configuration: ILoggerConfiguration): readonly IRejectionReason[] {
     const reasons: IRejectionReason[] = [];
 
     if (!LogLevels.isLogLevel(configuration.level)) {

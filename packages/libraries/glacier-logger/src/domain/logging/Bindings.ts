@@ -4,7 +4,9 @@ import { ReservedKeys } from "./ReservedKeys.js";
 /** Invariants and merging of bindings, the structured data attached to every entry of a logger. */
 export class Bindings {
   /** Lists every empty or reserved key. An empty result means the bindings are acceptable. */
-  static validate(bindings: Readonly<Record<string, unknown>>): readonly IBindingViolation[] {
+  public static validate(
+    bindings: Readonly<Record<string, unknown>>,
+  ): readonly IBindingViolation[] {
     const violations: IBindingViolation[] = [];
     for (const key of Object.keys(bindings)) {
       if (key === "") {
@@ -20,7 +22,7 @@ export class Bindings {
   }
 
   /** Returns a new record with `later` layered over `earlier`. Neither input is mutated. */
-  static merge(
+  public static merge(
     earlier: Readonly<Record<string, unknown>>,
     later: Readonly<Record<string, unknown>>,
   ): Readonly<Record<string, unknown>> {

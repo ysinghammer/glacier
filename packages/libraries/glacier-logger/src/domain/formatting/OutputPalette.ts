@@ -25,12 +25,12 @@ const CSS_STYLES: Readonly<Record<IOutputTone, string>> = {
 /** The single place that maps levels to colours, shared by the ANSI (Node) and CSS (browser) targets. */
 export class OutputPalette {
   /** Wraps `text` in the ANSI colour of `tone`, followed by a reset. */
-  static paintAnsi(text: string, tone: IOutputTone): string {
+  public static paintAnsi(text: string, tone: IOutputTone): string {
     return `${ANSI_CODES[tone]}${text}${ANSI_RESET}`;
   }
 
   /** The CSS declaration applied through a `%c` console directive for `tone`. */
-  static cssStyleFor(tone: IOutputTone): string {
+  public static cssStyleFor(tone: IOutputTone): string {
     return CSS_STYLES[tone];
   }
 }

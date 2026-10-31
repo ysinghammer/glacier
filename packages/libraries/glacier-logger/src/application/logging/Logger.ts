@@ -8,6 +8,14 @@ import { LogLevels } from "../../domain/logging/LogLevels.js";
 import { TransportDelivery } from "./TransportDelivery.js";
 import { TransportFailureError } from "./errors/TransportFailure.error.js";
 import { InvalidBindingsError } from "./errors/InvalidBindings.error.js";
+
+/** Logger bindings and runtime configuration are not loggable object properties. */
+interface ILoggerState {
+  readonly runtime: ILoggerRuntime;
+  readonly context: string;
+  readonly bindings: Readonly<Record<string, unknown>>;
+}
+const LOGGER_STATES = new WeakMap<Logger, ILoggerState>();
 import type { ITransportRegistration } from "./types/ITransportRegistration.js";
 import type { ILoggerRuntime } from "./types/ILoggerRuntime.js";
 
@@ -18,9 +26,12 @@ import type { ILoggerRuntime } from "./types/ILoggerRuntime.js";
  * never throws.
  */
 export class Logger {
-  readonly #runtime: ILoggerRuntime;
-  readonly #context: string;
-  readonly #bindings: Readonly<Record<string, unknown>>;
+  /** Keeps unredacted bindings out of enumeration and rejects invalid borrowed receivers. */
+  private get state(): ILoggerState {
+    const state = LOGGER_STATES.get(this);
+    if (state === undefined) throw new TypeError("Invalid logger receiver");
+    return state;
+  }
 
   /** Not for direct use: the factory supplies validated runtime, context and bindings. */
   constructor(
@@ -28,39 +39,37 @@ export class Logger {
     context: string,
     bindings: Readonly<Record<string, unknown>>,
   ) {
-    this.#runtime = runtime;
-    this.#context = context;
-    this.#bindings = bindings;
+    LOGGER_STATES.set(this, { runtime, context, bindings });
   }
 
   /** Logs at `trace` level. */
-  trace(call: ILogCall): void {
-    this.#log("trace", call);
+  public trace(call: ILogCall): void {
+    this.log("trace", call);
   }
 
   /** Logs at `debug` level. */
-  debug(call: ILogCall): void {
-    this.#log("debug", call);
+  public debug(call: ILogCall): void {
+    this.log("debug", call);
   }
 
   /** Logs at `info` level. */
-  info(call: ILogCall): void {
-    this.#log("info", call);
+  public info(call: ILogCall): void {
+    this.log("info", call);
   }
 
   /** Logs at `warn` level. */
-  warn(call: ILogCall): void {
-    this.#log("warn", call);
+  public warn(call: ILogCall): void {
+    this.log("warn", call);
   }
 
   /** Logs at `error` level. */
-  error(call: ILogCall): void {
-    this.#log("error", call);
+  public error(call: ILogCall): void {
+    this.log("error", call);
   }
 
   /** Logs at `fatal` level. */
-  fatal(call: ILogCall): void {
-    this.#log("fatal", call);
+  public fatal(call: ILogCall): void {
+    this.log("fatal", call);
   }
 
   /**
@@ -68,39 +77,43 @@ export class Logger {
    * with `bindings`. This logger is not changed.
    * @throws InvalidBindingsError when the bindings contain empty or reserved keys.
    */
-  child(bindings: ILogFields): Logger {
+  public child(bindings: ILogFields): Logger {
     const violations = Bindings.validate(bindings);
     if (violations.length > 0) {
       throw new InvalidBindingsError(violations);
     }
-    return new Logger(this.#runtime, this.#context, Bindings.merge(this.#bindings, bindings));
+    return new Logger(
+      this.state.runtime,
+      this.state.context,
+      Bindings.merge(this.state.bindings, bindings),
+    );
   }
 
-  #log(level: ILogLevel, call: ILogCall): void {
-    if (!LogLevels.isAtLeast(level, this.#runtime.level)) {
+  private log(level: ILogLevel, call: ILogCall): void {
+    if (!LogLevels.isAtLeast(level, this.state.runtime.level)) {
       return;
     }
     const entry = LogEntries.create({
       level,
-      time: this.#runtime.clock.now(),
-      context: this.#context,
-      bindings: this.#bindings,
+      time: this.state.runtime.clock.now(),
+      context: this.state.context,
+      bindings: this.state.bindings,
       call,
-      redaction: this.#runtime.redaction,
+      redaction: this.state.runtime.redaction,
     });
-    for (const registration of this.#runtime.transports) {
-      if (LogLevels.isAtLeast(level, registration.level ?? this.#runtime.level)) {
-        this.#deliver(entry, registration);
+    for (const registration of this.state.runtime.transports) {
+      if (LogLevels.isAtLeast(level, registration.level ?? this.state.runtime.level)) {
+        this.deliver(entry, registration);
       }
     }
   }
 
-  #deliver(entry: ILogEntry, registration: ITransportRegistration): void {
+  private deliver(entry: ILogEntry, registration: ITransportRegistration): void {
     try {
-      const delivery = new TransportDelivery(entry, registration, this.#runtime.reportError);
+      const delivery = new TransportDelivery(entry, registration, this.state.runtime.reportError);
       registration.transport.write(entry, delivery);
     } catch (cause) {
-      this.#runtime.reportError(TransportFailureError.from(cause));
+      this.state.runtime.reportError(TransportFailureError.from(cause));
     }
   }
 }

@@ -9,7 +9,7 @@ import { SafeValueSerializer } from "../serialization/SafeValueSerializer.js";
  */
 export class JsonEntryFormatter implements IEntryFormatter {
   /** Returns the JSON line for `entry`, newline included. */
-  format(entry: ILogEntry): string {
+  public format(entry: ILogEntry): string {
     const record: Record<string, unknown> = {
       level: entry.level,
       time: SafeValueSerializer.serializeWithin(entry.time, new Set(), 0),

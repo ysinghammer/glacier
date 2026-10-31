@@ -8,7 +8,7 @@ const CANONICAL_KEYS: ReadonlySet<string> = new Set(["type", "message", "stack",
 /** Turns an `Error` into `{ type, message, stack, cause }` plus its own enumerable properties. */
 export class ErrorSerializer {
   /** Serialises `error`. Never throws: an unreadable error becomes a placeholder error. */
-  static serialize(error: Error): ISerializedError {
+  public static serialize(error: Error): ISerializedError {
     return ErrorSerializer.serializeWithin(error, new Set([error]), 0);
   }
 
@@ -16,20 +16,20 @@ export class ErrorSerializer {
    * Serialises an error reached through `ancestors`, the objects currently being serialised.
    * Causes nest up to five levels; deeper causes become `"[Max depth]"`.
    */
-  static serializeWithin(
+  public static serializeWithin(
     error: Error,
     ancestors: Set<object>,
     depth: number,
     causeLevel = 0,
   ): ISerializedError {
     try {
-      return ErrorSerializer.#serializeUnsafe(error, ancestors, depth, causeLevel);
+      return ErrorSerializer.serializeUnsafe(error, ancestors, depth, causeLevel);
     } catch {
       return { type: "Error", message: "[Unserializable]" };
     }
   }
 
-  static #serializeUnsafe(
+  private static serializeUnsafe(
     error: Error,
     ancestors: Set<object>,
     depth: number,
@@ -46,7 +46,7 @@ export class ErrorSerializer {
     const cause =
       error.cause === undefined
         ? {}
-        : { cause: ErrorSerializer.#serializeCause(error.cause, ancestors, depth, causeLevel) };
+        : { cause: ErrorSerializer.serializeCause(error.cause, ancestors, depth, causeLevel) };
     return {
       ...properties,
       type: String(error.name),
@@ -56,7 +56,7 @@ export class ErrorSerializer {
     };
   }
 
-  static #serializeCause(
+  private static serializeCause(
     cause: unknown,
     ancestors: Set<object>,
     depth: number,
