@@ -5,6 +5,12 @@ SCH-137 is proved by the directional tests in [DirectionalSchemas.test.ts](Direc
 default/input equality, output requiredness, closed projections, references and JSON collection types.
 SCH-138 in that file proves known Date, override and overlapping-union contradictions without claiming
 complete runtime/document equivalence or external meta-schema validation.
+SCH-139 is proved by [SchemaCompatibility.test.ts](SchemaCompatibility.test.ts) and
+[SchemaCompatibility.test-d.ts](../../contracts/SchemaCompatibility.test-d.ts): explicit metadata-only
+wire/structural checks traverse cycles, never run constructors/value callbacks or freeze metadata,
+reject known wire/override/discriminator contradictions, permit descriptive annotations, and preserve
+ordinary API behavior. Source: [metadata-only wire compatibility](../../../README.md#metadata-only-wire-compatibility),
+the approved phase-07 schema extension. These bounded checks are not full external validation.
 
 Lets consumers publish the shape of a decorated class to API documentation and client tooling.
 `Schema.toJsonSchema(Class, { target })` turns one class and every class it references into JSON Schema 2020-12

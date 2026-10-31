@@ -1,8 +1,10 @@
 # Request handling
 
 Safe transport values and explicit listener ownership let applications inspect normalized
-credentials without exposing mutable Node handles. The phase-06 request pipeline is described
-in the [package README](../../../README.md); OpenAPI work is not claimed.
+credentials without exposing mutable Node handles. The request pipeline is described
+in the [package README](../../../README.md). The separate
+[OpenAPI capability](../openapi-generation/README.md) consumes curated read-only metadata without
+introducing a reverse dependency or changing runtime route exclusion behavior.
 
 | Contract                 | Preconditions, action and observable outcome                                                                                                                                                                     | Runtime evidence                                                                                                                                                         |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

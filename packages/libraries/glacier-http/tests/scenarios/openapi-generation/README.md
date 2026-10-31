@@ -1,0 +1,27 @@
+# OpenAPI generation
+
+This library capability generates detached OpenAPI 3.1 metadata without controllers, listeners,
+network calls or UI. Consumers can describe an API during a build when application services are
+unavailable, while retaining the runtime endpoint, schema, error and authentication contracts.
+Public contract: [metadata-only OpenAPI](../../../README.md#metadata-only-openapi), `OpenApi.generate`,
+its readonly root types, `HttpEndpointMetadata.read`, `server.registration` and the supplying
+schema library's [compatibility check](../../../../glacier-schema/README.md#metadata-only-wire-compatibility).
+
+The following are phase-07 story-local criteria, not application business journeys:
+
+| Criterion | Observable acceptance                                                                                                                                                                                                              | Evidence                                                                                                                                                                                  |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-001    | Required/unavailable constructor services, defaults/transforms/refinements and auth callbacks are not invoked; genuine compiled decorators generate without a listener.                                                            | [OpenApiGeneration.test.ts](OpenApiGeneration.test.ts), [compiled consumer](../../data/compiler/CompiledOpenApi.ts), [OpenApiErrorsAndSecurity.test.ts](OpenApiErrorsAndSecurity.test.ts) |
+| AC-002    | Input/output schemas, renamed keys, requiredness, bound paths/headers/cookies/query/body, named examples, status/DTO/array/204 forms agree; actual body/query and tuple/singleton parsing and output/failure wire responses agree. | [OpenApiGeneration.test.ts](OpenApiGeneration.test.ts), [OpenApiConsistency.test.ts](OpenApiConsistency.test.ts)                                                                          |
+| AC-003    | Framework and scoped static mapped failures are preserved; same-status errors use safe alternatives, hidden lower scopes are omitted, issues expose only location/path/code.                                                       | [OpenApiErrorsAndSecurity.test.ts](OpenApiErrorsAndSecurity.test.ts), [OpenApiGeneration.test.ts](OpenApiGeneration.test.ts)                                                              |
+| AC-004    | Protected/Public requirements and 401 agree with explicit OIDC configuration and real server authentication; mismatches and unprotected UserId fail.                                                                               | [OpenApiErrorsAndSecurity.test.ts](OpenApiErrorsAndSecurity.test.ts), [OpenApiConsistency.test.ts](OpenApiConsistency.test.ts)                                                            |
+| AC-005    | Stable directional names, escaped refs, nested cycles and discriminator mappings resolve; distinct-class collisions across independent roots/directions fail without equal-byte guessing or suffix overwrites.                     | [OpenApiGeneration.test.ts](OpenApiGeneration.test.ts), [OpenApiConsistency.test.ts](OpenApiConsistency.test.ts), [reference assertions](../../data/OpenApiEvidence.ts)                   |
+| AC-006    | Exclusion hides only document entries while real routes stay callable; repeated scalar arrays/tuples and deepObject limitations are explicit; unsupported deeper object arrays fail.                                               | [OpenApiConsistency.test.ts](OpenApiConsistency.test.ts), [OpenApiGeneration.test.ts](OpenApiGeneration.test.ts)                                                                          |
+| AC-007    | Detached JSON-compatible OpenAPI 3.1 round-trips, without UI/file writer/built-in route; unsafe/cyclic/accessor data fail without invoking getters.                                                                                | [OpenApiGeneration.test.ts](OpenApiGeneration.test.ts), [OpenApiConsistency.test.ts](OpenApiConsistency.test.ts)                                                                          |
+| AC-008    | Both/neither/undefined source misuse fails at runtime and public types enforce XOR. Request-handling has no OpenAPI dependency; curated package root is the sole barrel.                                                           | [OpenApiConsistency.test.ts](OpenApiConsistency.test.ts), [OpenApiConfiguration.test-d.ts](../../contracts/OpenApiConfiguration.test-d.ts), manual architecture/export review             |
+
+Vitest executes every runtime scenario through the unchanged 100% per-executable-file V8 thresholds.
+Type contracts are checked separately and are not described as runtime-covered. Structural/reference
+assertions and JSON round trips do not imply complete external OpenAPI meta-schema validation.
+Real ephemeral loopback HTTP establishes server agreement; there is no deployed application stack,
+module mock, private inspection, test-only API, browser requirement or performance assertion.

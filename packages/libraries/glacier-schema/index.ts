@@ -1,4 +1,5 @@
 export { Schema } from "./src/application/Schema.js";
+export type { IJsonSchemaCompatibilityOptions } from "./src/domain/json-schema/IJsonSchemaCompatibilityOptions.js";
 export type { IJsonValue } from "./src/domain/serialization/IJsonValue.js";
 export type { IJsonObject } from "./src/domain/serialization/IJsonObject.js";
 export type { IJsonSchemaDirection } from "./src/domain/json-schema/IJsonSchemaDirection.js";

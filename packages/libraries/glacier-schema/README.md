@@ -120,6 +120,50 @@ Documents are descriptions, not proof of full runtime/wire equivalence or extern
 - Component collisions are detected within one reachable graph only. Separate calls retain no class
   provenance; identical schema bytes do not prove class identity for whole-document OpenAPI assembly.
 
+### Metadata-only wire compatibility
+
+```ts
+import { IsString, Schema } from "@glacier/schema";
+
+/** Boundary validator whose metadata can be checked without constructing values. */
+class WireDto {
+  @IsString() public value!: string;
+}
+
+Schema.assertJsonSchemaCompatibility(WireDto, {
+  direction: "input",
+  wire: "json",
+  coerce: false,
+});
+```
+
+`assertJsonSchemaCompatibility(Dto, { direction, wire, coerce }): void` uses the readonly root
+`IJsonSchemaCompatibilityOptions` contract and is an explicit opt-in
+metadata-only check. `wire` is `json` or `text`; `coerce` is required. Output supports JSON without
+coercion, matching `safeSerialize`. It reads all reachable/inherited field and union metadata,
+resolves lazy references and checks recursive definitions after their components are complete.
+It never constructs DTOs, invokes default/transform/refinement callbacks, freezes metadata or
+changes existing parse/serialize/generation behavior. Malformed definitions or known contradictions
+throw `SchemaDefinitionError`; there is no public registry/owner/field metadata exposure.
+
+Known checks reject non-wire Map/Set inputs, strict Date/bigint input, unfaithful bigint/nonfinite
+literal/enum representations and uncoerced non-string text scalars. Union discriminators must retain
+a declared singleton wire value; missing, renamed, broad or mismatched variant fields fail. Structural
+`JsonSchema` keywords must match the generated validation/projection structure. Descriptive annotations
+(`title`, `description`, examples, deprecated, comments, read/write annotations and `x-` extensions)
+are allowed, including nested schema descriptions; literal objects and property names are never
+mistaken for annotation keywords. Unsafe/cyclic/non-JSON manual fragments fail without getter calls.
+
+The check is deliberately conservative about structural overrides and does not infer invariants
+from arbitrary refinements/transforms. Passing does not prove callback equivalence, overlapping
+union equivalence, full wire serialization support, descriptor/identity guarantees, or external
+JSON Schema/OpenAPI meta-schema validation. A transport adapter must additionally check its own
+grammar (for example nested query arrays and scalar-only header fields). HTTP uses this public
+operation without changing schema ownership or making schema depend on HTTP.
+
+See [runtime compatibility scenarios](tests/scenarios/json-schema/SchemaCompatibility.test.ts) and
+[public type contracts](tests/contracts/SchemaCompatibility.test-d.ts).
+
 ### Singleton query arrays
 
 `Schema.safeParse(QueryDto, query, { coerce: true, coerceSingletonArrays: true })` explicitly promotes

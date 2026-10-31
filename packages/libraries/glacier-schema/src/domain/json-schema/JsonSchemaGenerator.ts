@@ -14,6 +14,8 @@ import type { IJsonSchema } from "./IJsonSchema.js";
 import type { IJsonSchemaFragment } from "./IJsonSchemaFragment.js";
 import type { IJsonSchemaTarget } from "./IJsonSchemaTarget.js";
 import type { IJsonSchemaDirection } from "./IJsonSchemaDirection.js";
+import type { IJsonSchemaCompatibilityOptions } from "./IJsonSchemaCompatibilityOptions.js";
+import { JsonSchemaCompatibility } from "./JsonSchemaCompatibility.js";
 
 type IUnionSpec = Extract<ITypeSpec, { kind: "union" }>;
 type IKeywords = Record<string, unknown>;
@@ -40,11 +42,22 @@ const REFERENCE_PREFIXES: Readonly<Record<IJsonSchemaTarget, string>> = {
 export class JsonSchemaGenerator {
   readonly #target: IJsonSchemaTarget;
   readonly #direction: IJsonSchemaDirection;
+  readonly #compatibility: IJsonSchemaCompatibilityOptions | undefined;
   readonly #owners = new Map<string, IClass>();
   readonly #definitions = new Map<string, IJsonSchema>();
+  readonly #discriminators: {
+    readonly name: string;
+    readonly value: string;
+    readonly reference: string;
+  }[] = [];
 
   /** Selects a supported dialect and direction without freezing metadata; invalid options throw definition errors. */
-  public constructor(target: IJsonSchemaTarget, direction: IJsonSchemaDirection = "input") {
+  public constructor(
+    target: IJsonSchemaTarget,
+    direction: IJsonSchemaDirection = "input",
+    compatibility?: IJsonSchemaCompatibilityOptions,
+  ) {
+    this.#compatibility = compatibility;
     if (direction !== "input" && direction !== "output") {
       throw new SchemaDefinitionError('JSON Schema direction must be "input" or "output"');
     }
@@ -64,6 +77,14 @@ export class JsonSchemaGenerator {
    */
   public generate(root: IClass): IJsonSchema {
     const reference = this.#reference(root);
+    for (const discriminator of this.#discriminators) {
+      for (const [name, schema] of this.#definitions) {
+        const reference =
+          REFERENCE_PREFIXES[this.#target] + JsonSchemaGenerator.#escapePointer(name);
+        if (discriminator.reference === reference)
+          JsonSchemaCompatibility.discriminator(discriminator.name, discriminator.value, schema);
+      }
+    }
     const definitions = Object.fromEntries(this.#definitions);
     if (this.#target === "openapi-3.1") {
       return { ...reference, components: { schemas: definitions } };
@@ -108,7 +129,7 @@ export class JsonSchemaGenerator {
     const union = UnionRegistry.get(target);
     const schema = union === undefined ? this.#object(target) : this.#union(union.spec);
     const { describe, fragment } = ClassAnnotations.get(target);
-    return JsonSchemaGenerator.#annotate(schema, describe, fragment);
+    return this.#annotate(schema, describe, fragment);
   }
 
   #object(target: IClass): IJsonSchema {
@@ -148,7 +169,7 @@ export class JsonSchemaGenerator {
     const { modifiers } = field;
     const schema = this.#spec(field.type);
     const typed = modifiers.nullable === true ? JsonSchemaGenerator.#nullable(schema) : schema;
-    return JsonSchemaGenerator.#annotate(typed, modifiers.describe, modifiers.jsonSchema);
+    return this.#annotate(typed, modifiers.describe, modifiers.jsonSchema);
   }
 
   /** Lets `null` through: scalar types gain a `null` type, enums a `null` member, everything else an `anyOf`. */
@@ -161,11 +182,12 @@ export class JsonSchemaGenerator {
   }
 
   /** Layers documentation and then the manual fragment over the generated keywords. */
-  static #annotate(
+  #annotate(
     schema: IJsonSchema,
     describe: IDescribeOptions | undefined,
     fragment: IJsonSchemaFragment | undefined,
   ): IJsonSchema {
+    if (this.#compatibility !== undefined) JsonSchemaCompatibility.annotation(schema, fragment);
     const documentation = JsonSchemaGenerator.#compact({
       title: describe?.title,
       description: describe?.description,
@@ -176,6 +198,7 @@ export class JsonSchemaGenerator {
   }
 
   #spec(spec: ITypeSpec): IJsonSchema {
+    if (this.#compatibility !== undefined) JsonSchemaCompatibility.wire(spec, this.#compatibility);
     switch (spec.kind) {
       case "string":
         return JsonSchemaGenerator.#string(spec.rules);
@@ -294,6 +317,13 @@ export class JsonSchemaGenerator {
     const references = [...spec.variants].map(
       ([value, variant]) => [value, this.#spec(variant)] as const,
     );
+    if (this.#compatibility !== undefined)
+      for (const [value, reference] of references)
+        this.#discriminators.push({
+          name: spec.discriminator,
+          value,
+          reference: String(reference.$ref),
+        });
     return {
       oneOf: references.map(([, reference]) => reference),
       discriminator: {

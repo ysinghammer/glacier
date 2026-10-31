@@ -4,6 +4,7 @@ const FULL_COVERAGE_PERCENT = 100;
 const LIFECYCLE_TIMEOUT_MS = 10_000;
 
 export default defineConfig({
+  oxc: { decorator: { legacy: true } },
   cacheDir: "tests/artifacts/vitest",
   test: {
     environment: "node",

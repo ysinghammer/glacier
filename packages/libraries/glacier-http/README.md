@@ -6,7 +6,7 @@ start resources or activate compiler reflection. TypeScript and pnpm are workspa
 
 ## Current implementation boundary
 
-This is the phase-06 request pipeline, **not the completed production-ready v1 framework**.
+This is the phase-07 request pipeline and OpenAPI capability, **not a release or performance claim**.
 It provides explicit GET/POST/PUT/PATCH/DELETE handlers, all request binders, external
 authentication with method-level public opt-out, bounded JSON bodies, strict repeatable
 response contracts, HEAD/OPTIONS and Expect handling, alongside immutable cookies/requests.
@@ -18,11 +18,111 @@ an explicit `ApiResponse`. `void`/`undefined` means 204 only when declared; JSON
 cannot silently succeed without a body. Controllers remain shared application-owned instances.
 
 Static business mappings, metadata-only response logging, configurable limits and bounded native
-transport/request/log draining are implemented. OpenAPI remains deferred.
+transport/request/log draining and metadata-only OpenAPI 3.1 generation are implemented.
 `HttpEndpointMetadata.read(Class)` and `server.registration` are deliberate
 immutable public documentation contracts, with no instances/listeners/callbacks or OpenAPI dependency.
 Concurrent close calls share one promise; closing during startup cancels the one-use listener.
 No Express dependency, benchmark, browser compatibility or deployed-service E2E claim.
+
+## Metadata-only OpenAPI
+
+```ts
+import { IsString } from "@glacier/schema";
+import { ApiController, ApiGet, ApiResponse, HttpResponse, OpenApi } from "@glacier/http";
+
+/** Declared boundary schema, never constructed during generation. */
+class UserDto {
+  @IsString() public name!: string;
+}
+
+/** Application-owned query contract; no HTTP dependency belongs in its business implementation. */
+interface IUserQuery {
+  /** Returns the user selected by the application operation. */
+  read(): UserDto;
+}
+
+/** An adapter with dependencies unavailable during document generation. */
+@ApiController("/users", { tags: ["users"] })
+class UsersController {
+  readonly #users: IUserQuery;
+  /** Application composition supplies the service only when creating runtime controllers. */
+  public constructor(users: IUserQuery) {
+    this.#users = users;
+  }
+  /** Runtime declaration and documentation share one response contract. */
+  @ApiGet("/current", { summary: "Read the current user" })
+  @ApiResponse({ status: 200, type: UserDto, description: "The selected user" })
+  public read(): HttpResponse<UserDto> {
+    return HttpResponse.json(this.#users.read());
+  }
+}
+
+const document = OpenApi.generate({
+  controllers: [UsersController],
+  info: { title: "Users API", version: "1.0.0" },
+  authentication: {
+    schemeName: "oidc",
+    scheme: {
+      type: "openIdConnect",
+      openIdConnectUrl: "https://identity.example.com/.well-known/openid-configuration",
+    },
+  },
+});
+const json = JSON.stringify(document); // Application/build composition owns writing or serving it.
+```
+
+Supply **exactly one** of `controllers` (classes, never instances) or a created `server`.
+Server mode reads only `server.registration`: classes, static global mappings and authentication
+presence. The document's authentication must agree in both directions with that snapshot, before
+listen, while listening and after close. Class mode uses explicit documentation authentication.
+There is one named OIDC scheme; protected operations require it and `ApiPublic()` operations have
+no security requirement. `ApiUserId()` cannot be documented without authentication. No scope/role
+decorators, token verification, discovery/JWKS calls, listener, file writer, UI or document route.
+
+The capabilities are organized under `src/request-handling/` and `src/openapi-generation/`.
+OpenAPI consumes the deliberately curated request-handling metadata/registration contracts;
+request handling never imports OpenAPI. There is no `server.openApiDocument()`. The sole public
+entry is the package-root `index.ts`; capabilities have no inner barrels or public subpaths.
+
+Generation validates shared endpoint contracts and prepares/freezes reachable DTO metadata through
+`HttpEndpointMetadata.read`, but never constructs controllers/DTOs or runs defaults, transforms,
+refinements or authentication/logging callbacks. Lazy references are metadata resolvers and do run.
+Class declaration effects remain the consumer's responsibility. Returned records are detached JSON;
+readonly types are not a runtime freeze claim.
+
+Operation IDs default to `ControllerName.methodName`; route `operationId` overrides them. Tags,
+summary, description, deprecated, examples and custom response-header annotations come from the
+runtime decorators, not extra documentation-only decorators. Body examples and raw path examples
+become named Example Objects. Successful DTO/array/204 declarations preserve status/body contracts.
+Endpoint/controller/global mappings retain scope/class precedence, static safe problem details, and
+same-status alternatives as `anyOf`. Framework failures and protected-route 401 are included; safe
+issue components contain only location/path/code. HEAD and OPTIONS are implicit protocol behavior,
+not generated operations; unmatched 404 and method 405/Allow are described at document level.
+
+Stable `Input`/`Output` component suffixes preserve Rename wire names, direction-specific requiredness,
+cycles and discriminator references. Public `IsObject` graph composition lets one schema generation
+see all roots together, so distinct-class collisions across roots **and directions** fail even for
+identical schema bytes. Synthetic graph names never appear as components. Duplicate operation IDs,
+equivalent routes, inconsistent path names across methods, conflicting framework components,
+ambiguous bound parameters and reserved/duplicate response-header declarations fail, never overwrite.
+Exclusion removes document entries only; registered routes remain callable.
+
+Query scalar arrays (including nullable arrays) use `form`/`explode: true` repeated keys; object fields
+use `deepObject` with an explicit nested-tooling limitation. Nested repeated scalar arrays are supported,
+but object arrays at any depth, indexed/empty brackets, dotted paths and embedded JSON are not.
+Scalar tuples with at least two entries describe ordered repeated keys; singleton promotion is only
+for `IsArray`, so smaller query tuples are rejected. Header/cookie/path DTO fields must be scalar.
+
+Known structural/wire contradictions are checked via the public
+`Schema.assertJsonSchemaCompatibility` operation: strict JSON Date/bigint/Map/Set inputs, unfaithful
+literal/enum representations, altered structural fragments and missing/renamed/broad discriminator
+fields fail. Descriptive annotations remain permitted. Arbitrary transforms/refinements, overlapping
+`oneOf`, safe accessors, finite-number/collection identity semantics and all external tooling behavior
+are not fully expressible. These are bounded contract/reference/JSON checks, **not complete OpenAPI
+meta-schema validation**; no external validator dependency is installed.
+
+Evidence: [OpenAPI scenarios](tests/scenarios/openapi-generation/README.md) and
+[public type contracts](tests/contracts/OpenApiConfiguration.test-d.ts).
 
 ## Explicit composition
 

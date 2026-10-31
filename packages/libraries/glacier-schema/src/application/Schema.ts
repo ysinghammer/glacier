@@ -10,9 +10,25 @@ import { JsonSchemaGenerator } from "../domain/json-schema/JsonSchemaGenerator.j
 import { OutboundCompiler } from "../domain/serialization/OutboundCompiler.js";
 import { JsonProjection } from "../domain/serialization/JsonProjection.js";
 import type { IJsonValue } from "../domain/serialization/IJsonValue.js";
+import type { IJsonSchemaCompatibilityOptions } from "../domain/json-schema/IJsonSchemaCompatibilityOptions.js";
+import { JsonSchemaCompatibility } from "../domain/json-schema/JsonSchemaCompatibility.js";
 
 /** Public preparation, input validation, outbound JSON projection and directional schema generation. */
 export class Schema {
+  /**
+   * Checks all reachable metadata for known wire-type and structural annotation contradictions.
+   * Resolves lazy metadata references only; never constructs values or runs defaults/transforms/refinements,
+   * freezes metadata, or changes ordinary parsing/generation. Throws SchemaDefinitionError on disagreement.
+   * Output uses JSON without coercion. Bounded checks do not prove arbitrary callback equivalence or validate
+   * the complete external JSON Schema/OpenAPI specification.
+   */
+  public static assertJsonSchemaCompatibility<T extends object>(
+    target: IConstructableClass<T>,
+    options: IJsonSchemaCompatibilityOptions,
+  ): void {
+    JsonSchemaCompatibility.options(options);
+    new JsonSchemaGenerator("openapi-3.1", options.direction, options).generate(target);
+  }
   /**
    * Synchronously prepares input/output processing and freezes reachable schema metadata and ancestors.
    * Resolves lazy metadata references but never runs constructors, defaults, transforms or refinements.
