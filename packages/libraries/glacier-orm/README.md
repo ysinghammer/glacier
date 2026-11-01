@@ -1,6 +1,54 @@
 # @glacier/orm
 
-This package is an early PostgreSQL library. Importing it does not open a database connection.
+This package is a thin PostgreSQL library for writing SQL, validating results, and running migrations.
+Importing it does not open a database connection. Its public API is exported from the package root.
+
+## Quick start
+
+Install the workspace packages used by the application, including `@glacier/orm`, `@glacier/schema`, and
+`@glacier/reflection`. Enable TypeScript's `experimentalDecorators` and `emitDecoratorMetadata`, and import
+`@glacier/reflection/register` before modules containing decorated classes execute. See the
+[schema quick start](../glacier-schema/README.md#quick-start). Set `DATABASE_URL` securely and apply a
+migration creating `users (id bigint generated always as identity primary key, name text not null)`.
+
+```ts
+import "@glacier/reflection/register";
+import { DbFactory, Sql, TableMapping } from "@glacier/orm";
+import { IsBigInt, IsString, Optional } from "@glacier/schema";
+
+@TableMapping.table("users")
+class User {
+  @IsBigInt()
+  @Optional()
+  @TableMapping.generated()
+  public id?: bigint;
+
+  @IsString({ min: 1, trim: true })
+  public name!: string;
+}
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL is required");
+const db = DbFactory.create({ poolConfig: { connectionString: databaseUrl } });
+try {
+  const insert = Sql.values(User, { name: " Ada " });
+  if (!insert.ok) {
+    // Handle insert.issues as an expected validation rejection, with boundary-safe redaction.
+    console.error("Invalid user input");
+  } else {
+    const user = await db.one(User, Sql.tag`insert into users ${insert.value} returning id, name`);
+    const matches = await db.many(User, Sql.tag`select id, name from users where id = ${user.id}`);
+    console.log(matches.length); // 1; the inserted name was normalized to "Ada".
+  }
+} finally {
+  await db.close();
+}
+```
+
+The examples below use an active `db` from application composition unless they construct their own. SQL
+in template literals is trusted; interpolated ordinary values are bound parameters. See
+[write fragments](#write-fragments) for handling both insert and update outcomes and
+[migrations](#migrations) for creating the tables.
 
 ## Migrations
 
@@ -49,7 +97,9 @@ class Count {
   public count!: number;
 }
 
-const db = DbFactory.create({ poolConfig: { connectionString: process.env.DATABASE_URL } });
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL is required");
+const db = DbFactory.create({ poolConfig: { connectionString: databaseUrl } });
 try {
   const result = await db.one(Count, Sql.tag`select count(*)::int as count from users`);
   console.log(result.count);
@@ -70,6 +120,54 @@ needed. Multi-statement SQL without parameters uses the simple protocol.
 
 Outside transactions, subsequent observer, cardinality, row-mapping, or multi-result failures do not
 undo successful database effects. Ordinary interpolated values are parameters, and pool clients are released.
+
+### Application composition and lifecycle
+
+Registration is explicit; the ORM does not depend on or register itself with `@glacier/ioc`. An application
+that already uses the workspace IoC package can register its database as a value provider. This example
+closes the container first so its dependents can finish using the database, then closes the database even
+if container creation or shutdown fails. It retains failures from both work and cleanup:
+
+```ts
+import "@glacier/reflection/register";
+import { GlacierContainer, Module } from "@glacier/ioc";
+import { Database, DbFactory, Sql } from "@glacier/orm";
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL is required");
+const database = DbFactory.create({ poolConfig: { connectionString: databaseUrl } });
+
+@Module({ providers: [{ provide: Database, useValue: database }], exports: [Database] })
+class AppModule {}
+
+let container: GlacierContainer | undefined;
+const failures: unknown[] = [];
+try {
+  container = await GlacierContainer.create(AppModule);
+  const registeredDatabase = container.get(Database);
+  await registeredDatabase.execute(Sql.tag`select 1`);
+  // Start and stop application resources that depend on the database here.
+} catch (error: unknown) {
+  failures.push(error);
+} finally {
+  try {
+    await container?.close();
+  } catch (error: unknown) {
+    failures.push(error);
+  }
+  try {
+    await database.close();
+  } catch (error: unknown) {
+    failures.push(error);
+  }
+}
+if (failures.length > 0) throw new AggregateError(failures, "Application lifecycle failed");
+```
+
+The application owns the database's explicit `close()`; container shutdown does not call it automatically.
+Constructing the pool is not a readiness check: coordinate startup, partial-failure cleanup and shutdown
+for all application resources, and treat aggregated causes as potentially sensitive. See the
+[IoC lifecycle documentation](../glacier-ioc/README.md#lifecycle-and-close).
 
 `onQuery` receives one event for each PostgreSQL execution, before row mapping or
 cardinality checks. It contains compiled text, elapsed milliseconds, the reported row count (or null),
@@ -111,6 +209,8 @@ from `DbFactory`; a directly supplied invalid duration throws `TypeError`. Logge
 follow the database observer propagation rules above; transport failures follow logger policy.
 
 ## Transactions
+
+This example assumes `users(name)` and `audit_log(event)` exist:
 
 ```ts
 const result = await db.transaction(
@@ -160,8 +260,10 @@ const { text, values } = query.compile();
 Values, including arrays, are parameters; nested fragments compose with numbering assigned at
 compilation. `Sql.join(items, separator)` joins values or fragments with a fragment separator
 (default `Sql.raw(", ")`); an empty list produces empty SQL. `Sql.ident(name)` quotes a single
-identifier, including any dots. `Sql.raw(text)` inserts text verbatim and is unsafe for untrusted
-input. Direct `SqlFragment` construction also treats template segments as trusted SQL.
+identifier, including any dots; compose separate identifiers and a trusted `.` for a qualified name.
+`Sql.raw(text)` inserts text verbatim and is unsafe for untrusted input. Never pass user input, secrets,
+or interpolated strings to `Sql.raw`; bind values instead, and select SQL syntax from trusted code.
+Direct `SqlFragment` construction also treats template segments as trusted SQL.
 Fragment structure is immutable, but referenced parameter objects are neither copied nor frozen.
 Each compilation returns a new caller-owned values array compatible with `pg` query configuration.
 `SqlFragment.parameter(value)` binds any value, even a `SqlFragment`, as one parameter rather than
@@ -223,11 +325,24 @@ column set. `Sql.set(Table, patch)` validates a nonempty shallow partial and ret
 Only successful results carry an interpolatable fragment; failures carry `issues`. Database or schema
 definition failures remain exceptional. Neither helper executes SQL.
 
+Using the `User` mapping above, this example assumes a `users` table with a string `id` and
+`display_name` column; it is separate from the quick start's bigint `id` and `name` table.
+
 ```ts
 const insert = Sql.values(User, { displayName: "Ada" });
 if (insert.ok) {
-  const query = Sql.tag`insert into ${Sql.ident("users")} ${insert.value}`;
-  console.log(query.compile());
+  await db.execute(Sql.tag`insert into ${Sql.ident("users")} ${insert.value}`);
+} else {
+  // Handle insert.issues as an expected rejection; do not expose raw issues.
+}
+
+const update = Sql.set(User, { displayName: "Grace" });
+if (update.ok) {
+  await db.execute(
+    Sql.tag`update ${Sql.ident("users")} set ${update.value} where id = ${"user-id"}`,
+  );
+} else {
+  // Handle update.issues as an expected rejection; do not expose raw issues.
 }
 ```
 
@@ -281,6 +396,47 @@ schema error cause. The summary message omits row values, but issues and causes 
 sensitive details and must not be exposed or logged without review. Schema definition and callback
 exceptions propagate unchanged. No database connection is required to use the mapper.
 
+### Nested PostgreSQL results
+
+PostgreSQL builds nested JSON; the ORM validates the decoded objects rather than loading relations.
+For example, with `users(id)` and `orders(id, user_id, amount numeric)`, the following projection
+returns a user and an empty array when there are no orders. The snippet uses the active `db` and a
+caller-provided `userId: bigint`:
+
+```ts
+import { IsArray, IsBigInt, IsNumber } from "@glacier/schema";
+import { Sql } from "@glacier/orm";
+
+class OrderSummary {
+  @IsBigInt() public id!: bigint;
+  @IsNumber() public amount!: number;
+}
+
+class UserOrders {
+  @IsBigInt() public userId!: bigint;
+  @IsArray(OrderSummary) public orders!: OrderSummary[];
+}
+
+const result = await db.maybeOne(
+  UserOrders,
+  Sql.tag`
+  select u.id::text as "userId",
+    coalesce(
+      (select json_agg(json_build_object('id', o.id::text, 'amount', o.amount::text) order by o.id)
+       from orders o where o.user_id = u.id),
+      '[]'::json
+    ) as orders
+  from users u where u.id = ${userId}
+`,
+);
+// result is undefined when the user does not exist; otherwise orders contain OrderSummary instances.
+```
+
+Casting the bigint to text before JSON construction avoids JSON number precision loss before schema
+coercion. `IsNumber` converts the numeric text to a JavaScript number, which can lose decimal precision;
+use a suitable exact representation when precision matters. For renamed fields, SQL aliases and nested
+JSON keys must follow the wire-name rules above.
+
 ## Errors
 
 `PgErrors.map` translates the six supported SQLSTATEs from `pg.DatabaseError` into
@@ -295,7 +451,7 @@ import { PgErrors, UniqueViolation } from "@glacier/orm";
 declare const caughtValue: unknown; // A value caught from a database operation.
 const mapped = PgErrors.map(caughtValue);
 if (mapped instanceof UniqueViolation) {
-  console.log(mapped.code, mapped.constraint);
+  console.log("A unique constraint was violated");
 }
 ```
 
@@ -308,3 +464,6 @@ The package builds with `pnpm --filter @glacier/orm build` and runs its scenario
 checks with `pnpm --filter @glacier/orm test`. Type contracts are checked by
 `pnpm --filter @glacier/orm lint:types` after the package is built. Runtime coverage reports measure
 emitted JavaScript, combining package-root scenarios with CLI subprocesses; they are not source-mapped.
+CI verifies a one-to-one inventory of executable sources and emitted files and enforces per-file
+thresholds on the emitted coverage. Integration scenarios require Docker and real PostgreSQL containers;
+type-only exports are checked separately and are not runtime coverage.
