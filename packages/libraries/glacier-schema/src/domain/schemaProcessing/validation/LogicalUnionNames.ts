@@ -65,9 +65,14 @@ export class LogicalUnionNames {
   private static resolve(variant: ITypeSpec): IClass {
     const target: unknown =
       variant.kind === "lazy" ? variant.resolve() : Reflect.get(variant, "target");
-    if (typeof target !== "function" || !Object.hasOwn(target, "prototype")) {
+    if (typeof target !== "function") {
       throw new SchemaDefinitionError("A lazy object reference did not resolve to a class");
     }
+    const prototype: unknown = Object.getOwnPropertyDescriptor(target, "prototype")?.value;
+    if (typeof prototype !== "object" || prototype === null) {
+      throw new SchemaDefinitionError("A lazy object reference did not resolve to a class");
+    }
+    // TypeScript cannot narrow the function's prototype from its own property descriptor.
     return target as IClass;
   }
 }

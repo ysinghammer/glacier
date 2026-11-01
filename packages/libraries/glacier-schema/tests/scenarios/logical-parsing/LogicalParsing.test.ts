@@ -354,6 +354,54 @@ describe("logical parsing", () => {
     );
   });
 
+  it.each([null, undefined, 1, "invalid", () => {}])(
+    "rejects malformed lazy union prototypes during root and field logical parsing: %s",
+    (prototype) => {
+      const malformed = Cat.bind(null);
+      Object.defineProperty(malformed, "prototype", { value: prototype });
+      /** Root union with a malformed lazy variant. */
+      class Root {}
+      IsUnion({ discriminator: "type", variants: { cat: Cat, bad: () => malformed } })(Root);
+      /** Object containing a field union with the same malformed variant. */
+      class Parent {
+        /** Nested discriminated value. */
+        public pet!: Cat;
+      }
+      FieldDeclaration.declare(
+        Parent,
+        "pet",
+        Object,
+        IsUnion({ discriminator: "type", variants: { cat: Cat, bad: () => malformed } }),
+      );
+      for (const input of [{ catKind: "cat", name: "Milo" }, { type: "bad" }]) {
+        expect(() => Schema.safeParseLogical(Root, input)).toThrow(SchemaDefinitionError);
+        expect(() => Schema.safeParseLogical(Parent, { pet: input })).toThrow(
+          SchemaDefinitionError,
+        );
+      }
+    },
+  );
+
+  it("rejects lazy targets without an own data prototype without invoking accessors", () => {
+    const accessorTarget = Cat.bind(null);
+    let reads = 0;
+    Object.defineProperty(accessorTarget, "prototype", {
+      get: () => {
+        reads += 1;
+        return Cat.prototype;
+      },
+    });
+    for (const resolve of [() => accessorTarget, () => (() => {}) as never]) {
+      /** Root union whose invalid lazy variant is not selected. */
+      class Root {}
+      IsUnion({ discriminator: "type", variants: { cat: Cat, bad: resolve } })(Root);
+      expect(() => Schema.safeParseLogical(Root, { catKind: "cat", name: "Milo" })).toThrow(
+        SchemaDefinitionError,
+      );
+    }
+    expect(reads).toBe(0);
+  });
+
   it("supports variants without a declared discriminator field and freezes parsed metadata", () => {
     /** Variant without a declared discriminator property. */
     class Variant {
