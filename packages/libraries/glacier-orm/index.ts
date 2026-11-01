@@ -16,3 +16,5 @@ export type { ICompiledSql } from "./src/domain/sqlComposition/SqlFragment.js";
 export { TableMapping } from "./src/application/tableMapping/TableMapping.js";
 export type { ITableMapping } from "./src/domain/tableMapping/types/ITableMapping.js";
 export type { ITableColumn } from "./src/domain/tableMapping/types/ITableColumn.js";
+export type { IInsertShape } from "./src/domain/tableMapping/types/IInsertShape.js";
+export type { IUpdateShape } from "./src/domain/tableMapping/types/IUpdateShape.js";
