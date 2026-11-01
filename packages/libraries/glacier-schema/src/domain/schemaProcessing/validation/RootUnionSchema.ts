@@ -3,6 +3,7 @@ import type { ITypeSpec } from "../schema/types/ITypeSpec.js";
 import type { IClassUnion } from "../schema/UnionRegistry.js";
 import { NestedSchemaValidator } from "./NestedSchemaValidator.js";
 import { UnionValidatorFactory } from "./factories/UnionValidator.factory.js";
+import { LogicalUnionNames } from "./LogicalUnionNames.js";
 
 /** Builds the compiled schema of a class decorated with `IsUnion`. */
 export class RootUnionSchema {
@@ -19,7 +20,9 @@ export class RootUnionSchema {
         NestedSchemaValidator.create(() => RootUnionSchema.resolve(variant), 0),
       ]),
     );
-    const validate = UnionValidatorFactory.discriminated(union.spec.discriminator, variants);
+    const validate = UnionValidatorFactory.discriminated(union.spec.discriminator, variants, () =>
+      LogicalUnionNames.read(union.spec.discriminator, union.spec.variants),
+    );
     return (input, context) => {
       const outcome = validate(input, context);
       if (outcome.isValid) {

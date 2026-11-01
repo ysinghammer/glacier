@@ -6,4 +6,6 @@ export interface IParseContext {
   readonly options: ISchemaParseOptions;
   /** Number of enclosing class schemas; `0` while validating the root class. */
   readonly depth: number;
+  /** Whether class fields are read by logical property instead of wire names. */
+  readonly isLogical?: boolean;
 }

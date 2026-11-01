@@ -96,6 +96,13 @@ Schema.propertyMappings(AbstractUser);
 
 const instance: User = Schema.parse(User, {});
 const result: IResult<User> = Schema.safeParse(User, {});
+const logicalResult: IResult<User> = Schema.safeParseLogical(User, {}, { coerce: true });
+const logicalPartial: IResult<Partial<User>> = Schema.safeParseLogical(PartialType(User), {});
+// @ts-expect-error Logical parsing takes a class rather than an instance.
+Schema.safeParseLogical(new User(), {});
+// @ts-expect-error Logical parsing accepts only supported parse options.
+Schema.safeParseLogical(User, {}, { unknown: true });
+void [logicalResult, logicalPartial];
 if (result.ok) {
   const value: User = result.value;
   void value;

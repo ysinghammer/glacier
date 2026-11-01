@@ -171,12 +171,11 @@ export class SchemaCompiler {
   ): ISchemaIssue[] {
     const issues: ISchemaIssue[] = [];
     for (const field of fields) {
-      const raw = Object.hasOwn(input, field.inputKey)
-        ? Reflect.get(input, field.inputKey)
-        : undefined;
+      const inputKey = context.isLogical === true ? field.key : field.inputKey;
+      const raw = Object.hasOwn(input, inputKey) ? Reflect.get(input, inputKey) : undefined;
       const outcome = field.process(raw, context);
       if (!outcome.isValid) {
-        issues.push(...SchemaCompiler.fieldFailures(field, outcome.failures));
+        issues.push(...SchemaCompiler.fieldFailures(field, inputKey, outcome.failures));
       } else if (outcome.value !== undefined) {
         Object.defineProperty(instance, field.key, {
           value: outcome.value,
@@ -192,15 +191,17 @@ export class SchemaCompiler {
   /**
    * Converts value failures to public issues prefixed with the field input key.
    * @param field Field whose input key and message override apply.
+   * @param inputKey Selected logical or wire name for this parse.
    * @param failures Failures returned by the field processor.
    * @returns Public issue records with complete field paths.
    */
   private static fieldFailures(
     field: ICompiledField,
+    inputKey: string,
     failures: readonly IValueFailure[],
   ): ISchemaIssue[] {
     return failures.map((failure) => ({
-      path: [field.inputKey, ...(failure.path ?? [])],
+      path: [inputKey, ...(failure.path ?? [])],
       code: failure.code,
       message:
         failure.hasOwnMessage === true ? failure.message : (field.message ?? failure.message),

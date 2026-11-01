@@ -21,7 +21,7 @@ export class NestedSchemaValidator {
         return { isValid: false, failures: [TypeFailure.invalidType("object", value)] };
       }
       schema ??= NestedSchemaValidator.compile(resolve);
-      const result = schema(value, { options: context.options, depth: context.depth + levelStep });
+      const result = schema(value, { ...context, depth: context.depth + levelStep });
       if (result.ok) return { isValid: true, value: result.value };
       return {
         isValid: false,

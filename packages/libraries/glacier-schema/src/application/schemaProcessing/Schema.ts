@@ -103,6 +103,26 @@ export class Schema {
   }
 
   /**
+   * Validates logical property names recursively using the inbound parsing pipeline, without JSON projection.
+   * @template T Instance type returned for the decorated DTO class.
+   * @param target Decorated DTO class whose schema validates the input.
+   * @param input Untrusted logical value to validate and copy into a constructor-free instance.
+   * @param options Per-call coercion, singleton-array, and depth settings; defaults to `{}`.
+   * @returns Normalized native DTO on success, or validation issues on failure.
+   * @remarks Uses the `safeParse` pipeline, strips unknown fields, and freezes metadata on parsing.
+   * @remarks Collections may be copied; native values are not projected to JSON.
+   * @remarks Distinct present logical discriminator names produce an invalid-discriminator issue.
+   * @remarks Union dispatch resolves variant metadata to identify all possible logical names.
+   */
+  public static safeParseLogical<T extends object>(
+    target: IConstructableClass<T>,
+    input: unknown,
+    options: ISchemaParseOptions = {},
+  ): IResult<T> {
+    return SchemaCompiler.compile<T>(target)(input, { options, depth: 0, isLogical: true });
+  }
+
+  /**
    * Parses unknown input and returns the DTO instance; unlike `safeParse`, invalid input is reported by an exception.
    * @template T - Object instance type returned for the decorated DTO class.
    * @param target Decorated DTO class whose schema validates the input.

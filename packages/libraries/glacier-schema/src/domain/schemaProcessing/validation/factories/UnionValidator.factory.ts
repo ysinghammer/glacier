@@ -12,17 +12,27 @@ export class UnionValidatorFactory {
    * Creates a validator that dispatches an object to the validator selected by its discriminator.
    * @param discriminator Own property whose string value selects the variant.
    * @param variants Map from allowed discriminator strings to value validators.
+   * @param logicalNames Lazy logical property names for the variants.
    * @returns Validator that preserves the selected variant's outcome and issue paths.
    */
   public static discriminated(
     discriminator: string,
     variants: ReadonlyMap<string, IValueValidator>,
+    logicalNames: () => ReadonlyMap<string, readonly string[]>,
   ): IValueValidator {
     const expected = [...variants.keys()];
     return (value, context) => {
       if (typeof value !== "object" || value === null || Array.isArray(value)) {
         return { isValid: false, failures: [TypeFailure.invalidType("object", value)] };
       }
+      if (context.isLogical === true)
+        return UnionValidatorFactory.logical(
+          value,
+          context,
+          discriminator,
+          variants,
+          logicalNames(),
+        );
       const received = Object.hasOwn(value, discriminator)
         ? Reflect.get(value, discriminator)
         : undefined;
@@ -34,6 +44,63 @@ export class UnionValidatorFactory {
         };
       }
       return variant(value, context);
+    };
+  }
+
+  /**
+   * Selects a variant by its logical discriminator, rejecting multiple distinct candidate properties.
+   * @param value Object containing the discriminator.
+   * @param context Per-parse options and nesting state.
+   * @param discriminator Wire discriminator identifying the union in diagnostics.
+   * @param variants Validators indexed by tag.
+   * @param names Logical discriminator names indexed by tag.
+   * @returns Selected variant outcome or typed discriminator failure.
+   */
+  private static logical(
+    value: object,
+    context: IParseContext,
+    discriminator: string,
+    variants: ReadonlyMap<string, IValueValidator>,
+    names: ReadonlyMap<string, readonly string[]>,
+  ): IValueOutcome {
+    const keys = [...new Set([...names.values()].flat())];
+    const present = keys.filter((key) => Object.hasOwn(value, key));
+    if (present.length > 1) {
+      return {
+        isValid: false,
+        failures: [
+          {
+            code: "invalid_discriminator",
+            path: [],
+            message: "Ambiguous logical discriminator properties",
+            params: { discriminator, properties: present },
+          },
+        ],
+      };
+    }
+    const key = present[0];
+    if (key === undefined) {
+      return {
+        isValid: false,
+        failures: [
+          {
+            code: "invalid_discriminator",
+            path: [],
+            message: "Missing logical discriminator property",
+            params: { discriminator, properties: keys },
+          },
+        ],
+      };
+    }
+    const received: unknown = Reflect.get(value, key);
+    const variant =
+      typeof received === "string" && names.get(received)?.includes(key) === true
+        ? variants.get(received)
+        : undefined;
+    if (variant !== undefined) return variant(value, context);
+    return {
+      isValid: false,
+      failures: [UnionValidatorFactory.discriminatorFailure(key, [...variants.keys()], received)],
     };
   }
 

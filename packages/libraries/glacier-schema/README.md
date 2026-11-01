@@ -27,6 +27,30 @@ schema and freezes the metadata of the class and its ancestors; decorating after
 `SchemaDefinitionError`. A primitive decorator that contradicts the emitted TypeScript type (for example
 `@IsString()` on a `number` property) also throws; unions and interfaces emit `Object` and are not checked.
 
+`Schema.safeParseLogical(Class, input, options?)` uses the same inbound validation and normalization pipeline,
+but reads logical property names recursively, including inside nested classes and collections. `Rename` wire
+names are not read. Successful values are constructor-free logical DTOs with native bigint, Date, and collection
+types, not JSON projections; collections and nested objects may be copied. Failures carry typed issues with
+logical field paths. Distinct present logical discriminator names in a union are rejected as ambiguous.
+To identify those names, logical union dispatch resolves metadata for every variant, including lazy references;
+invalid references or non-progressing root-union cycles throw `SchemaDefinitionError` even when another
+variant would otherwise match. Missing or ambiguous discriminator properties produce issues at the union
+path with candidate logical property names in `params.properties`.
+`PartialType(Class)` retains its normal shallow update semantics: top-level defaults and class refinements are
+omitted, while supplied nested objects retain their own defaults and refinements. Full-row invariants require
+separate full-row or database validation. Existing `safeParse` continues to read wire names.
+
+```ts
+import { IsString, Rename, Schema } from "@glacier/schema";
+
+class LogicalUser {
+  @IsString() @Rename("display_name") public name!: string;
+}
+
+const logical = Schema.safeParseLogical(LogicalUser, { name: "Ada" });
+if (logical.ok) console.log(logical.value.name);
+```
+
 ## Scenarios
 
 See [tests/scenarios/README.md](tests/scenarios/README.md).

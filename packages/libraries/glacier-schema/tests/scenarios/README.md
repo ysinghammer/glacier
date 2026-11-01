@@ -13,6 +13,7 @@
 | [parsing-pipeline](parsing-pipeline/README.md)   | `Schema.parse`/`Schema.safeParse` turning untrusted input into real class instances, with a frozen, cached schema. |
 | [primitive-types](primitive-types/README.md)     | Scalar, literal, enum and any decorators with design-type checking and validated field declarations.               |
 | [refine](refine/README.md)                       | Property-level and class-level synchronous refinements for cross-field rules with configurable issues.             |
+| [logical-parsing](logical-parsing/README.md)     | Recursive logical-name input parsing with native values and typed issues.                                          |
 | [unions](unions/README.md)                       | Discriminated unions on properties and base classes, and non-discriminated `IsOneOf` unions.                       |
 | [validation-errors](validation-errors/README.md) | Issues with paths and stable codes, overridable messages, `SchemaError` and the `Schema.isError` guard.            |
 | [preparation](preparation/README.md)             | Early definition validation and reachable metadata freezing without value callbacks.                               |

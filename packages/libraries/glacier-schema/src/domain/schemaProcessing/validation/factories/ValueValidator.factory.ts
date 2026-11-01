@@ -9,6 +9,7 @@ import { StringRuleChecker } from "../StringRuleChecker.js";
 import { TypeFailure } from "../TypeFailure.js";
 import { UnionValidatorFactory } from "./UnionValidator.factory.js";
 import { ValueCoercer } from "../ValueCoercer.js";
+import { LogicalUnionNames } from "../LogicalUnionNames.js";
 
 /**
  * Validates one value against a declared type without mutating it.
@@ -91,6 +92,7 @@ export class ValueValidatorFactory {
               ValueValidatorFactory.create(variant),
             ]),
           ),
+          () => LogicalUnionNames.read(type.discriminator, type.variants),
         );
       case "oneOf":
         return UnionValidatorFactory.oneOf(
