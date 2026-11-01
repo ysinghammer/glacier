@@ -470,3 +470,17 @@ emitted JavaScript, combining package-root scenarios with CLI subprocesses; they
 CI verifies a one-to-one inventory of executable sources and emitted files and enforces per-file
 thresholds on the emitted coverage. Integration scenarios require Docker and real PostgreSQL containers;
 type-only exports are checked separately and are not runtime coverage.
+
+The executable [customer and checkout examples](tests/scenarios/example-repositories/Checkout.test.ts)
+use real PostgreSQL in Testcontainers, with a separate schema per test. They demonstrate validated
+inserts and partial updates, upserts, soft deletion, parameterized searches, monthly revenue, nested
+`json_agg` projections, and transaction rollback on database constraint failures. Checkout accepts a
+caller-supplied, validated decimal total; it does not calculate pricing and is not a production
+checkout implementation. Docker must be available to run these scenarios.
+
+The customer example translates duplicate emails into a typed outcome. Inside a transaction, catching
+a PostgreSQL error alone does not restore the transaction; use a nested transaction/savepoint to recover.
+Checkout awards loyalty points in a savepoint. Its illustrative two-point cap returns an explicit
+`limit_reached` outcome after rolling back the award, while retaining the committed order. Unexpected
+loyalty errors propagate and roll back the entire checkout. The sample does not retry serialization
+failures; a real deterministic serialization-conflict scenario has not been added.
