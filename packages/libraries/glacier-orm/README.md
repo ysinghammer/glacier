@@ -356,6 +356,9 @@ database validation. Nested fields retain their own schema defaults and refineme
 Both helpers bind normalized logical values, not JSON projections or necessarily the caller's original
 objects. SQL fragments supplied as field values are parameters, not SQL syntax. Unknown own properties,
 symbols, empty rows, explicitly undefined values, and supplied values transformed to undefined are rejected.
+The exception is a single empty insert row for a table whose fields are all marked generated or database-defaulted:
+if schema validation succeeds, it produces `default values`. PostgreSQL has no multi-row `default values`
+form, so multiple empty rows remain rejected. Empty updates remain rejected.
 Multi-row issue paths start with the zero-based row index; mismatched column sets are also typed failures.
 Native schema validation does not guarantee every accepted value can be encoded by `pg` for a given column.
 Issues inherited from schema validation may contain input values or callback details; redact them at public

@@ -34,7 +34,10 @@ export class SqlWriteStatements {
       ? Array.from({ length: input.length }, (_, index) => input[index])
       : [input];
     if (inputs.length === 0) return SqlWriteStatements.failure([], "empty_rows");
-    const first = SqlWriteStatements.validate(target, mapping, inputs[0]);
+    const first =
+      inputs.length === 1
+        ? SqlWriteStatements.validateSingleInsert(target, mapping, inputs[0])
+        : SqlWriteStatements.validate(target, mapping, inputs[0]);
     const following = Array.from(inputs.slice(1), (row) =>
       SqlWriteStatements.validate(target, mapping, row),
     );
@@ -94,7 +97,76 @@ export class SqlWriteStatements {
   ): IResult<IWriteRow> {
     if (typeof input !== "object" || input === null || Array.isArray(input))
       return SqlWriteStatements.failure([], "invalid_row");
+    return SqlWriteStatements.validateProperties(schema, mapping, input, Reflect.ownKeys(input));
+  }
+
+  /**
+   * Routes an empty database-owned insert to its separate validation path.
+   * @template T Instance type of the full table schema.
+   * @param schema Full schema for the candidate row.
+   * @param mapping Effective table fields and database ownership.
+   * @param input Untrusted candidate row.
+   * @returns Validated row or its typed issues.
+   */
+  private static validateSingleInsert<T extends object>(
+    schema: IConstructableClass<T>,
+    mapping: ITableMapping,
+    input: unknown,
+  ): IResult<IWriteRow> {
+    if (typeof input !== "object" || input === null || Array.isArray(input))
+      return SqlWriteStatements.failure([], "invalid_row");
     const keys = Reflect.ownKeys(input);
+    if (
+      keys.length === 0 &&
+      mapping.columns.length > 0 &&
+      mapping.columns.every((column) => column.isInsertOptional)
+    ) {
+      return SqlWriteStatements.validateDefaultInsert(schema, mapping, input);
+    }
+    return SqlWriteStatements.validateProperties(schema, mapping, input, keys);
+  }
+
+  /**
+   * Validates an empty insert whose columns are all owned by the database.
+   * @template T Instance type of the full table schema.
+   * @param schema Full schema including class refinements.
+   * @param mapping Effective database-owned table fields.
+   * @param input Candidate whose own-key snapshot was empty.
+   * @returns Validated row or schema and normalized-value issues.
+   */
+  private static validateDefaultInsert<T extends object>(
+    schema: IConstructableClass<T>,
+    mapping: ITableMapping,
+    input: object,
+  ): IResult<IWriteRow> {
+    const result = Schema.safeParseLogical(schema, input);
+    if (!result.ok)
+      return {
+        ok: false,
+        issues: [SqlWriteStatements.issue([], "empty_row"), ...result.issues],
+      };
+    const supplied = new Set<string>();
+    const issues: ISchemaIssue[] = [];
+    const values = SqlWriteStatements.snapshot(mapping, result.value, supplied, issues);
+    if (issues.length > 0) return { ok: false, issues };
+    return { ok: true, value: { supplied, values } };
+  }
+
+  /**
+   * Validates ordinary row properties against a previously captured own-key snapshot.
+   * @template T Instance type returned by the full or partial schema.
+   * @param schema Full or shallow partial schema for the candidate row.
+   * @param mapping Effective table fields used to reject unknown properties.
+   * @param input Candidate object passed to schema validation.
+   * @param keys Own-key snapshot taken before schema callbacks run.
+   * @returns Normalized values and supplied-property snapshot, or every detected issue.
+   */
+  private static validateProperties<T extends object>(
+    schema: IConstructableClass<T>,
+    mapping: ITableMapping,
+    input: object,
+    keys: readonly PropertyKey[],
+  ): IResult<IWriteRow> {
     const supplied = new Set(keys.filter((key) => typeof key === "string"));
     const issues = SqlWriteStatements.inputIssues(mapping, input, keys);
     const result = Schema.safeParseLogical(schema, input);
@@ -194,12 +266,13 @@ export class SqlWriteStatements {
    * Creates an insert column list and row tuples without interpreting bound fragments as SQL.
    * @param columns Validated matching columns in table order.
    * @param rows Normalized rows in caller order.
-   * @returns Immutable parameterized SQL fragment.
+   * @returns Immutable parameterized SQL fragment, or DEFAULT VALUES for one default-only row.
    */
   private static valuesFragment(
     columns: readonly ITableColumn[],
     rows: readonly IWriteRow[],
   ): SqlFragment {
+    if (columns.length === 0) return new SqlFragment(["default values"], []);
     const strings: string[] = [];
     const values: SqlFragment[] = [];
     let text = `(${columns.map((column) => SqlIdentifiers.quote(column.column)).join(", ")}) values (`;

@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import pg from "pg";
-import { IsArray, IsBigInt, IsInt, IsString } from "@glacier/schema";
+import { Default, IsArray, IsBigInt, IsInt, IsString, Optional } from "@glacier/schema";
 import {
   Database,
   DbFactory,
@@ -78,6 +78,75 @@ describe("database access against PostgreSQL", () => {
     expect(events[1]?.durationMs).toBeGreaterThanOrEqual(0);
     expect(events[1]?.error).toBeUndefined();
     expect(await database.execute(Sql.tag`delete from items where id = ${99}`)).toBe(0);
+  });
+
+  it("inserts one fully database-defaulted row and returns actual PostgreSQL defaults", async () => {
+    /** Table with only database-owned optional fields. */
+    class Defaults {
+      /** Generated PostgreSQL identity. */
+      public id?: number;
+      /** Database default distinct from the schema default. */
+      public value?: string;
+    }
+    TableMapping.table("defaults")(Defaults);
+    IsInt()(Defaults.prototype, "id");
+    Optional()(Defaults.prototype, "id");
+    TableMapping.generated()(Defaults.prototype, "id");
+    IsString()(Defaults.prototype, "value");
+    Optional()(Defaults.prototype, "value");
+    Default("schema")(Defaults.prototype, "value");
+    TableMapping.dbDefault()(Defaults.prototype, "value");
+    await database.pool.query(
+      "create table defaults (id integer generated always as identity, value text default 'database')",
+    );
+    const insert = Sql.values(Defaults, {});
+    expect(insert.ok).toBe(true);
+    if (!insert.ok) throw new Error("expected valid default-only insert");
+    expect(insert.value.compile()).toEqual({ text: "default values", values: [] });
+    expect(
+      await database.one(Defaults, Sql.tag`insert into defaults ${insert.value} returning *`),
+    ).toMatchObject({ id: 1, value: "database" });
+    const singleBatch = Sql.values(Defaults, [{}]);
+    expect(singleBatch.ok).toBe(true);
+    if (!singleBatch.ok) throw new Error("expected valid single-row batch");
+    expect(await database.execute(Sql.tag`insert into defaults ${singleBatch.value}`)).toBe(1);
+    expect(Sql.values(Defaults, [{}, {}])).toMatchObject({
+      ok: false,
+      issues: [
+        { path: [0], params: { reason: "empty_row" } },
+        { path: [1], params: { reason: "empty_row" } },
+      ],
+    });
+    expect(Sql.set(Defaults, {})).toMatchObject({
+      ok: false,
+      issues: [{ params: { reason: "empty_row" } }],
+    });
+  });
+
+  it("keeps hostile write identifiers and values inert in PostgreSQL", async () => {
+    /** Table with a deliberately hostile column name. */
+    class Hostile {
+      /** Arbitrary text stored in the quoted column. */
+      public value!: string;
+    }
+    const column = 'value"; drop table items; --';
+    const input = "x'); drop table items; --";
+    TableMapping.table("hostile")(Hostile);
+    TableMapping.column(column)(Hostile.prototype, "value");
+    IsString()(Hostile.prototype, "value");
+    await database.pool.query('create table hostile ("value""; drop table items; --" text)');
+    const insert = Sql.values(Hostile, { value: input });
+    expect(insert.ok).toBe(true);
+    if (!insert.ok) throw new Error("expected valid insert");
+    expect(await database.execute(Sql.tag`insert into hostile ${insert.value}`)).toBe(1);
+    const update = Sql.set(Hostile, { value: input });
+    expect(update.ok).toBe(true);
+    if (!update.ok) throw new Error("expected valid update");
+    expect(await database.execute(Sql.tag`update hostile set ${update.value}`)).toBe(1);
+    expect(await database.one(Hostile, Sql.tag`select * from hostile`)).toMatchObject({
+      value: input,
+    });
+    expect(await database.query(Item, Sql.tag`select * from items`)).toEqual([]);
   });
 
   it("maps database columns and nested JSON through schema coercion", async () => {

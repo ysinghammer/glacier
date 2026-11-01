@@ -57,7 +57,7 @@ export class Sql {
    * @param target Table schema defining fields, validation, and database-owned omissions.
    * @param input One logical row or a readonly nonempty sequence with matching column sets.
    * @returns Fragment on success, or typed input and validation issues on rejection.
-   * @remarks Every row is validated; bound values are normalized schema outputs.
+   * @remarks Values are normalized; one empty database-owned row uses DEFAULT VALUES.
    */
   public static values<T extends object>(
     target: IConstructableClass<T>,

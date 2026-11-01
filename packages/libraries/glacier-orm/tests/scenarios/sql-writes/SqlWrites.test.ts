@@ -312,6 +312,73 @@ describe("SQL write helpers", () => {
     });
   });
 
+  it("still validates required fields and refinements for empty database-owned rows", () => {
+    /** A generated field that the schema still requires. */
+    class Required {
+      /** Required at runtime despite database ownership. */
+      public id?: string;
+    }
+    TableMapping.table("required_defaults")(Required);
+    IsString()(Required.prototype, "id");
+    TableMapping.generated()(Required.prototype, "id");
+    expect(Sql.values(Required, {})).toMatchObject({
+      ok: false,
+      issues: [{ params: { reason: "empty_row" } }, { path: ["id"] }],
+    });
+
+    /** A defaulted field subject to a full-row refinement. */
+    class Refined {
+      /** Database-owned default. */
+      public value?: string;
+    }
+    TableMapping.table("refined_defaults")(Refined);
+    IsString()(Refined.prototype, "value");
+    Optional()(Refined.prototype, "value");
+    TableMapping.dbDefault()(Refined.prototype, "value");
+    Refine<Refined>(() => false, { message: "invalid defaults" })(Refined);
+    expect(Sql.values(Refined, {})).toMatchObject({
+      ok: false,
+      issues: [{ params: { reason: "empty_row" } }, { message: "invalid defaults" }],
+    });
+  });
+
+  it("rejects undefined values introduced by a refinement on an empty default-only insert", () => {
+    /** A defaulted field modified after schema validation. */
+    class MutatedDefault {
+      /** Database-owned default. */
+      public value?: string;
+    }
+    TableMapping.table("mutated_default")(MutatedDefault);
+    IsString()(MutatedDefault.prototype, "value");
+    Optional()(MutatedDefault.prototype, "value");
+    TableMapping.dbDefault()(MutatedDefault.prototype, "value");
+    Refine<MutatedDefault>((value) => {
+      Reflect.set(value, "value", undefined);
+      return true;
+    }, {})(MutatedDefault);
+    expect(Sql.values(MutatedDefault, {})).toMatchObject({
+      ok: false,
+      issues: [{ path: ["value"], params: { reason: "undefined_result" } }],
+    });
+  });
+
+  it("retains independent input and schema issues for nonempty database-owned rows", () => {
+    /** A table with an optional database default. */
+    class Defaulted {
+      /** Validated string stored when supplied. */
+      public value?: string;
+    }
+    TableMapping.table("defaulted")(Defaulted);
+    IsString()(Defaulted.prototype, "value");
+    Optional()(Defaulted.prototype, "value");
+    TableMapping.dbDefault()(Defaulted.prototype, "value");
+    // @ts-expect-error Runtime callers can supply invalid and unknown properties together.
+    expect(Sql.values(Defaulted, { value: 42, extra: "unknown" })).toMatchObject({
+      ok: false,
+      issues: [{ path: ["extra"], params: { reason: "unknown_property" } }, { path: ["value"] }],
+    });
+  });
+
   it("propagates table definition errors rather than treating them as validation issues", () => {
     /** Schema without a table declaration. */
     class MissingTable {
