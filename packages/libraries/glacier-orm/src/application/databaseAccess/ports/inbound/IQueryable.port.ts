@@ -1,8 +1,9 @@
 import type { IConstructableClass } from "@glacier/reflection";
 import type { SqlFragment } from "../../../../domain/sqlComposition/SqlFragment.js";
 import type { IExecutionResult } from "../../types/IExecutionResult.js";
+import type { ITransactionOptions } from "../../types/ITransactionOptions.js";
 
-/** Operations shared by database connections and future transaction handles. */
+/** Operations shared by databases and callback-scoped transaction handles. */
 export interface IQueryable {
   /**
    * Executes a statement and validates every returned row.
@@ -56,4 +57,17 @@ export interface IQueryable {
    * @returns A promise for one count, or ordered counts for multiple results.
    */
   execute(sql: SqlFragment): Promise<IExecutionResult>;
+
+  /**
+   * Runs a callback atomically, using a savepoint when called on a transaction handle.
+   * @template T Callback result type.
+   * @param callback Work to perform using the supplied transaction handle.
+   * @param options Top-level isolation selection; nested calls reject a specified isolation.
+   * @returns A promise for the callback result after successful completion and cleanup.
+   * @remarks Manual transaction-control SQL through the handle can defeat transaction integrity.
+   */
+  transaction<T>(
+    callback: (tx: IQueryable) => Promise<T>,
+    options?: ITransactionOptions,
+  ): Promise<T>;
 }

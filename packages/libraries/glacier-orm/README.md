@@ -1,7 +1,7 @@
 # @glacier/orm
 
 This package is an early PostgreSQL library. Importing it does not open a database connection.
-Transactions and migrations have not yet been implemented.
+Migrations have not yet been implemented.
 
 ## Database access
 
@@ -35,10 +35,8 @@ reject multiple result sets rather than silently combining them. PostgreSQL's ex
 not allow multiple commands in a statement with bound values; use separate calls when parameters are
 needed. Multi-statement SQL without parameters uses the simple protocol.
 
-When PostgreSQL execution succeeds, subsequent observer, cardinality, row-mapping, or multi-result
-failures do not undo database effects. PostgreSQL controls the atomicity of SQL execution, and this
-API does not provide transactions yet. All calls parameterize interpolated values and release pool
-clients.
+Outside transactions, subsequent observer, cardinality, row-mapping, or multi-result failures do not
+undo successful database effects. Ordinary interpolated values are parameters, and pool clients are released.
 
 `onQuery` receives one event for each PostgreSQL execution, before row mapping or
 cardinality checks. It contains compiled text, elapsed milliseconds, the reported row count (or null),
@@ -78,6 +76,41 @@ the logger; raw SQL literals may be secrets. Logger-owned context, bindings, tim
 and transports remain caller-controlled and must also be configured safely. The hook expects events
 from `DbFactory`; a directly supplied invalid duration throws `TypeError`. Logger/observer failures
 follow the database observer propagation rules above; transport failures follow logger policy.
+
+## Transactions
+
+```ts
+const result = await db.transaction(
+  async (tx) => {
+    await tx.execute(Sql.tag`insert into users (name) values (${"Ada"})`);
+    await tx.transaction(async (nested) => {
+      await nested.execute(Sql.tag`insert into audit_log (event) values (${"user created"})`);
+    });
+    return "created";
+  },
+  { isolation: "serializable" },
+);
+```
+
+The callback runs on one dedicated pool client; it commits on success and rolls back on callback failure.
+Its handle implements `IQueryable`, is valid only within the callback, and nested transactions use
+savepoints. A nested failure can be caught to continue the outer transaction after rollback to its
+savepoint. Nested calls reject an isolation setting. Top-level isolation may be `read committed`,
+`repeatable read`, or `serializable`; omitting it uses PostgreSQL's default. Await all operations,
+including nested callbacks, before returning. A parent handle cannot be used while its nested
+callback is active. Do not issue transaction-control SQL manually through the handle; the API cannot
+guarantee transaction integrity if you do.
+
+Observers are awaited for transaction-control commands as well as ordinary queries. A failed
+`BEGIN` observer triggers rollback if the server began the transaction. If `COMMIT` succeeded but
+its observer failed, `CommittedObserverError` means the data **was committed**, and its `cause` is
+the observer error; no rollback is attempted. If client release fails after a successful commit,
+`CommittedReleaseError` likewise indicates the data **was committed**, with the original release
+failure as its `cause`. When both observation and release fail after commit, an `AggregateError`
+contains both committed-state errors. Rollback and other release failures also remain observable,
+including alongside the original error in an `AggregateError`. Observer errors and error causes
+may contain sensitive details. A broken connection or interrupted pool release can require pool
+recovery; never assume that an arbitrary failure means a transaction did not commit.
 
 ## SQL composition
 
