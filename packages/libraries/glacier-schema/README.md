@@ -45,6 +45,31 @@ expressible and are ignored; maps are emitted like records and bigint as integer
 
 ## Preparation and outbound JSON
 
+`Schema.propertyMappings(Class)` returns a frozen snapshot of `{ property, wireName, isRenamed }` entries for effective
+object fields, ordered ancestor-first with descendant overrides retaining their original positions. A wire name
+is the `Rename` alias when present, otherwise the logical property name. `isRenamed` distinguishes an explicit
+alias from the fallback even when the alias equals the property name. New descendant fields follow inherited
+fields; a descendant type declaration replaces that property's inherited modifiers. Empty classes return an empty
+snapshot. The operation rejects incomplete field declarations, duplicate wire names, root unions and non-class
+targets. It does not construct instances, run defaults, transforms, refinements or nested-type resolvers, freeze
+metadata, or perform a full schema compatibility check. Snapshots do not change when later decorators run; parsing
+or `Schema.prepare` freezes schema metadata as usual. Inspect a union's individual variant classes instead.
+
+```ts
+import { IsString, Rename, Schema } from "@glacier/schema";
+
+/** User field with distinct logical and wire names. */
+class UserMapping {
+  @IsString()
+  @Rename("display_name")
+  public displayName!: string;
+}
+
+const fields = Schema.propertyMappings(UserMapping);
+// [{ property: "displayName", wireName: "display_name", isRenamed: true }]
+void fields;
+```
+
 `Schema.prepare(Dto)` synchronously validates and warms cached input/output processing for the root,
 ancestors and all reachable DTO references (including recursive unions and collections). It does not
 construct DTOs or call default factories, transforms, refinements, getters or `toJSON`. Lazy class-reference

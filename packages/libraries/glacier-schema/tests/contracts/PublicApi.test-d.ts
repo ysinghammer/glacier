@@ -55,6 +55,7 @@ import {
   type IJsonSchemaFragment,
   type IJsonSchemaOptions,
   type IJsonSchemaTarget,
+  type IPropertyMapping,
   Schema,
 } from "../../index.js";
 
@@ -63,6 +64,35 @@ class User {
   /** Required name field used by the parser contract checks. */
   public name!: string;
 }
+
+const mappings: readonly IPropertyMapping[] = Schema.propertyMappings(User);
+const mapping: IPropertyMapping | undefined = mappings[0];
+if (mapping !== undefined) {
+  const property: string = mapping.property;
+  const wireName: string = mapping.wireName;
+  const isRenamed: boolean = mapping.isRenamed;
+  void [property, wireName, isRenamed];
+  // @ts-expect-error Mapping snapshots cannot be modified.
+  mapping.wireName = "changed";
+}
+// @ts-expect-error The returned array is readonly.
+mappings.push({ property: "name", wireName: "name", isRenamed: false });
+// @ts-expect-error Mapping inspection takes a class, not an instance.
+Schema.propertyMappings(new User());
+
+/** Abstract classes with required constructor arguments are inspectable without construction. */
+abstract class AbstractUser {
+  /** Stores an arbitrary constructor argument in direct construction. */
+  public abstract readonly name: string;
+  /**
+   * Accepts an argument which schema inspection does not evaluate.
+   * @param argument Required constructor argument.
+   */
+  public constructor(argument: string) {
+    void argument;
+  }
+}
+Schema.propertyMappings(AbstractUser);
 
 const instance: User = Schema.parse(User, {});
 const result: IResult<User> = Schema.safeParse(User, {});

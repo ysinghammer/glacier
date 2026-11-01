@@ -12,9 +12,26 @@ import { JsonProjection } from "../../domain/schemaProcessing/serialization/Json
 import type { IJsonValue } from "../../domain/schemaProcessing/serialization/types/IJsonValue.js";
 import type { IJsonSchemaCompatibilityOptions } from "../../domain/schemaProcessing/jsonSchema/types/IJsonSchemaCompatibilityOptions.js";
 import { JsonSchemaCompatibility } from "../../domain/schemaProcessing/jsonSchema/JsonSchemaCompatibility.js";
+import { PropertyMappings } from "../../domain/schemaProcessing/schema/PropertyMappings.js";
+import type { IPropertyMapping } from "../../domain/schemaProcessing/schema/types/IPropertyMapping.js";
 
 /** Provides static operations to prepare DTO schemas, validate and project values, and generate JSON Schema. */
 export class Schema {
+  /**
+   * Reads effective direct and inherited object fields without freezing metadata or executing consumer callbacks.
+   * @template T Instance type described by the decorated class.
+   * @param target Object schema class to inspect; abstract classes are supported.
+   * @returns Frozen snapshot of property and wire names in effective declaration order.
+   * @remarks Later decorators can change subsequent snapshots until parsing or preparation freezes the schema.
+   * @remarks This is not a full schema compatibility check and does not resolve nested types.
+   * @remarks Invalid targets, incomplete fields, duplicate wire names and root unions are rejected.
+   */
+  public static propertyMappings<T extends object>(
+    target: IConstructableClass<T>,
+  ): readonly IPropertyMapping[] {
+    return PropertyMappings.read(target);
+  }
+
   /**
    * Checks reachable DTO metadata for wire-type and annotation contradictions without constructing values, running
    * defaults, transforms, or refinements, or freezing metadata.

@@ -59,3 +59,4 @@ export type { IJsonSchemaFragment } from "./src/domain/schemaProcessing/jsonSche
 export type { IJsonSchemaOptions } from "./src/domain/schemaProcessing/jsonSchema/types/IJsonSchemaOptions.js";
 export type { IJsonSchemaTarget } from "./src/domain/schemaProcessing/jsonSchema/types/IJsonSchemaTarget.js";
 export type { IDescribeOptions } from "./src/domain/schemaProcessing/jsonSchema/types/IDescribeOptions.js";
+export type { IPropertyMapping } from "./src/domain/schemaProcessing/schema/types/IPropertyMapping.js";
