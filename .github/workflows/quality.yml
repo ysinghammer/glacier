@@ -17,7 +17,7 @@ jobs:
       HUSKY: "0"
       TURBO_TELEMETRY_DISABLED: "1"
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -33,8 +33,8 @@ jobs:
             echo "Branch '$HEAD_REF' must match (feature|bugfix|chore|refactor)/<lowercase-kebab>" >&2
             exit 1
           fi
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -51,7 +51,7 @@ jobs:
         run: pnpm exec turbo run ci --force
       - name: Retain tooling, catalog and library diagnostics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: workspace-tooling-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
