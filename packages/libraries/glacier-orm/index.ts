@@ -19,3 +19,9 @@ export type { ITableColumn } from "./src/domain/tableMapping/types/ITableColumn.
 export type { IInsertShape } from "./src/domain/tableMapping/types/IInsertShape.js";
 export type { IUpdateShape } from "./src/domain/tableMapping/types/IUpdateShape.js";
 export { RowMapper } from "./src/application/rowMapping/Row.mapper.js";
+export { DbFactory } from "./src/infrastructure/databaseAccess/adapters/outbound/DbFactory.factory.js";
+export type { IDbOptions } from "./src/infrastructure/databaseAccess/adapters/outbound/DbFactory.factory.js";
+export { Database } from "./src/infrastructure/databaseAccess/adapters/outbound/Database.js";
+export type { IQueryEvent } from "./src/infrastructure/databaseAccess/adapters/outbound/IQueryEvent.js";
+export type { IQueryable } from "./src/application/databaseAccess/ports/inbound/IQueryable.port.js";
+export type { IExecutionResult } from "./src/application/databaseAccess/types/IExecutionResult.js";

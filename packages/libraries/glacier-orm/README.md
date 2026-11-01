@@ -1,7 +1,53 @@
 # @glacier/orm
 
 This package is an early PostgreSQL library. Importing it does not open a database connection.
-Querying, transactions, and migrations have not yet been implemented.
+Transactions and migrations have not yet been implemented.
+
+## Database access
+
+```ts
+import { DbFactory, Sql } from "@glacier/orm";
+import { IsInt } from "@glacier/schema";
+
+/** A query projection. */
+class Count {
+  /** Number of matching rows. */
+  @IsInt()
+  public count!: number;
+}
+
+const db = DbFactory.create({ poolConfig: { connectionString: process.env.DATABASE_URL } });
+try {
+  const result = await db.one(Count, Sql.tag`select count(*)::int as count from users`);
+  console.log(result.count);
+} finally {
+  await db.close();
+}
+```
+
+Supply either `pool` or `poolConfig`, not both. `db.pool` exposes the underlying node-postgres pool;
+`close()` ends it even when supplied by the caller. Pool construction is lazy. Both `query` and
+`many` return arrays of validated rows, including an empty array. `one` requires exactly one row;
+`maybeOne` returns `undefined` for no rows and rejects multiple rows. Cardinality is checked before
+row mapping. `execute` returns one PostgreSQL count (or `null` when unavailable); a multi-statement
+result returns an ordered array of counts and nulls, never a fabricated count. Row-returning methods
+reject multiple result sets rather than silently combining them. PostgreSQL's extended protocol does
+not allow multiple commands in a statement with bound values; use separate calls when parameters are
+needed. Multi-statement SQL without parameters uses the simple protocol.
+
+When PostgreSQL execution succeeds, subsequent observer, cardinality, row-mapping, or multi-result
+failures do not undo database effects. PostgreSQL controls the atomicity of SQL execution, and this
+API does not provide transactions yet. All calls parameterize interpolated values and release pool
+clients.
+
+`onQuery` receives one event for each PostgreSQL execution, before row mapping or
+cardinality checks. It contains compiled text, elapsed milliseconds, the reported row count (or null),
+and a generic error summary on failure, never bound values or raw database errors. Multi-statement
+successes report an ordered array of counts. SQL literals may contain sensitive data. Observer
+failures propagate; if execution and the observer both fail, an
+`AggregateError` retains both. Asynchronous observers are awaited. Known PostgreSQL errors
+are translated. Unrecognized PostgreSQL server errors receive a generic summary with the original
+error as cause. Causes and non-server errors can contain secrets and require careful handling.
 
 ## SQL composition
 

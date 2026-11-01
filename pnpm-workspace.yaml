@@ -3,4 +3,9 @@ packages:
   - packages/services/*
   - packages/libraries/*
 
+allowBuilds:
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
+
 engineStrict: true
