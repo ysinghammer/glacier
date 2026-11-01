@@ -1,4 +1,8 @@
-import { SqlFragment } from "./SqlFragment.js";
+import type { IConstructableClass } from "@glacier/reflection";
+import type { IResult } from "@glacier/schema";
+import { SqlFragment } from "../../domain/sqlComposition/SqlFragment.js";
+import { SqlIdentifiers } from "../../domain/sqlComposition/SqlIdentifiers.js";
+import { SqlWriteStatements } from "./SqlWriteStatements.js";
 
 /** Constructs composable PostgreSQL fragments without opening a connection. */
 export class Sql {
@@ -44,7 +48,37 @@ export class Sql {
    * @returns A new immutable fragment containing the quoted identifier.
    */
   public static ident(name: string): SqlFragment {
-    return Sql.raw(`"${name.replaceAll('"', '""')}"`);
+    return Sql.raw(SqlIdentifiers.quote(name));
+  }
+
+  /**
+   * Validates insert rows and builds a quoted column list and parameterized values fragment.
+   * @template T Instance type of the decorated table schema.
+   * @param target Table schema defining fields, validation, and database-owned omissions.
+   * @param input One logical row or a readonly nonempty sequence with matching column sets.
+   * @returns Fragment on success, or typed input and validation issues on rejection.
+   * @remarks Every row is validated; bound values are normalized schema outputs.
+   */
+  public static values<T extends object>(
+    target: IConstructableClass<T>,
+    input: NoInfer<T> | readonly NoInfer<T>[],
+  ): IResult<SqlFragment> {
+    return SqlWriteStatements.values(target, input);
+  }
+
+  /**
+   * Validates a nonempty logical patch and builds quoted parameterized assignments.
+   * @template T Instance type of the decorated table schema.
+   * @param target Table schema defining fields and validation.
+   * @param input Logical partial row; supplied fields must produce defined values.
+   * @returns Assignment fragment on success, or typed input and validation issues on rejection.
+   * @remarks Top-level class refinements require separate full-row or database validation.
+   */
+  public static set<T extends object>(
+    target: IConstructableClass<T>,
+    input: Partial<NoInfer<T>>,
+  ): IResult<SqlFragment> {
+    return SqlWriteStatements.set(target, input);
   }
 
   /**

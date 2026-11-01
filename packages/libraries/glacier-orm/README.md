@@ -1,7 +1,7 @@
 # @glacier/orm
 
 This package is an early PostgreSQL library. Importing it does not open a database connection.
-Querying, transactions, migrations, and write helpers have not yet been implemented.
+Querying, transactions, and migrations have not yet been implemented.
 
 ## SQL composition
 
@@ -22,6 +22,8 @@ identifier, including any dots. `Sql.raw(text)` inserts text verbatim and is uns
 input. Direct `SqlFragment` construction also treats template segments as trusted SQL.
 Fragment structure is immutable, but referenced parameter objects are neither copied nor frozen.
 Each compilation returns a new caller-owned values array compatible with `pg` query configuration.
+`SqlFragment.parameter(value)` binds any value, even a `SqlFragment`, as one parameter rather than
+composing it as SQL.
 
 ## Table mappings
 
@@ -70,6 +72,37 @@ are rejected; errors found before preparation do not freeze ORM declarations.
 
 `TableMapping.isTable(Class)` checks inherited or direct table declarations without preparing or
 freezing metadata. It rejects invalid class targets rather than treating them as undecorated.
+
+## Write fragments
+
+`Sql.values(Table, rowOrRows)` validates every logical insert row and returns a typed result. On success,
+`value` contains the quoted column list and parameterized tuples; all rows must have the same normalized
+column set. `Sql.set(Table, patch)` validates a nonempty shallow partial and returns parameterized assignments.
+Only successful results carry an interpolatable fragment; failures carry `issues`. Database or schema
+definition failures remain exceptional. Neither helper executes SQL.
+
+```ts
+const insert = Sql.values(User, { displayName: "Ada" });
+if (insert.ok) {
+  const query = Sql.tag`insert into ${Sql.ident("users")} ${insert.value}`;
+  console.log(query.compile());
+}
+```
+
+Declare generated/defaulted fields optional with TypeScript `?` and schema `Optional()` when appropriate.
+Schema defaults are included as normalized insert values, except omitted `generated()` or `dbDefault()`
+fields remain omitted even if schema defaults populate them. Provided fields are always validated. Inserts
+run full class refinements against the parsed candidate, which may not match database-generated values.
+Updates drop top-level defaults and class refinements; full-row invariants require separate full-row or
+database validation. Nested fields retain their own schema defaults and refinements.
+
+Both helpers bind normalized logical values, not JSON projections or necessarily the caller's original
+objects. SQL fragments supplied as field values are parameters, not SQL syntax. Unknown own properties,
+symbols, empty rows, explicitly undefined values, and supplied values transformed to undefined are rejected.
+Multi-row issue paths start with the zero-based row index; mismatched column sets are also typed failures.
+Native schema validation does not guarantee every accepted value can be encoded by `pg` for a given column.
+Issues inherited from schema validation may contain input values or callback details; redact them at public
+transport boundaries.
 
 ## Mapping result rows
 

@@ -10,7 +10,7 @@ export { NoRowsError } from "./src/domain/errorHandling/errors/NoRows.error.js";
 export { TooManyRowsError } from "./src/domain/errorHandling/errors/TooManyRows.error.js";
 export { RowValidationError } from "./src/domain/errorHandling/errors/RowValidation.error.js";
 export { PgErrors } from "./src/infrastructure/errorHandling/adapters/outbound/PgErrors.js";
-export { Sql } from "./src/domain/sqlComposition/Sql.js";
+export { Sql } from "./src/application/sqlComposition/Sql.js";
 export { SqlFragment } from "./src/domain/sqlComposition/SqlFragment.js";
 export type { ICompiledSql } from "./src/domain/sqlComposition/SqlFragment.js";
 export { TableMapping } from "./src/application/tableMapping/TableMapping.js";

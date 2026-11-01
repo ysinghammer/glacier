@@ -7,6 +7,21 @@ export interface ICompiledSql {
   readonly values: unknown[];
 }
 
+/** Marks one value as a parameter even when it is itself a SQL fragment. */
+class SqlBoundParameter {
+  /** Caller-owned value to bind without treating it as SQL structure. */
+  public readonly value: unknown;
+
+  /**
+   * Retains a value for later parameter binding without cloning it.
+   * @param value Caller-owned value to bind.
+   */
+  public constructor(value: unknown) {
+    this.value = value;
+    Object.freeze(this);
+  }
+}
+
 /** An immutable SQL template that composes nested fragments and binds all other values. */
 export class SqlFragment {
   /** Copied literal template segments, including the final segment. */
@@ -30,6 +45,15 @@ export class SqlFragment {
     this.strings = Object.freeze([...strings]);
     this.interpolations = Object.freeze([...interpolations]);
     Object.freeze(this);
+  }
+
+  /**
+   * Creates a fragment binding one value even when that value is a SQL fragment.
+   * @param value Caller-owned value to bind without interpolation or cloning.
+   * @returns Immutable fragment containing exactly one positional parameter.
+   */
+  public static parameter(value: unknown): SqlFragment {
+    return new SqlFragment(["", ""], [new SqlBoundParameter(value)]);
   }
 
   /**
@@ -65,6 +89,10 @@ export class SqlFragment {
    * @returns Nested SQL text or the placeholder for the appended value.
    */
   private compileInterpolation(interpolation: unknown, values: unknown[]): string {
+    if (interpolation instanceof SqlBoundParameter) {
+      values.push(interpolation.value);
+      return `$${values.length}`;
+    }
     if (interpolation instanceof SqlFragment) {
       return interpolation.appendTo(values);
     }
