@@ -25,3 +25,6 @@ export { Database } from "./src/infrastructure/databaseAccess/adapters/outbound/
 export type { IQueryEvent } from "./src/infrastructure/databaseAccess/adapters/outbound/IQueryEvent.js";
 export type { IQueryable } from "./src/application/databaseAccess/ports/inbound/IQueryable.port.js";
 export type { IExecutionResult } from "./src/application/databaseAccess/types/IExecutionResult.js";
+export { QueryLogHook } from "./src/infrastructure/databaseAccess/adapters/outbound/QueryLogHook.adapter.js";
+export type { IQueryLogHookOptions } from "./src/infrastructure/databaseAccess/adapters/outbound/QueryLogHook.adapter.js";
+export type { IQueryLogHookOutcome } from "./src/infrastructure/databaseAccess/adapters/outbound/IQueryLogHookOutcome.js";

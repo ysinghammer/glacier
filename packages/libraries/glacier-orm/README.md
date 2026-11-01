@@ -49,6 +49,36 @@ failures propagate; if execution and the observer both fail, an
 are translated. Unrecognized PostgreSQL server errors receive a generic summary with the original
 error as cause. Causes and non-server errors can contain secrets and require careful handling.
 
+### Query logging
+
+```ts
+import { LoggerFactory } from "@glacier/logger";
+import { DbFactory, QueryLogHook } from "@glacier/orm";
+
+declare const factory: LoggerFactory; // Configure a factory and its transports in application composition.
+const loggerResult = factory.createLogger("database");
+if (loggerResult.outcome === "created") {
+  const result = QueryLogHook.create(loggerResult.logger, { slowQueryMs: 100 });
+  if (result.outcome === "created") {
+    const db = DbFactory.create({ onQuery: result.hook });
+    // Use db, then await db.close().
+    await db.close();
+  }
+}
+```
+
+Creation requires a `Logger` instance from the same installed copy of `@glacier/logger`. It rejects
+an invalid logger or a missing, negative, nonnumeric, NaN, or infinite threshold
+with `invalid_logger` or `invalid_slow_query_ms`. Zero is valid. For each database execution, the
+adapter sends `durationMs` and exactly one fixed message: `Database query failed` at error on
+failure, `Slow database query` at warn when a successful query meets or exceeds the threshold,
+otherwise `Database query completed` at debug. Logger level and transport filtering still apply.
+The adapter never passes SQL text, parameters, row counts, error objects, messages, or causes to
+the logger; raw SQL literals may be secrets. Logger-owned context, bindings, timestamp, redaction,
+and transports remain caller-controlled and must also be configured safely. The hook expects events
+from `DbFactory`; a directly supplied invalid duration throws `TypeError`. Logger/observer failures
+follow the database observer propagation rules above; transport failures follow logger policy.
+
 ## SQL composition
 
 ```ts
