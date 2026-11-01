@@ -27,7 +27,7 @@ importers:
         specifier: 1.86.0
         version: 1.86.0
       oxlint-plugin-complexity:
-        specifier: ^4.0.0
+        specifier: 4.0.0
         version: 4.0.0(estree-walker@3.0.3)
       turbo:
         specifier: 2.11.7
