@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import * as source from "../../../index.js";
 
 describe("package root", () => {
-  it("imports successfully without exposing an unfinished runtime API", () => {
-    expect(Object.keys(orm)).toEqual([]);
-    expect(Object.keys(source)).toEqual([]);
+  it("exposes the same error API from the built and source roots", () => {
+    expect(Object.keys(orm).sort()).toEqual(Object.keys(source).sort());
+    expect(orm.PgErrors.map).toBeTypeOf("function");
   });
 });

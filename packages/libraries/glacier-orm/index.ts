@@ -1,1 +1,12 @@
-export {};
+export { OrmError } from "./src/domain/errorHandling/errors/OrmError.error.js";
+export { PgError } from "./src/domain/errorHandling/errors/PgError.error.js";
+export { UniqueViolation } from "./src/domain/errorHandling/errors/UniqueViolation.error.js";
+export { ForeignKeyViolation } from "./src/domain/errorHandling/errors/ForeignKeyViolation.error.js";
+export { NotNullViolation } from "./src/domain/errorHandling/errors/NotNullViolation.error.js";
+export { CheckViolation } from "./src/domain/errorHandling/errors/CheckViolation.error.js";
+export { SerializationFailure } from "./src/domain/errorHandling/errors/SerializationFailure.error.js";
+export { DeadlockDetected } from "./src/domain/errorHandling/errors/DeadlockDetected.error.js";
+export { NoRowsError } from "./src/domain/errorHandling/errors/NoRows.error.js";
+export { TooManyRowsError } from "./src/domain/errorHandling/errors/TooManyRows.error.js";
+export { RowValidationError } from "./src/domain/errorHandling/errors/RowValidation.error.js";
+export { PgErrors } from "./src/infrastructure/errorHandling/adapters/outbound/PgErrors.js";
