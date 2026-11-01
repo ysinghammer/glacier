@@ -1,9 +1,20 @@
 import { expectTypeOf } from "vitest";
 import type * as orm from "../../index.js";
 import type { ISchemaIssue } from "@glacier/schema";
+import { Sql } from "@glacier/orm";
+import type { ICompiledSql, SqlFragment } from "@glacier/orm";
+import type { QueryConfig } from "pg";
 
 expectTypeOf<ReturnType<typeof orm.PgErrors.map>>().toEqualTypeOf<unknown>();
 expectTypeOf<orm.PgError["code"]>().toEqualTypeOf<string>();
 expectTypeOf<orm.PgError["constraint"]>().toEqualTypeOf<string | undefined>();
 expectTypeOf<orm.RowValidationError["rowIndex"]>().toEqualTypeOf<number>();
 expectTypeOf<orm.RowValidationError["issues"]>().toEqualTypeOf<readonly ISchemaIssue[]>();
+expectTypeOf(Sql.tag`select ${1}`).toEqualTypeOf<SqlFragment>();
+expectTypeOf(Sql.join([1, Sql.raw("now()")], Sql.raw(", "))).toEqualTypeOf<SqlFragment>();
+expectTypeOf(Sql.ident("name")).toEqualTypeOf<SqlFragment>();
+expectTypeOf(Sql.raw("true")).toEqualTypeOf<SqlFragment>();
+expectTypeOf<ReturnType<SqlFragment["compile"]>>().toEqualTypeOf<ICompiledSql>();
+expectTypeOf<ICompiledSql["text"]>().toEqualTypeOf<string>();
+expectTypeOf<ICompiledSql["values"]>().toEqualTypeOf<unknown[]>();
+expectTypeOf<ICompiledSql>().toExtend<QueryConfig>();

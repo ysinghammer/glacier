@@ -1,7 +1,27 @@
 # @glacier/orm
 
 This package is an early PostgreSQL library. Importing it does not open a database connection.
-SQL, querying, transactions, migrations, and other functionality have not yet been implemented.
+Querying, transactions, migrations, and write helpers have not yet been implemented.
+
+## SQL composition
+
+```ts
+import { Sql } from "@glacier/orm";
+
+const ids = [1, 2];
+const condition = Sql.tag`${Sql.ident("id")} = any(${ids})`;
+const query = Sql.tag`select * from ${Sql.ident("users")} where ${condition}`;
+const { text, values } = query.compile();
+// text: 'select * from "users" where "id" = any($1)'; values: [ids]
+```
+
+Values, including arrays, are parameters; nested fragments compose with numbering assigned at
+compilation. `Sql.join(items, separator)` joins values or fragments with a fragment separator
+(default `Sql.raw(", ")`); an empty list produces empty SQL. `Sql.ident(name)` quotes a single
+identifier, including any dots. `Sql.raw(text)` inserts text verbatim and is unsafe for untrusted
+input. Direct `SqlFragment` construction also treats template segments as trusted SQL.
+Fragment structure is immutable, but referenced parameter objects are neither copied nor frozen.
+Each compilation returns a new caller-owned values array compatible with `pg` query configuration.
 
 ## Errors
 
