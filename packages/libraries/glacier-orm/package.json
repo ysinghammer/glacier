@@ -14,9 +14,9 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "tsc --project tsconfig.json && node tests/data/VerifyBuild.ts",
     "lint:types": "tsc --project tsconfig.json --noEmit && tsc --project tsconfig.tests.json && tsc --project tsconfig.contracts.json",
-    "test": "tsc --project tsconfig.fixtures.json && vitest run --coverage"
+    "test": "node tests/data/VerifyBuild.ts && tsc --project tsconfig.fixtures.json && vitest run --coverage"
   },
   "dependencies": {
     "@glacier/logger": "workspace:*",

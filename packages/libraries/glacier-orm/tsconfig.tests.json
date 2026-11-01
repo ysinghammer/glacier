@@ -5,6 +5,7 @@
     "types": ["node"],
     "rootDir": ".",
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "experimentalDecorators": true
   },
   "include": ["vitest.config.ts", "tests/**/*.ts"],

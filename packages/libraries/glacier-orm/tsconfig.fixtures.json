@@ -7,6 +7,6 @@
     "outDir": "tests/artifacts/compiler",
     "experimentalDecorators": true
   },
-  "include": ["tests/data/**/*.ts"],
+  "include": ["tests/data/DecoratedTable.ts"],
   "exclude": ["tests/artifacts", "dist", "node_modules"]
 }
