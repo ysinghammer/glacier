@@ -483,4 +483,7 @@ a PostgreSQL error alone does not restore the transaction; use a nested transact
 Checkout awards loyalty points in a savepoint. Its illustrative two-point cap returns an explicit
 `limit_reached` outcome after rolling back the award, while retaining the committed order. Unexpected
 loyalty errors propagate and roll back the entire checkout. The sample does not retry serialization
-failures; a real deterministic serialization-conflict scenario has not been added.
+failures itself. A separate [serialization retry example](tests/scenarios/example-repositories/SerializationRetry.test.ts)
+uses real PostgreSQL conflicts to demonstrate bounded caller-owned retries in fresh transactions and
+immediate propagation of other errors. Retry callbacks must be safe to repeat and must not perform
+irreversible external side effects. Committed-state errors must not be treated as failed commits.
