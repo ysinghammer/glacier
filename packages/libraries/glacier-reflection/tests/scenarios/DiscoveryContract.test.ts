@@ -8,6 +8,278 @@ import {
   type IDiscoveredMetadataAddress,
 } from "../../index.js";
 
+/** Keeps loop-heavy assertions out of the scenario callbacks while checking public operations unchanged. */
+class DiscoveryContractAssertions {
+  /**
+   * Checks joined list/record identities, reads, and address discovery for one target.
+   * @param target Constructor or instance selected for discovery.
+   * @param inheritance Whether the target's own or inherited declarations are read.
+   * @param leaf Most-derived fixture constructor used by the static-address assertion.
+   * @param list List definition expected at the joined address.
+   * @param record Record definition expected at the joined address.
+   * @param item Shared object reference retained by list and record values.
+   * @returns No value; assertions report mismatches.
+   * @throws {Error} When metadata discovery rejects the fixture target.
+   */
+  public static joinedTarget(
+    target: object,
+    inheritance: "own" | "inherited",
+    leaf: object,
+    list: ListMetadataDefinition<object>,
+    record: RecordMetadataDefinition<object>,
+    item: object,
+  ): void {
+    const lookup = { kind: "member", member: "member", inheritance } as const;
+    const definitions = MetadataDiscovery.definitionsDynamic(target, lookup);
+    if (!definitions.isValid) throw new Error(definitions.code);
+    expect(new Set(definitions.definitions)).toEqual(new Set([list, record]));
+    expect(definitions.definitions).toHaveLength(2);
+    DiscoveryContractAssertions.joinedDefinition(
+      target,
+      inheritance,
+      leaf,
+      list,
+      item,
+      definitions,
+    );
+    DiscoveryContractAssertions.joinedDefinition(
+      target,
+      inheritance,
+      leaf,
+      record,
+      item,
+      definitions,
+    );
+    const listRead = list.readDynamic(target, lookup);
+    const recordRead = record.readDynamic(target, lookup);
+    expect(listRead).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: inheritance === "own" ? [item] : [item, item],
+    });
+    expect(recordRead).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: inheritance === "own" ? {} : { item },
+    });
+    if (!listRead.isValid || !listRead.isPresent) throw new Error("missing list");
+    expect(listRead.value[0]).toBe(item);
+    if (recordRead.isValid && recordRead.isPresent && inheritance === "inherited")
+      expect(recordRead.value["item"]).toBe(item);
+  }
+
+  /**
+   * Checks one definition's addresses and every discovered address read.
+   * @param target Constructor or instance selected for discovery.
+   * @param inheritance Whether the target's own or inherited declarations are read.
+   * @param leaf Most-derived fixture constructor.
+   * @param definition Definition whose locations are checked.
+   * @param item Shared object reference expected in the retrieved value.
+   * @param allDefinitions Successful joined identity result for the target.
+   * @returns No value; assertions report mismatches.
+   * @throws {Error} When location discovery rejects the target.
+   */
+  private static joinedDefinition(
+    target: object,
+    inheritance: "own" | "inherited",
+    leaf: object,
+    definition: ListMetadataDefinition<object> | RecordMetadataDefinition<object>,
+    item: object,
+    allDefinitions: {
+      /** Readonly fixed success discriminator for a validated discovery result. */
+      readonly isValid: true;
+      /** Readonly identities already discovered at the joined address. */
+      readonly definitions: readonly object[];
+    },
+  ): void {
+    const locations = definition.locations(target, { inheritance });
+    if (!locations.isValid) throw new Error(locations.code);
+    const expected: IDynamicClassMetadataAddress[] = [
+      { kind: "member", side: "instance", member: "member" },
+    ];
+    if (target === leaf && definition instanceof ListMetadataDefinition)
+      expected.push({ kind: "member", side: "static", member: "member" });
+    expect(new Set(locations.addresses)).toEqual(new Set(expected));
+    expect(locations.addresses).toHaveLength(expected.length);
+    for (const address of locations.addresses)
+      DiscoveryContractAssertions.joinedAddress(
+        definition,
+        target,
+        inheritance,
+        address,
+        item,
+        allDefinitions,
+      );
+  }
+
+  /**
+   * Verifies value immutability and definition identities at one canonical address.
+   * @param definition Definition whose stored value is read.
+   * @param target Constructor or instance selected for discovery.
+   * @param inheritance Whether the target's own or inherited declaration is read.
+   * @param address Canonical address whose value and identities are checked.
+   * @param item Shared object reference expected in the retrieved value.
+   * @param allDefinitions Successful joined identity result for the target.
+   * @returns No value; assertions report mismatches.
+   * @throws {Error} When the expected declaration is absent at the address.
+   */
+  private static joinedAddress(
+    definition: ListMetadataDefinition<object> | RecordMetadataDefinition<object>,
+    target: object,
+    inheritance: "own" | "inherited",
+    address: IDiscoveredMetadataAddress,
+    item: object,
+    allDefinitions: {
+      /** Readonly fixed success discriminator for a validated discovery result. */
+      readonly isValid: true;
+      /** Readonly identities already discovered at the joined address. */
+      readonly definitions: readonly object[];
+    },
+  ): void {
+    const read = definition.readDynamic(target, { ...address, inheritance });
+    if (!read.isValid || !read.isPresent) throw new Error("missing joined declaration");
+    expect(Object.isFrozen(read.value)).toBe(true);
+    expect(Reflect.set(read.value, "changed", item)).toBe(false);
+    expect(MetadataDiscovery.definitionsDynamic(target, { ...address, inheritance })).toEqual(
+      address.kind === "member" && address.side === "static"
+        ? { isValid: true, definitions: [definition] }
+        : allDefinitions,
+    );
+  }
+
+  /**
+   * Verifies one middle-class address resolves to the middle declaration.
+   * @param definition Definition containing the middle-class value.
+   * @param target Constructor or instance representing the middle class.
+   * @param address Canonical address to read and discover.
+   * @returns No value; assertions report mismatches.
+   */
+  public static middleAddress(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    address: IDiscoveredMetadataAddress,
+  ): void {
+    expect(definition.readDynamic(target, { ...address, inheritance: "own" })).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: "middle",
+    });
+    expect(
+      MetadataDiscovery.definitionsDynamic(target, { ...address, inheritance: "own" }),
+    ).toEqual({ isValid: true, definitions: [definition] });
+  }
+
+  /**
+   * Verifies every reported middle-class address.
+   * @param definition Definition containing the middle-class values.
+   * @param target Constructor or instance representing the middle class.
+   * @param addresses Canonical addresses returned by public location discovery.
+   * @returns No value; delegates each address assertion to `middleAddress`.
+   */
+  public static middleAddresses(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    addresses: readonly IDiscoveredMetadataAddress[],
+  ): void {
+    for (const address of addresses)
+      DiscoveryContractAssertions.middleAddress(definition, target, address);
+  }
+
+  /**
+   * Verifies canonical locations and own-only class metadata for one target.
+   * @param definition Definition whose locations are checked.
+   * @param target Constructor or instance selected for discovery.
+   * @param leaf Most-derived constructor used to distinguish static locations.
+   * @param canonical Expected canonical address set.
+   * @returns No value; assertions report mismatches.
+   * @throws {Error} When location discovery rejects the target.
+   */
+  public static targetAddresses(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    leaf: object,
+    canonical: readonly IDiscoveredMetadataAddress[],
+  ): void {
+    const result = definition.locations(target);
+    if (!result.isValid) throw new Error(result.code);
+    const expected =
+      target === leaf ? canonical : DiscoveryContractAssertions.instanceAddresses(canonical);
+    expect(new Set(result.addresses)).toEqual(new Set(expected));
+    expect(result.addresses).toHaveLength(expected.length);
+    for (const address of result.addresses)
+      DiscoveryContractAssertions.canonicalAddress(definition, target, address);
+    expect(definition.locations(target, { inheritance: "own" })).toEqual({
+      isValid: true,
+      addresses: [{ kind: "class" }],
+    });
+    const own = definition.locations(target, { inheritance: "own" });
+    if (!own.isValid) throw new Error(own.code);
+    for (const address of own.addresses)
+      DiscoveryContractAssertions.ownAddress(definition, target, address);
+  }
+
+  /**
+   * Removes static and constructor-parameter addresses from an instance's expectations.
+   * @param canonical Full canonical address set for the class target.
+   * @returns New list containing class and instance-side addresses only.
+   */
+  private static instanceAddresses(
+    canonical: readonly IDiscoveredMetadataAddress[],
+  ): IDiscoveredMetadataAddress[] {
+    return canonical.filter(
+      (address) =>
+        address.kind === "class" ||
+        (address.kind !== "constructor-parameter" && address.side === "instance"),
+    );
+  }
+
+  /**
+   * Checks a discovered address is canonical and reads its public metadata.
+   * @param definition Definition storing the expected address values.
+   * @param target Constructor or instance selected for discovery.
+   * @param address Canonical address returned by the library.
+   * @returns No value; assertions report mismatches.
+   */
+  private static canonicalAddress(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    address: IDiscoveredMetadataAddress,
+  ): void {
+    expect(Object.getPrototypeOf(address)).toBe(Object.prototype);
+    expect("target" in address).toBe(false);
+    expect("owner" in address).toBe(false);
+    expect("inheritance" in address).toBe(false);
+    expect(definition.readDynamic(target, address)).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: address.kind === "class" ? undefined : "middle",
+    });
+    expect(MetadataDiscovery.definitionsDynamic(target, address)).toEqual({
+      isValid: true,
+      definitions: [definition],
+    });
+  }
+
+  /**
+   * Checks an own-only read returns the fixture's explicit undefined value.
+   * @param definition Definition storing the own class declaration.
+   * @param target Constructor or instance selected for discovery.
+   * @param address Address expected to resolve to the own class declaration.
+   * @returns No value; assertions report mismatches.
+   */
+  private static ownAddress(
+    definition: ValueMetadataDefinition<string | undefined>,
+    target: object,
+    address: IDiscoveredMetadataAddress,
+  ): void {
+    expect(definition.readDynamic(target, { ...address, inheritance: "own" })).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: undefined,
+    });
+  }
+}
+
 describe("metadata-bearing discovery contracts", () => {
   it("exposes a frozen nonconstructible record with stable readonly operation bindings", () => {
     const checked = MetadataDiscovery.definitions;
@@ -37,7 +309,9 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("keeps detached facade operations independent of this for identities, boundaries and rejections", () => {
+    /** Owns one undefined declaration for detached facade checks. */
     class Owner {}
+    /** Has no declaration and verifies empty discovery results. */
     class Empty {}
     const label = new ValueMetadataDefinition<undefined>("detached");
     label.set(Owner, undefined);
@@ -55,8 +329,11 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("joins decorated and direct collections through both discovery directions and instance aliases", () => {
+    /** Supplies a base identity for inherited joined declarations. */
     class Base {}
+    /** Adds direct joined declarations while inheriting from `Base`. */
     class Leaf extends Base {}
+    /** Remains outside the joined declaration graph. */
     class Unrelated {}
     const item = { label: "shared" };
     const list = new ListMetadataDefinition<object>("joined");
@@ -79,53 +356,10 @@ describe("metadata-bearing discovery contracts", () => {
         throw new Error("shadowed constructor must not execute");
       },
     });
-    for (const inheritance of ["own", "inherited"] as const) {
-      const lookup = { kind: "member", member: "member", inheritance } as const;
-      for (const target of [Leaf, first, new Leaf()]) {
-        const definitions = MetadataDiscovery.definitionsDynamic(target, lookup);
-        if (!definitions.isValid) throw new Error(definitions.code);
-        expect(new Set(definitions.definitions)).toEqual(new Set([list, record]));
-        expect(definitions.definitions).toHaveLength(2);
-        for (const definition of [list, record]) {
-          const locations = definition.locations(target, { inheritance });
-          if (!locations.isValid) throw new Error(locations.code);
-          const expected = [{ kind: "member", side: "instance", member: "member" }];
-          if (target === Leaf && definition === list)
-            expected.push({ kind: "member", side: "static", member: "member" });
-          expect(new Set(locations.addresses)).toEqual(new Set(expected));
-          expect(locations.addresses).toHaveLength(expected.length);
-          for (const address of locations.addresses) {
-            const read = definition.readDynamic(target, { ...address, inheritance });
-            if (!read.isValid || !read.isPresent) throw new Error("missing joined declaration");
-            expect(Object.isFrozen(read.value)).toBe(true);
-            expect(Reflect.set(read.value, "changed", item)).toBe(false);
-            expect(
-              MetadataDiscovery.definitionsDynamic(target, { ...address, inheritance }),
-            ).toEqual(
-              address.kind === "member" && address.side === "static"
-                ? { isValid: true, definitions: [list] }
-                : definitions,
-            );
-          }
-        }
-        const listRead = list.readDynamic(target, lookup);
-        const recordRead = record.readDynamic(target, lookup);
-        expect(listRead).toEqual({
-          isValid: true,
-          isPresent: true,
-          value: inheritance === "own" ? [item] : [item, item],
-        });
-        expect(recordRead).toEqual({
-          isValid: true,
-          isPresent: true,
-          value: inheritance === "own" ? {} : { item },
-        });
-        if (!listRead.isValid || !listRead.isPresent) throw new Error("missing list");
-        expect(listRead.value[0]).toBe(item);
-        if (recordRead.isValid && recordRead.isPresent && inheritance === "inherited")
-          expect(recordRead.value["item"]).toBe(item);
-      }
-    }
+    const targets = [Leaf, first, new Leaf()];
+    for (const inheritance of ["own", "inherited"] as const)
+      for (const target of targets)
+        DiscoveryContractAssertions.joinedTarget(target, inheritance, Leaf, list, record, item);
     const before = list.locations(Leaf);
     expect(() => list.decorator([])(first, "member")).toThrow(
       expect.objectContaining({ code: "invalid-decorator-target" }),
@@ -160,8 +394,11 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("returns actual same-name identities once at an exact address, never a member inventory", () => {
+    /** Supplies the first level of declaration inheritance. */
     class Base {}
+    /** Supplies an intermediate level with its own declaration. */
     class Middle extends Base {}
+    /** Supplies the leaf level for inherited and own discovery. */
     class Leaf extends Middle {}
     const first = new ValueMetadataDefinition<string | undefined>("same");
     const second = new ValueMetadataDefinition<string>("same");
@@ -195,6 +432,7 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("freezes definition arrays without freezing or copying the actual definitions", () => {
+    /** Target used to verify frozen definition identity arrays. */
     class Target {}
     const definition = new ValueMetadataDefinition<string>("label");
     definition.set(Target, "value");
@@ -212,8 +450,11 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("discovers every canonical address with inheritance deduplication and instance filtering", () => {
+    /** Supplies the root of the canonical-address inheritance chain. */
     class Base {}
+    /** Supplies an intermediate canonical-address owner. */
     class Middle extends Base {}
+    /** Supplies the leaf whose instance addresses are filtered. */
     class Leaf extends Middle {}
     const key = Symbol("member");
     const otherKey = Symbol("member");
@@ -247,64 +488,15 @@ describe("metadata-bearing discovery contracts", () => {
     if (!middleOwn.isValid) throw new Error(middleOwn.code);
     expect(new Set(middleOwn.addresses)).toEqual(new Set(canonical));
     expect(middleOwn.addresses).toHaveLength(canonical.length);
-    for (const address of middleOwn.addresses) {
-      expect(definition.readDynamic(Middle, { ...address, inheritance: "own" })).toEqual({
-        isValid: true,
-        isPresent: true,
-        value: "middle",
-      });
-      expect(
-        MetadataDiscovery.definitionsDynamic(Middle, { ...address, inheritance: "own" }),
-      ).toEqual({ isValid: true, definitions: [definition] });
-    }
+    DiscoveryContractAssertions.middleAddresses(definition, Middle, middleOwn.addresses);
     const instance = new Leaf();
     Object.defineProperty(instance, "constructor", {
       get: () => {
         throw new Error("instance constructor must not be read");
       },
     });
-    for (const target of [Leaf, instance, new Leaf()]) {
-      const result = definition.locations(target);
-      if (!result.isValid) throw new Error(result.code);
-      const expected =
-        target === Leaf
-          ? canonical
-          : canonical.filter(
-              (address) =>
-                address.kind === "class" ||
-                (address.kind !== "constructor-parameter" && address.side === "instance"),
-            );
-      expect(new Set(result.addresses)).toEqual(new Set(expected));
-      expect(result.addresses).toHaveLength(expected.length);
-      for (const address of result.addresses) {
-        expect(Object.getPrototypeOf(address)).toBe(Object.prototype);
-        expect("target" in address).toBe(false);
-        expect("owner" in address).toBe(false);
-        expect("inheritance" in address).toBe(false);
-        expect(definition.readDynamic(target, address)).toEqual({
-          isValid: true,
-          isPresent: true,
-          value: address.kind === "class" ? undefined : "middle",
-        });
-        expect(MetadataDiscovery.definitionsDynamic(target, address)).toEqual({
-          isValid: true,
-          definitions: [definition],
-        });
-      }
-      expect(definition.locations(target, { inheritance: "own" })).toEqual({
-        isValid: true,
-        addresses: [{ kind: "class" }],
-      });
-      const own = definition.locations(target, { inheritance: "own" });
-      if (!own.isValid) throw new Error(own.code);
-      for (const address of own.addresses) {
-        expect(definition.readDynamic(target, { ...address, inheritance: "own" })).toEqual({
-          isValid: true,
-          isPresent: true,
-          value: undefined,
-        });
-      }
-    }
+    for (const target of [Leaf, instance, new Leaf()])
+      DiscoveryContractAssertions.targetAddresses(definition, target, Leaf, canonical);
     expect(definition.locations(class Unrelated {})).toEqual({ isValid: true, addresses: [] });
     expect(new ValueMetadataDefinition<string>("label").locations(Leaf)).toEqual({
       isValid: true,
@@ -313,6 +505,7 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("returns shallow-frozen independent plain addresses and arrays, including empty results", () => {
+    /** Target used to verify canonical address snapshots and empty discovery. */
     class Target {}
     const definition = new ValueMetadataDefinition<string>("label");
     const input: IDynamicClassMetadataAddress = { kind: "member", member: 1 };
@@ -342,7 +535,9 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("cleans direct indexes while preserving inherited, unrelated and other-definition declarations", () => {
+    /** Owns the base class metadata retained after child deletion. */
     class Base {}
+    /** Owns direct metadata that can be deleted independently of `Base`. */
     class Leaf extends Base {}
     const definition = new ValueMetadataDefinition<string | undefined>("label");
     const other = new ValueMetadataDefinition<string>("label");
@@ -390,7 +585,9 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("retains empty accumulating declarations in both discovery directions after replacement", () => {
+    /** Provides inherited values for empty accumulating declarations. */
     class Base {}
+    /** Owns explicit empty list and record declarations. */
     class Leaf extends Base {}
     const list = new ListMetadataDefinition<string>("empty");
     const record = new RecordMetadataDefinition<string>("empty");
@@ -417,6 +614,7 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("shares typed target and address rejections without disguising them as empty discovery", () => {
+    /** Valid target used to compare invalid addresses with empty discovery. */
     class Target {}
     const definition = new ValueMetadataDefinition<string>("label");
     for (const target of [{}, Object.create(null), Target.prototype]) {
@@ -465,6 +663,7 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("preserves proxy inspection exceptions for both discovery directions and modes", () => {
+    /** Valid proxy target used to verify inspection errors propagate. */
     class Target {}
     const definition = new ValueMetadataDefinition<string>("label");
     const failure = new Error("inspection failed");
@@ -497,6 +696,7 @@ describe("metadata-bearing discovery contracts", () => {
   });
 
   it("keeps sides, parameter kinds, positions and canonical numeric aliases exact", () => {
+    /** Valid target used to verify side, kind, and canonical-key distinctions. */
     class Target {}
     const member = new ValueMetadataDefinition<string>("same");
     const parameter = new ValueMetadataDefinition<string>("same");

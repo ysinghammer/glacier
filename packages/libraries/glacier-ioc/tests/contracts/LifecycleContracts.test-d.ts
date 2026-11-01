@@ -10,6 +10,7 @@ import {
   type IOnModuleInit,
 } from "../../index.js";
 
+/** Implements all public lifecycle contracts to verify their accepted method shapes. */
 class Database
   implements
     IOnModuleInit,
@@ -18,12 +19,33 @@ class Database
     IBeforeContainerShutdown,
     IOnContainerShutdown
 {
+  /**
+   * Satisfies module initialization with an asynchronous implementation.
+   * @returns A promise that resolves when module initialization completes.
+   */
   public async onModuleInit(): Promise<void> {}
+  /**
+   * Satisfies container initialization with a synchronous implementation.
+   * @returns No value; marks container initialization as supported.
+   */
   public onContainerInit(): void {}
+  /**
+   * Satisfies module destruction with a synchronous implementation.
+   * @returns No value; marks module destruction as supported.
+   */
   public onModuleDestroy(): void {}
+  /**
+   * Satisfies pre-shutdown with an asynchronous implementation.
+   * @returns A promise that resolves when pre-shutdown work completes.
+   */
   public async beforeContainerShutdown(): Promise<void> {}
+  /**
+   * Satisfies container shutdown with a synchronous implementation.
+   * @returns No value; marks container shutdown as supported.
+   */
   public onContainerShutdown(): void {}
 }
+/** Root module that registers the lifecycle contract fixture. */
 class AppModule {}
 Module({ providers: [Database] })(AppModule);
 const token = new InjectionToken<number>("count");

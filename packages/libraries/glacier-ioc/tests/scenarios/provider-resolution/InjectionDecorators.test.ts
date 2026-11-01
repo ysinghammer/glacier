@@ -12,10 +12,18 @@ import {
   Optional,
 } from "../../../index.js";
 
+/** Runtime class used to verify implicit and explicit constructor tokens. */
 class Repository {}
+/** Second runtime class used to verify emitted constructor type order. */
 class Logger {}
 
-/** Simulates the compiler's `design:paramtypes` emission, which Vitest's transformer does not produce. */
+/**
+ * Writes compiler-style constructor metadata absent from the Vitest transform.
+ * @param target Class whose emitted constructor parameter types are simulated.
+ * @param types Runtime representations of parameter types in constructor order.
+ * @returns No value; stores metadata for dependency inspection.
+ * @throws {Error} Metadata storage rejects the target or supplied representation.
+ */
 function emitParameterTypes(
   target: new (...arguments_: never[]) => object,
   types: unknown[],
@@ -26,10 +34,13 @@ function emitParameterTypes(
 
 describe("IOC-003 decorator metadata is readable through the public API", () => {
   it("reads the scope declared by @Injectable and defaults to default", () => {
+    /** Fixture decorated with request scope for metadata inspection. */
     class RequestScoped {}
     Injectable({ scope: "request" })(RequestScoped);
+    /** Fixture decorated without options to verify the default scope. */
     class Defaulted {}
     Injectable()(Defaulted);
+    /** Fixture without decorators used to verify metadata defaults. */
     class Undecorated {}
 
     expect(InjectionMetadata.readScope(RequestScoped)).toBe("request");
@@ -38,8 +49,10 @@ describe("IOC-003 decorator metadata is readable through the public API", () => 
   });
 
   it("does not inherit the scope of a base class", () => {
+    /** Base fixture with transient scope that must not be inherited. */
     class Base {}
     Injectable({ scope: "transient" })(Base);
+    /** Derived fixture verifying scope metadata is not inherited. */
     class Derived extends Base {}
 
     expect(InjectionMetadata.readScope(Base)).toBe("transient");
@@ -50,11 +63,21 @@ describe("IOC-003 decorator metadata is readable through the public API", () => 
     const configuration = new InjectionToken<string>("configuration");
     const marker = Symbol("marker");
 
+    /** Receives three independently decorated constructor parameters. */
     class Consumer {
+      /**
+       * Stores explicit and inferred dependencies for metadata assertions.
+       * @param first Explicit configuration token result.
+       * @param second Optional symbol dependency result.
+       * @param third Repository class dependency.
+       */
       public constructor(
-        readonly first: string,
-        readonly second: unknown,
-        readonly third: Repository,
+        /** Explicitly injected configuration token value. */
+        public readonly first: string,
+        /** Explicit symbol dependency marked optional. */
+        public readonly second: unknown,
+        /** Class dependency with its own runtime type token. */
+        public readonly third: Repository,
       ) {}
     }
     Injectable()(Consumer);
@@ -74,10 +97,18 @@ describe("IOC-003 decorator metadata is readable through the public API", () => 
 
 describe("IOC-004 implicit tokens come from design:paramtypes", () => {
   it("uses emitted parameter classes when no @Inject is present", () => {
+    /** Receives constructor types inferred from compiler metadata. */
     class Consumer {
+      /**
+       * Stores both inferred dependencies for metadata assertions.
+       * @param repository Repository class inferred from metadata.
+       * @param logger Logger class inferred from metadata.
+       */
       public constructor(
-        readonly repository: Repository,
-        readonly logger: Logger,
+        /** Repository class inferred from emitted constructor metadata. */
+        public readonly repository: Repository,
+        /** Logger class inferred from emitted constructor metadata. */
+        public readonly logger: Logger,
       ) {}
     }
     Injectable()(Consumer);
@@ -94,7 +125,9 @@ describe("IOC-004 implicit tokens come from design:paramtypes", () => {
   });
 
   it("returns no dependencies for a class without constructor parameters", () => {
+    /** Plain class without constructor parameters or decorators. */
     class Plain {}
+    /** Decorated class whose metadata explicitly records no constructor parameters. */
     class Empty {}
     Injectable()(Empty);
     emitParameterTypes(Empty, []);
@@ -104,10 +137,19 @@ describe("IOC-004 implicit tokens come from design:paramtypes", () => {
   });
 
   it("does not inherit emitted parameter types from a base class", () => {
+    /** Base class carrying emitted parameter metadata for inheritance checks. */
     class Base {
-      public constructor(readonly repository: Repository) {}
+      /**
+       * Stores the repository constructor parameter.
+       * @param repository Repository dependency emitted for the base class.
+       */
+      public constructor(
+        /** Repository dependency emitted for the base class only. */
+        public readonly repository: Repository,
+      ) {}
     }
     emitParameterTypes(Base, [Repository]);
+    /** Derived class verifying constructor metadata is not inherited. */
     class Derived extends Base {}
 
     expect(InjectionMetadata.readDependencies(Base)).toHaveLength(1);
@@ -117,8 +159,16 @@ describe("IOC-004 implicit tokens come from design:paramtypes", () => {
 
 describe("IOC-005 unusable injection metadata fails explicitly", () => {
   it("rejects a class with parameters but no emitted metadata", () => {
+    /** Injectable-shaped class whose required compiler metadata is absent. */
     class Missing {
-      public constructor(readonly repository: Repository) {}
+      /**
+       * Stores the parameter whose runtime type cannot be inferred.
+       * @param repository Repository dependency without emitted type metadata.
+       */
+      public constructor(
+        /** Repository dependency without emitted constructor type metadata. */
+        public readonly repository: Repository,
+      ) {}
     }
 
     expect(() => InjectionMetadata.readDependencies(Missing)).toThrow(
@@ -129,8 +179,16 @@ describe("IOC-005 unusable injection metadata fails explicitly", () => {
   it.each([[Object], [Function], [undefined]])(
     "rejects parameter %s that has neither @Inject nor a usable emitted class",
     (emitted) => {
+      /** Consumer receiving an unusable emitted parameter type. */
       class Consumer {
-        public constructor(readonly dependency: unknown) {}
+        /**
+         * Stores the parameter whose emitted representation is under test.
+         * @param dependency Emitted value that is not a usable injection token.
+         */
+        public constructor(
+          /** Dependency has no usable runtime token without an explicit decorator. */
+          public readonly dependency: unknown,
+        ) {}
       }
       emitParameterTypes(Consumer, [emitted]);
 

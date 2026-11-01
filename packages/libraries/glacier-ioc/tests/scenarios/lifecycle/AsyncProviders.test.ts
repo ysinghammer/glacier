@@ -16,6 +16,11 @@ import { LifecycleRecorder } from "../../doubles/LifecycleRecorder.js";
 
 const SLOW_FACTORY_MS = 5;
 
+/**
+ * Delays a scenario continuation to verify asynchronous provider ordering.
+ * @param milliseconds Delay duration in milliseconds; scenarios use a short positive interval.
+ * @returns A promise that resolves after the requested delay.
+ */
 function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -25,6 +30,7 @@ describe("IOC-028 async factories are resolved before dependents", () => {
     const recorder = new LifecycleRecorder();
     const config = new InjectionToken<{ url: string }>("config");
     const client = new InjectionToken<string>("client");
+    /** Module registering the dependent and delayed configuration factories. */
     class Root {}
     Module({
       providers: [
@@ -56,12 +62,21 @@ describe("IOC-028 async factories are resolved before dependents", () => {
 
   it("injects the awaited value into a class constructor", async () => {
     const answer = new InjectionToken<number>("answer");
+    /** Receives the asynchronously created answer through constructor injection. */
     class Reader {
-      public constructor(readonly answer: number) {}
+      /**
+       * Stores the injected value for the scenario assertion.
+       * @param answer Number resolved by the asynchronous factory.
+       */
+      public constructor(
+        /** Resolved answer supplied by the asynchronous factory. */
+        public readonly answer: number,
+      ) {}
     }
     Injectable()(Reader);
     ParameterTypes.emit(Reader, [Number]);
     Inject(answer)(Reader, undefined, 0);
+    /** Module registering the asynchronous value consumed by Reader. */
     class Root {}
     Module({
       providers: [Reader, { provide: answer, useFactory: async () => 42 }],
@@ -74,6 +89,7 @@ describe("IOC-028 async factories are resolved before dependents", () => {
     const perRequest = new InjectionToken<number>("per-request");
     const perCall = new InjectionToken<number>("per-call");
     let counter = 0;
+    /** Module registering request- and transient-scoped async factories. */
     class Root {}
     Module({
       providers: [
@@ -114,6 +130,7 @@ describe("IOC-029 factory failures are wrapped with their cause", () => {
     ["an async rejection", () => Promise.reject(new Error("sync boom"))],
   ])("rejects create with ProviderCreationError for %s", async (_title, useFactory) => {
     const token = new InjectionToken<string>("fragile");
+    /** Module registering the factory that rejects during container creation. */
     class Root {}
     Module({ providers: [{ provide: token, useFactory }] })(Root);
 
@@ -126,6 +143,7 @@ describe("IOC-029 factory failures are wrapped with their cause", () => {
 
   it("rejects resolve of a failing REQUEST factory with ProviderCreationError", async () => {
     const token = new InjectionToken<string>("per-request-failure");
+    /** Module registering a request-scoped factory that rejects during resolution. */
     class Root {}
     Module({
       providers: [

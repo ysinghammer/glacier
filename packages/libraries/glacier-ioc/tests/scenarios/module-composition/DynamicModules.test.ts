@@ -9,11 +9,18 @@ import {
 } from "../../../index.js";
 
 const settings = new InjectionToken<string>("settings");
+/** Static provider registered by ConfigModule for each dynamic configuration. */
 class Logger {}
+/** Provider exported by secondary module fixtures. */
 class Cache {}
 
+/** Module demonstrating dynamic configuration alongside static provider metadata. */
 class ConfigModule {
-  /** Typical `forRoot()` factory returning module data that extends the static declaration. */
+  /**
+   * Creates dynamic module metadata that adds a configured settings value.
+   * @param value Configuration string exposed by the returned module.
+   * @returns Dynamic metadata extending ConfigModule's static providers and exports.
+   */
   public static forRoot(value: string): IDynamicModule {
     return {
       module: ConfigModule,
@@ -26,6 +33,7 @@ Module({ providers: [Logger], exports: [Logger] })(ConfigModule);
 
 describe("IOC-014 dynamic modules extend static metadata", () => {
   it("provides and exports both static and dynamic members", async () => {
+    /** Root importing a configured instance of ConfigModule. */
     class Root {}
     Module({ imports: [ConfigModule.forRoot("prod")] })(Root);
 
@@ -36,6 +44,7 @@ describe("IOC-014 dynamic modules extend static metadata", () => {
   });
 
   it("accepts a dynamic module as the container root and merges imports", async () => {
+    /** Secondary module contributing an exported Cache provider. */
     class Extra {}
     Module({ providers: [Cache], exports: [Cache] })(Extra);
 
@@ -51,12 +60,16 @@ describe("IOC-014 dynamic modules extend static metadata", () => {
   });
 
   it("lets a dynamic global flag override the static one", async () => {
+    /** Module used to verify visibility of dynamic global providers. */
     class Feature {}
     Module({})(Feature);
+    /** Root combining a configured import with Feature. */
     class Root {}
     Module({ imports: [ConfigModule.forRoot("a"), Feature] })(Root);
+    /** Module whose dynamic global flag overrides its static declaration. */
     class Wrapped {}
     Module({ providers: [Cache], exports: [Cache], global: false })(Wrapped);
+    /** Root that imports Wrapped with a dynamic global setting. */
     class GlobalRoot {}
     Module({ imports: [{ module: Wrapped, global: true }, Feature] })(GlobalRoot);
 
@@ -68,10 +81,13 @@ describe("IOC-014 dynamic modules extend static metadata", () => {
   });
 
   it("keeps separately configured dynamic modules isolated", async () => {
+    /** Module importing the first isolated ConfigModule configuration. */
     class First {}
+    /** Module importing the second isolated ConfigModule configuration. */
     class Second {}
     Module({ imports: [ConfigModule.forRoot("one")] })(First);
     Module({ imports: [ConfigModule.forRoot("two")] })(Second);
+    /** Root composing the separately configured modules. */
     class Root {}
     Module({ imports: [First, Second] })(Root);
 
@@ -83,8 +99,10 @@ describe("IOC-014 dynamic modules extend static metadata", () => {
 
   it("re-exports a dynamic module through its class or its configuration", async () => {
     const configured = ConfigModule.forRoot("shared");
+    /** Module re-exporting the configured module by its class. */
     class ByClass {}
     Module({ imports: [configured], exports: [ConfigModule] })(ByClass);
+    /** Module re-exporting the configured module by its dynamic reference. */
     class ByReference {}
     Module({ imports: [configured], exports: [configured] })(ByReference);
 

@@ -21,14 +21,26 @@ import {
   SchemaDefinitionError,
   Schema,
 } from "../../../index.js";
-import { DerivedClasses } from "../../../src/domain/schema/DerivedClasses.js";
+import { DerivedClasses } from "../../../src/domain/schemaProcessing/schema/DerivedClasses.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
+/**
+ * Creates a fresh user schema fixture for derived-class scenarios.
+ * @returns Constructor with required identity/contact fields and optional age.
+ */
 function createUserClass(): new () => { name: string; email: string; age?: number; role: string } {
+  /** Source fixture carrying the constraints inherited by derived schemas. */
   class CreateUser {
+    /** User display name with a minimum-length constraint. */
     public name!: string;
+    /** User email read from the `mail` input alias. */
     public email!: string;
+    /** Optional non-negative user age. */
     public age?: number;
+    /**
+     * User role defaulted when omitted.
+     * @default "member"
+     */
     public role!: string;
   }
   FieldDeclaration.declare(CreateUser, "name", String, IsString({ min: 2 }));
@@ -45,18 +57,25 @@ function createUserClass(): new () => { name: string; email: string; age?: numbe
 }
 
 describe("SCH-110 Inheritance of decorators", () => {
+  /** Base schema supplying inherited identifier and label constraints. */
   class Base {
+    /** Identifier requiring at least three characters. */
     public id!: string;
+    /** Required label inherited by child classes. */
     public label!: string;
   }
   FieldDeclaration.declare(Base, "id", String, IsString({ min: 3 }));
   FieldDeclaration.declare(Base, "label", String, IsString());
+  /** Child schema overriding the inherited label and adding two fields. */
   class Child extends Base {
+    /** Integer count introduced by this subclass. */
     public count!: number;
+    /** Optional tag introduced by this subclass. */
     public tag?: string;
   }
   FieldDeclaration.declare(Child, "label", String, IsString({ max: 2 }), Optional());
   FieldDeclaration.declare(Child, "count", Number, IsInt());
+  /** Grandchild schema tightening the inherited count constraint. */
   class Grandchild extends Child {}
   FieldDeclaration.declare(Grandchild, "count", Number, IsInt({ min: 10 }));
 
@@ -87,8 +106,11 @@ describe("SCH-111 PartialType", () => {
   });
 
   it("keeps nullable and property refinements and drops class refinements", () => {
+    /** Source fixture whose field rules survive partial derivation. */
     class Source {
+      /** Nullable note retaining its property validation. */
       public note!: string | null;
+      /** Code field guarded by a property-level refinement. */
       public code!: string;
     }
     FieldDeclaration.declare(Source, "note", String, IsString(), Nullable());
@@ -108,7 +130,9 @@ describe("SCH-111 PartialType", () => {
   });
 
   it("can be extended with further decorated fields", () => {
+    /** Partial user fixture extended by a newly required field. */
     class Update extends PartialType(createUserClass()) {
+      /** Additional value required by the derived update schema. */
       public extra!: string;
     }
     FieldDeclaration.declare(Update, "extra", String, IsString());
@@ -136,8 +160,11 @@ describe("SCH-112 PickType and OmitType", () => {
   });
 
   it("rejects keys that are not schema fields and drops class refinements", () => {
+    /** Source with a class refinement removed by derived schemas. */
     class Source {
+      /** First required source field. */
       public a!: string;
+      /** Second required source field compared by the class rule. */
       public b!: string;
     }
     FieldDeclaration.declare(Source, "a", String, IsString());
@@ -153,15 +180,21 @@ describe("SCH-112 PickType and OmitType", () => {
 
 describe("SCH-113 ExtendType", () => {
   it("adds extension fields and lets them replace base fields, keeping both refinements", () => {
+    /** Base fixture retaining secret validation and a class refinement. */
     class Base {
+      /** Name replaced by the extension's less restrictive declaration. */
       public name!: string;
+      /** Secret field retained from the base schema. */
       public secret!: string;
     }
     FieldDeclaration.declare(Base, "name", String, IsString({ min: 5 }));
     FieldDeclaration.declare(Base, "secret", String, IsString());
     Refine<Base>((value) => value.secret !== "bad", { message: "base" })(Base);
+    /** Extension fixture replacing `name` and adding an integer field. */
     class Extension {
+      /** Replacement name with the extension's own constraint. */
       public name!: string;
+      /** Additional integer used by the extension class refinement. */
       public extra!: number;
     }
     FieldDeclaration.declare(Extension, "name", String, IsString({ min: 1 }));
@@ -182,7 +215,9 @@ describe("SCH-113 ExtendType", () => {
   it("supports nested derivation chains", () => {
     const Create = createUserClass();
     const Update = PartialType(OmitType(Create, ["role"]));
+    /** Audit patch contributing a required reason field. */
     class Patch {
+      /** Reason retained alongside derived user fields. */
       public reason!: string;
     }
     FieldDeclaration.declare(Patch, "reason", String, IsString());
@@ -203,7 +238,9 @@ describe("SCH-114 Derived classes and frozen sources", () => {
 
     expect(() => FieldDeclaration.declare(Create, "late", undefined, IsString())).toThrow("frozen");
 
+    /** Variant used to verify derivation rejects union roots. */
     class Cat {}
+    /** Union root that cannot be passed to derivation operations. */
     class Union {}
     IsUnion({ discriminator: "type", variants: { cat: Cat } })(Union);
     expect(() => PartialType(Union)).toThrow("it is a union");
@@ -228,8 +265,10 @@ describe("SCH-114 Derived classes and frozen sources", () => {
 describe("SCH-115 Derived class metadata", () => {
   it("names derived classes and records their origin", () => {
     const Create = createUserClass();
+    /** Empty source whose field is declared dynamically for metadata checks. */
     class Source {}
     FieldDeclaration.declare(Source, "a", String, IsString());
+    /** Independent empty source used as an extension class. */
     class Other {}
     FieldDeclaration.declare(Other, "b", String, IsString());
 
@@ -253,6 +292,7 @@ describe("SCH-115 Derived class metadata", () => {
       extension: Other,
     });
     expect(DerivedClasses.describe(Create)).toBeUndefined();
+    /** Ordinary subclass that does not inherit derived-origin metadata. */
     class Sub extends partial {}
     expect(DerivedClasses.describe(Sub)).toBeUndefined();
   });

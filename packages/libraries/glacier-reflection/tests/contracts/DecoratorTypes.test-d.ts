@@ -9,7 +9,9 @@ const value = new ValueMetadataDefinition<string>("value");
 const list = new ListMetadataDefinition<string>("list");
 const record = new RecordMetadataDefinition<string>("record");
 const decorator: ILegacyMetadataDecorator = value.decorator("label");
+/** Supplies a class identity for compile-time legacy decorator signature checks. */
 class Consumer {
+  /** Prevents construction while preserving a class decorator target. */
   private constructor() {}
 }
 const classResult: void = decorator(Consumer);

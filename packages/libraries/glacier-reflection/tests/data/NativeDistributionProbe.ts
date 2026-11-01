@@ -2,7 +2,11 @@ import { spawn } from "node:child_process";
 
 /** Observes copied public generated consumers in fresh bounded native Node processes. */
 export class NativeDistributionProbe {
-  /** Awaits JSON observations and child closure, propagating tool, execution and timeout failures. */
+  /**
+   * Runs a generated-distribution probe in a fresh bounded Node process.
+   * @param mode Distribution behavior selected by the probe.
+   * @returns Parsed observations emitted by the generated consumer.
+   */
   public static async run(mode: string): Promise<unknown> {
     const probe = new URL(
       "../artifacts/distribution/consumer/DistributionContractProbe.js",

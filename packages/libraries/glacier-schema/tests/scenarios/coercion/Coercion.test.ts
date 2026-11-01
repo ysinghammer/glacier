@@ -20,14 +20,23 @@ import {
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
-/** Declares a one-field class and parses `{ value: input }` with the given parse options. */
+/**
+ * Parses an unknown candidate through a one-field schema with optional coercion.
+ * @param designType Design type recorded for the fixture property.
+ * @param decorator Property decorator defining the field's validation rule.
+ * @param input Candidate value tested by the schema.
+ * @param coerce Coercion choice, or `undefined` to use the parser default.
+ * @returns Parsed field value on success or a failure marker.
+ */
 function parseValue(
   designType: Parameters<typeof FieldDeclaration.declare>[2],
   decorator: PropertyDecorator,
   input: unknown,
   coerce: boolean | undefined,
 ) {
+  /** One-field fixture used to exercise a coercible decorator. */
   class Holder {
+    /** Candidate value inspected and optionally coerced by the parser. */
     public value!: unknown;
   }
   FieldDeclaration.declare(Holder, "value", designType, decorator);
@@ -58,7 +67,9 @@ describe("SCH-060 Coercion is off by default and enabled per call", () => {
   });
 
   it("applies to parse as well as safeParse", () => {
+    /** Query fixture with one integer field parsed using per-call coercion. */
     class Query {
+      /** Page number converted from numeric string input when requested. */
       public page!: number;
     }
     FieldDeclaration.declare(Query, "page", Number, IsInt());
@@ -68,7 +79,9 @@ describe("SCH-060 Coercion is off by default and enabled per call", () => {
   });
 
   it("does not leak between calls", () => {
+    /** Query fixture proving coercion configuration is isolated per call. */
     class Query {
+      /** Page number accepted only as a number when coercion is disabled. */
       public page!: number;
     }
     FieldDeclaration.declare(Query, "page", Number, IsInt());
@@ -111,7 +124,9 @@ describe("SCH-061 Coercion rules per type", () => {
     ["enum unknown", String, IsEnum(["a"]), "b", "b"],
     ["any", Object, IsAny(), "5", "5"],
   ] as const)("%s coerces %j to %j", (_name, type, decorator, input, expected) => {
+    /** Fixture carrying the current type/decorator pair for coercion assertions. */
     class Holder {
+      /** Candidate value converted according to the test case. */
       public value!: unknown;
     }
     FieldDeclaration.declare(Holder, "value", type, decorator);
@@ -135,7 +150,9 @@ describe("SCH-061 Coercion rules per type", () => {
   });
 
   it("reports an impossible calendar date as invalid_date", () => {
+    /** Date fixture whose value is created from an impossible calendar input. */
     class Holder {
+      /** Date parsed from the candidate calendar string. */
       public value!: Date;
     }
     FieldDeclaration.declare(Holder, "value", Date, IsDate());
@@ -154,9 +171,16 @@ describe("SCH-061 Coercion rules per type", () => {
 
 describe("SCH-062 Coercion with modifiers", () => {
   it("leaves null and undefined to Nullable, Optional and Default", () => {
+    /** Query fixture combining all absence and null modifiers. */
     class Query {
+      /** Optional number omitted when its input is absent. */
       public a?: number;
+      /** Nullable number retaining an explicit null value. */
       public b!: number | null;
+      /**
+       * Number defaulted when its input is missing.
+       * @default 9
+       */
       public c!: number;
     }
     FieldDeclaration.declare(Query, "a", Number, IsNumber(), Optional());
@@ -172,7 +196,9 @@ describe("SCH-062 Coercion with modifiers", () => {
   });
 
   it("runs Transform on the coerced value", () => {
+    /** Query fixture whose page is incremented after numeric coercion. */
     class Query {
+      /** Page number transformed after parsing its input representation. */
       public page!: number;
     }
     FieldDeclaration.declare(

@@ -8,6 +8,11 @@ import { RecordingTransport } from "../../doubles/RecordingTransport.js";
 
 const INSTANT = new Date("2026-01-02T03:04:05.000Z");
 
+/**
+ * Creates a logger fixture with fixed time, merged bindings, and one recording transport.
+ * @returns The recording transport and context-specific logger used by entry scenarios.
+ * @throws {Error} If the fixed valid configuration unexpectedly rejects logger creation.
+ */
 function setup(): { transport: RecordingTransport; logger: Logger } {
   const transport = new RecordingTransport();
   const factory = new LoggerFactory({

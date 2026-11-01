@@ -24,14 +24,23 @@ import {
 import type { IElementType, ISchemaParseOptions } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
-/** Declares a one-field class `{ value }` with the decorator and parses `{ value: input }`. */
+/**
+ * Parses an unknown candidate through a one-field collection or scalar schema.
+ * @param designType Design type recorded for the fixture property.
+ * @param decorator Property decorator defining the field's validation rule.
+ * @param input Candidate value tested by the schema.
+ * @param options Per-call parsing options, including optional coercion and depth limits.
+ * @returns Parsed field value on success or the validation issues on failure.
+ */
 function parseValue(
   designType: Parameters<typeof FieldDeclaration.declare>[2],
   decorator: PropertyDecorator,
   input: unknown,
   options?: ISchemaParseOptions,
 ) {
+  /** One-field fixture used to exercise a collection decorator. */
   class Holder {
+    /** Candidate collection value inspected by the schema parser. */
     public value: unknown;
   }
   FieldDeclaration.declare(Holder, "value", designType, decorator);
@@ -39,6 +48,13 @@ function parseValue(
   return result.ok ? { value: Reflect.get(result.value, "value") } : { issues: result.issues };
 }
 
+/**
+ * Parses an array with a selected element type and per-call options.
+ * @param element Publicly supported schema type for each array element.
+ * @param input Candidate array value.
+ * @param options Per-call parsing options, when required by the scenario.
+ * @returns Parsed array value or the validation issues from `parseValue`.
+ */
 const parseArray = (element: IElementType, input: unknown, options?: ISchemaParseOptions) =>
   parseValue(Array, IsArray(element), input, options);
 
@@ -116,6 +132,10 @@ describe("SCH-070 IsArray", () => {
 
 describe("SCH-071 Array and set constraints", () => {
   it("enforces min and max sizes", () => {
+    /**
+     * Creates the array decorator used for size-bound assertions.
+     * @returns Array decorator requiring one or two string elements.
+     */
     const decorator = (): PropertyDecorator => IsArray(String, { min: 1, max: 2 });
 
     expect(parseValue(Array, decorator(), ["a"])).toEqual({ value: ["a"] });
@@ -165,7 +185,9 @@ describe("SCH-071 Array and set constraints", () => {
   });
 
   it("compares dates by time and treats object elements by identity", () => {
+    /** Element fixture proving duplicate object comparison uses identity. */
     class Tag {
+      /** Tag name validated before uniqueness compares object instances. */
       public name!: string;
     }
     FieldDeclaration.declare(Tag, "name", String, IsString());
@@ -182,6 +204,10 @@ describe("SCH-071 Array and set constraints", () => {
   });
 
   it("applies the same rules to sets", () => {
+    /**
+     * Creates the set decorator used for size and uniqueness assertions.
+     * @returns Set decorator requiring one or two unique numeric values.
+     */
     const decorator = (): PropertyDecorator => IsSet(Number, { min: 1, max: 2, unique: true });
 
     expect(parseValue(Set, decorator(), new Set([1, 2]))).toEqual({ value: new Set([1, 2]) });
@@ -226,6 +252,10 @@ describe("SCH-071 Array and set constraints", () => {
 });
 
 describe("SCH-072 IsTuple", () => {
+  /**
+   * Creates the tuple decorator reused by positional validation assertions.
+   * @returns Tuple decorator for string, number, and boolean positions.
+   */
   const tuple = (): PropertyDecorator => IsTuple([String, Number, Boolean]);
 
   it("accepts arrays matching each position", () => {
@@ -391,9 +421,13 @@ describe("SCH-075 IsRecord", () => {
     expect(parseValue(Object, IsRecord(Number), new Map()).issues?.[0]?.message).toBe(
       "Expected object, received map",
     );
-    expect(parseValue(Object, IsRecord(Number), new (class Foo {})()).issues?.[0]?.code).toBe(
-      "invalid_type",
-    );
+    expect(
+      parseValue(
+        Object,
+        IsRecord(Number),
+        new /** Plain-record rejection fixture. */ (class Foo {})(),
+      ).issues?.[0]?.code,
+    ).toBe("invalid_type");
   });
 
   it("reports invalid values with their key in the path", () => {
@@ -428,6 +462,11 @@ describe("SCH-076 Collection declarations", () => {
   });
 
   it("rejects element types that are neither primitives nor classes", () => {
+    /**
+     * Casts an untrusted test value to exercise runtime element validation.
+     * @param value Candidate invalid element type supplied to the decorator.
+     * @returns Same value cast to the public element-type contract for this boundary test.
+     */
     const bad = (value: unknown): IElementType => value as IElementType;
 
     expect(() => IsArray(bad("string"))(Object.prototype, "x")).toThrow(/element type/);
@@ -450,7 +489,9 @@ describe("SCH-076 Collection declarations", () => {
   });
 
   it("rejects a second type decorator and repeated modifiers like other types", () => {
+    /** Fixture used to reject a second collection type decorator. */
     class Holder {
+      /** Field with an existing array declaration. */
       public value: unknown;
     }
     FieldDeclaration.declare(Holder, "value", Array, IsArray(String));
@@ -461,9 +502,13 @@ describe("SCH-076 Collection declarations", () => {
 
 describe("SCH-077 Collections with modifiers and coercion", () => {
   it("supports Optional, Nullable, Default and message override", () => {
+    /** Fixture combining collection absence, null, defaults, and value constraints. */
     class Holder {
+      /** Optional nullable collection omitted or preserved as null. */
       public tags?: string[] | null;
+      /** Role list populated from a fresh default when absent. */
       public roles!: string[];
+      /** String-keyed boolean record with a custom validation message. */
       public flags!: Record<string, boolean>;
     }
     FieldDeclaration.declare(Holder, "tags", Array, Optional(), Nullable(), IsArray(String));
@@ -509,6 +554,10 @@ describe("SCH-077 Collections with modifiers and coercion", () => {
   });
 
   it("coerces tuple positions without touching extra entries", () => {
+    /**
+     * Creates the tuple decorator whose positions are individually coerced.
+     * @returns Two-position numeric/boolean tuple decorator.
+     */
     const decorator = (): PropertyDecorator => IsTuple([Number, Boolean]);
 
     expect(parseValue(Array, decorator(), ["1", "true"], { coerce: true })).toEqual({
@@ -581,7 +630,9 @@ describe("SCH-077 Collections with modifiers and coercion", () => {
   });
 
   it("leaves nested object elements to their own schema when coercing", () => {
+    /** Point fixture whose coordinate uses its own numeric coercion rule. */
     class Point {
+      /** Coordinate parsed as a number from coercible input. */
       public x!: number;
     }
     FieldDeclaration.declare(Point, "x", Number, IsNumber());

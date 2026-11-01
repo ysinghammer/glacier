@@ -17,8 +17,12 @@ import {
   type IMetadataWriteResult,
 } from "@glacier/reflection";
 
-/** Supplies an ordinary constructor without coupling metadata to member values. */
+/** Supplies an ordinary constructable target without coupling metadata to member values. */
 class Consumer {
+  /**
+   * Mutable instance property addressed by independent metadata declarations.
+   * @default 1
+   */
   public count = 1;
 }
 

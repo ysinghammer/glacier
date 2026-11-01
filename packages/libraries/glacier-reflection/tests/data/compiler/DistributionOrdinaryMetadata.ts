@@ -13,7 +13,11 @@ class OrdinaryConsumer {}
 
 /** Exposes test-owned observations from an independently bundled ordinary root graph. */
 export class DistributionOrdinaryMetadata {
-  /** Observes the retention entry's genuine records when built as a separate entry in that same graph. */
+  /**
+   * Reads compiler records through the ordinary root graph for a retained entry target.
+   * @param target Constructed class whose compiler record is observed.
+   * @returns Record, frozen-state, and definition-identity observations.
+   */
   public static compilerRecord(target: IClass): unknown {
     const parameters = DESIGN_PARAMETER_TYPES_METADATA.read(target);
     const definitions = MetadataDiscovery.definitions(target);
@@ -27,7 +31,10 @@ export class DistributionOrdinaryMetadata {
     };
   }
 
-  /** Verifies manual reads and exact discovery identity without touching a foreign accessor. */
+  /**
+   * Reports manual metadata, discovery identity, and inactive root registration state.
+   * @returns Public API observations for the local decorated consumer.
+   */
   public static observations(): unknown {
     const definitions = MetadataDiscovery.definitions(OrdinaryConsumer);
     return {

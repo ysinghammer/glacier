@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "lib": ["ES2023", "DOM"], "noEmit": true, "emitDecoratorMetadata": true },
+  "include": ["index.ts", "vitest.config.ts", "tests/**/*.ts"],
+  "exclude": ["tests/artifacts", "tests/contracts", "dist", "node_modules"]
+}

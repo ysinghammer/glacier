@@ -33,6 +33,11 @@ describe("GlacierContext.run", () => {
   });
 
   it("isolates concurrent runs from each other", async () => {
+    /**
+     * Reads one identifier inside its own context run for concurrency checks.
+     * @param id Identifier used to distinguish concurrent context executions.
+     * @returns A promise resolving to the identifier observed inside the run.
+     */
     const read = (id: string): Promise<string> =>
       GlacierContext.run([TraceIdKey.with(id)], async () => {
         await new Promise((resolve) => setTimeout(resolve, id === "a" ? 5 : 1));
@@ -72,6 +77,10 @@ describe("GlacierContext.run", () => {
 
   it("rejects a key repeated within one run and never calls the callback", () => {
     let isCalled = false;
+    /**
+     * Attempts a run with repeated keys to exercise duplicate-entry validation.
+     * @returns No value; the attempted run propagates its duplicate-entry failure.
+     */
     const attempt = (): void =>
       GlacierContext.run([TraceIdKey.with("a"), TraceIdKey.with("b")], () => {
         isCalled = true;

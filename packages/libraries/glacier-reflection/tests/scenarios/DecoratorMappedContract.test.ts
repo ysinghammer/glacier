@@ -12,21 +12,41 @@ import {
 describe("mapped package-root legacy decorator contract", () => {
   it("normalizes every legacy callback shape without executing or replacing consumers", () => {
     let executionCount = 0;
+    /** Tracks construction and accessor execution for decorator callback checks. */
     class Consumer {
+      /** Counts construction so decoration can prove it leaves consumers untouched. */
       constructor() {
         executionCount++;
       }
-      get accessor(): string {
+      /**
+       * Counts getter execution and provides an accessor declaration for decoration.
+       * @returns Empty text after incrementing the execution count.
+       */
+      public get accessor(): string {
         executionCount++;
         return "";
       }
-      set accessor(_value: string) {
+      /**
+       * Counts setter execution without retaining its input.
+       * @param _value Ignored accessor value.
+       */
+      public set accessor(_value: string) {
         executionCount++;
       }
-      method(input: string): string {
+      /**
+       * Returns text unchanged for instance method parameter mapping.
+       * @param input Text argument represented by the decorated method.
+       * @returns The same text value.
+       */
+      public method(input: string): string {
         return input;
       }
-      static method(input: string): string {
+      /**
+       * Returns text unchanged for static method parameter mapping.
+       * @param input Text argument represented by the decorated method.
+       * @returns The same text value.
+       */
+      public static method(input: string): string {
         return input;
       }
     }
@@ -98,6 +118,7 @@ describe("mapped package-root legacy decorator contract", () => {
   });
 
   it("rejects malformed callback arguments with typed safe errors and unchanged declarations", () => {
+    /** Target used to verify malformed decorator arguments preserve existing locations. */
     class Consumer {}
     const metadata = new ValueMetadataDefinition<string>("mapped-boundary");
     metadata.set(Consumer, "class-old");
@@ -168,7 +189,9 @@ describe("mapped package-root legacy decorator contract", () => {
   });
 
   it("snapshots list and record annotations at creation, preserving shallow identity and replacement", () => {
+    /** Base receives the first accumulating annotation. */
     class Base {}
+    /** Derived receives subsequent annotation contributions. */
     class Derived extends Base {}
     const item = { label: "original" };
     const supplied = [item];
@@ -217,6 +240,7 @@ describe("mapped package-root legacy decorator contract", () => {
   });
 
   it("propagates inspection and creation-time snapshot exceptions without overwriting annotations", () => {
+    /** Target whose previous annotation survives inspection failures. */
     class Consumer {}
     const metadata = new ValueMetadataDefinition<string>("mapped-inspection");
     const record = new RecordMetadataDefinition<string>("mapped-snapshot");
@@ -234,6 +258,11 @@ describe("mapped package-root legacy decorator contract", () => {
     expect(() => metadata.decorator("new")(proxy, "member")).toThrow(failure);
     expect(() =>
       record.decorator({
+        /**
+         * Throws the captured inspection failure when snapshotting reads this entry.
+         * @returns Never returns; every read throws the captured failure.
+         * @throws {Error} Whenever snapshot preparation evaluates the getter.
+         */
         get entry(): string {
           throw failure;
         },

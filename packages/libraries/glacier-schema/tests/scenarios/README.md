@@ -14,3 +14,5 @@
 | [refine](refine/README.md)                       | Property-level and class-level synchronous refinements for cross-field rules with configurable issues.             |
 | [unions](unions/README.md)                       | Discriminated unions on properties and base classes, and non-discriminated `IsOneOf` unions.                       |
 | [validation-errors](validation-errors/README.md) | Issues with paths and stable codes, overridable messages, `SchemaError` and the `Schema.isError` guard.            |
+| [preparation](preparation/README.md)             | Early definition validation and reachable metadata freezing without value callbacks.                               |
+| [serialization](serialization/README.md)         | Validated logical DTO projection to safe renamed JSON with typed failures.                                         |

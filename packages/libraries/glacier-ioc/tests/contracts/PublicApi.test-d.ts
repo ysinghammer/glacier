@@ -13,6 +13,7 @@ import {
 
 const token = new InjectionToken<string>("name");
 const symbolToken: IToken = token.symbol;
+/** Supplies a class token to verify the public token contract. */
 class Service {}
 const classToken: IToken = Service;
 const phantom: string | undefined = token.phantomType;

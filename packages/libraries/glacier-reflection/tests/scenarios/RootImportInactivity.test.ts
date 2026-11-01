@@ -11,8 +11,10 @@ it("keeps named and side-effect roots inactive while manual decorators, inherita
   const value = new root.ValueMetadataDefinition<string>("manual");
   const list = new root.ListMetadataDefinition<string>("manual-list");
   const record = new root.RecordMetadataDefinition<number>("manual-record");
+  /** Owns a manual class decorator declaration before subclass lookup. */
   class Base {}
   value.decorator("base")(Base);
+  /** Inherits manual declarations while keeping direct values independently stored. */
   class Derived extends Base {}
   expect(list.set(Base, ["a"])).toEqual({ isValid: true });
   expect(list.set(Derived, ["b"])).toEqual({ isValid: true });

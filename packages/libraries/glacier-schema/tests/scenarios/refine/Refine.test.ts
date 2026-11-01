@@ -20,7 +20,9 @@ import {
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
 describe("SCH-100 Property-level Refine", () => {
+  /** Account fixture with one field guarded by a custom string predicate. */
   class Account {
+    /** String accepted only when its character count is even. */
     public even!: string;
   }
   FieldDeclaration.declare(
@@ -41,11 +43,19 @@ describe("SCH-100 Property-level Refine", () => {
 
   it("is skipped when type validation failed and for absent or null values", () => {
     let calls = 0;
+    /** Probe fixture used to check when field refinements are skipped. */
     class Probe {
+      /** Optional field absent during the scenario. */
       public a?: string;
+      /** Nullable field supplied as null during the scenario. */
       public b!: string | null;
+      /** Required field supplied with an invalid primitive type. */
       public c!: string;
     }
+    /**
+     * Creates a predicate that records whether field refinement ran.
+     * @returns Property decorator with a counting refinement predicate.
+     */
     const probe = (): PropertyDecorator =>
       Refine(() => {
         calls += 1;
@@ -68,7 +78,9 @@ describe("SCH-100 Property-level Refine", () => {
   });
 
   it("sees the transformed value, uses a default message and uses the Rename alias in the path", () => {
+    /** Tag fixture whose normalized label is checked by a refinement. */
     class Tag {
+      /** Label read from the `tag` input key and trimmed before refinement. */
       public label!: string;
     }
     FieldDeclaration.declare(
@@ -89,7 +101,9 @@ describe("SCH-100 Property-level Refine", () => {
   });
 
   it("reports an exception from the predicate with its reason", () => {
+    /** Fixture whose field predicate throws during validation. */
     class Boom {
+      /** String value passed to the throwing predicate. */
       public v!: string;
     }
     FieldDeclaration.declare(
@@ -109,8 +123,11 @@ describe("SCH-100 Property-level Refine", () => {
   });
 
   it("reports a non-Error throw as the reason and skips an undefined accepted value", () => {
+    /** Fixture for non-Error predicate throws and absent arbitrary values. */
     class Odd {
+      /** String field with a predicate that throws a primitive value. */
       public v!: string;
+      /** Optional arbitrary field whose refinement is skipped when absent. */
       public any?: unknown;
     }
     FieldDeclaration.declare(
@@ -137,7 +154,9 @@ describe("SCH-100 Property-level Refine", () => {
   });
 
   it("works inside collections of nested classes with full paths", () => {
+    /** Collection element fixture with a rejecting quantity refinement. */
     class Item {
+      /** Quantity field whose refinement produces a nested issue. */
       public qty!: string;
     }
     FieldDeclaration.declare(
@@ -147,7 +166,9 @@ describe("SCH-100 Property-level Refine", () => {
       IsString(),
       Refine(() => false, "bad"),
     );
+    /** Order fixture containing a list of refined items. */
     class Order {
+      /** Items parsed recursively with their refinement rules. */
       public items!: Item[];
     }
     FieldDeclaration.declare(Order, "items", Array, IsArray(Item));
@@ -159,7 +180,9 @@ describe("SCH-100 Property-level Refine", () => {
   });
 
   it("is rejected twice on one property and after the schema is frozen", () => {
+    /** Fixture used to reject duplicate field refinements. */
     class Twice {
+      /** Field receiving two refinement declarations. */
       public v!: string;
     }
     expect(() =>
@@ -173,7 +196,9 @@ describe("SCH-100 Property-level Refine", () => {
       ),
     ).toThrow(SchemaDefinitionError);
 
+    /** Fixture whose field metadata is frozen by its first parse. */
     class Late {
+      /** Field used to check refinement rejection after compilation. */
       public v!: string;
     }
     FieldDeclaration.declare(Late, "v", String, IsString());
@@ -190,8 +215,11 @@ describe("SCH-100 Property-level Refine", () => {
 });
 
 describe("SCH-101 Class-level Refine", () => {
+  /** Signup fixture whose password and confirmation must agree. */
   class Signup {
+    /** Password value compared by the class refinement. */
     public password!: string;
+    /** Confirmation value receiving the mismatch issue path. */
     public confirm!: string;
   }
   FieldDeclaration.declare(Signup, "password", String, IsString());
@@ -218,8 +246,11 @@ describe("SCH-101 Class-level Refine", () => {
   });
 
   it("validates a date range and defaults to the root path and the custom code", () => {
+    /** Date range fixture whose start must not follow its end. */
     class Range {
+      /** Beginning of the range checked by the class predicate. */
       public from!: Date;
+      /** End of the range checked by the class predicate. */
       public to!: Date;
     }
     FieldDeclaration.declare(Range, "from", Date, IsDate());
@@ -235,7 +266,9 @@ describe("SCH-101 Class-level Refine", () => {
 
   it("is skipped when any field failed and reports every failing refinement otherwise", () => {
     let calls = 0;
+    /** Pair fixture with multiple class-level refinements. */
     class Pair {
+      /** Validated field used to gate class-level checks. */
       public a!: string;
     }
     FieldDeclaration.declare(Pair, "a", String, IsString());
@@ -259,7 +292,9 @@ describe("SCH-101 Class-level Refine", () => {
   });
 
   it("reports exceptions of the check as issues with the reason", () => {
+    /** Fixture whose class refinements throw different value types. */
     class Fragile {
+      /** Validated field required before class predicates execute. */
       public a!: string;
     }
     FieldDeclaration.declare(Fragile, "a", String, IsString());
@@ -283,8 +318,11 @@ describe("SCH-101 Class-level Refine", () => {
   });
 
   it("runs nested refinements with prefixed paths and not when the nested value is invalid", () => {
+    /** Outer fixture combining a refined nested signup and a local tag. */
     class Outer {
+      /** Signup value parsed with its own cross-field rule. */
       public inner!: Signup;
+      /** Outer field whose failing rule is skipped when the child is invalid. */
       public tag!: string;
     }
     FieldDeclaration.declare(Outer, "inner", Object, IsObject(Signup));
@@ -300,7 +338,9 @@ describe("SCH-101 Class-level Refine", () => {
   });
 
   it("is inherited by subclasses and rejects late decoration and failing decorator setup", () => {
+    /** Admin fixture inheriting signup's class-level password rule. */
     class Admin extends Signup {
+      /** Added field validated alongside inherited signup values. */
       public level!: string;
     }
     FieldDeclaration.declare(Admin, "level", String, IsString());
@@ -315,8 +355,11 @@ describe("SCH-101 Class-level Refine", () => {
 
 describe("SCH-102 Refine with Rename and options", () => {
   it("passes coercion through and runs on the coerced instance", () => {
+    /** Window fixture whose date ordering is checked after coercion. */
     class Window {
+      /** Start date parsed from the `from` input key. */
       public from!: Date;
+      /** End date parsed from the aliased `end` input key. */
       public until!: Date;
     }
     FieldDeclaration.declare(Window, "from", Date, IsDate());
@@ -331,10 +374,13 @@ describe("SCH-102 Refine with Rename and options", () => {
 
 describe("SCH-103 Refine on subclass fields", () => {
   it("applies a property refinement added by a subclass to an inherited field", () => {
+    /** Base fixture declaring an unrestricted string name. */
     class Base {
+      /** Name inherited and further constrained by `Strict`. */
       public name!: string;
     }
     FieldDeclaration.declare(Base, "name", String, IsString());
+    /** Subclass restricting the inherited name to non-reserved values. */
     class Strict extends Base {}
     FieldDeclaration.declare(
       Strict,

@@ -4,6 +4,7 @@
 // @scenario IOC-009
 import { DESIGN_PARAMETER_TYPES_METADATA } from "@glacier/reflection";
 
+/** Base module declaration shared by provider-resolution scenarios. */
 class TestRoot {}
 Module()(TestRoot);
 import { describe, expect, it } from "vitest";
@@ -19,7 +20,13 @@ import {
   UnknownDependencyError,
 } from "../../../index.js";
 
-/** Simulates the compiler's `design:paramtypes` emission, which Vitest's transformer does not produce. */
+/**
+ * Writes compiler-style constructor type metadata absent from the Vitest transform.
+ * @param target Class whose emitted constructor parameter types are simulated.
+ * @param types Runtime representations of parameter types in constructor order.
+ * @returns No value; stores metadata for public dependency inspection.
+ * @throws {Error} Metadata storage rejects the target or supplied representation.
+ */
 function emitParameterTypes(
   target: new (...arguments_: never[]) => object,
   types: unknown[],
@@ -28,10 +35,19 @@ function emitParameterTypes(
   if (!written.isValid) throw new Error(written.code);
 }
 
+/** Dependency fixture used by constructor-injection scenarios. */
 class Repository {}
 
+/** Injectable consumer used to verify that its Repository dependency is shared. */
 class Service {
-  public constructor(readonly repository: Repository) {}
+  /**
+   * Stores the injected repository for identity assertions.
+   * @param repository Repository resolved by the container.
+   */
+  public constructor(
+    /** Repository resolved by the container for this service. */
+    public readonly repository: Repository,
+  ) {}
 }
 Injectable()(Service);
 emitParameterTypes(Service, [Repository]);
@@ -52,7 +68,9 @@ describe("IOC-006 singletons are created once and shared", () => {
 
   it("constructs each provider once, when the container is created", async () => {
     let constructions = 0;
+    /** Provider fixture that records how often the container constructs it. */
     class Counted {
+      /** Increments the scenario-local construction count. */
       public constructor() {
         constructions += 1;
       }
@@ -84,6 +102,7 @@ describe("IOC-006 singletons are created once and shared", () => {
   });
 
   it("uses useClass to construct a different implementation behind a token", async () => {
+    /** Alternate Repository implementation selected through a class provider. */
     class Postgres extends Repository {}
     const container = await GlacierContainer.create({
       module: TestRoot,
@@ -116,7 +135,9 @@ describe("IOC-007 useValue and useExisting", () => {
   });
 
   it("aliases a token to the target's single instance", async () => {
+    /** Abstract token aliased to a concrete clock implementation. */
     abstract class Clock {}
+    /** Concrete clock implementation used as the alias target. */
     class SystemClock extends Clock {}
 
     const container = await GlacierContainer.create({
@@ -192,8 +213,16 @@ describe("IOC-008 factories receive injected arguments in order", () => {
 
 describe("IOC-009 unknown dependencies and cycles name their path", () => {
   it("throws with the path to a missing constructor dependency", async () => {
+    /** Injectable consumer whose missing transitive dependency exposes its full path. */
     class Controller {
-      public constructor(readonly service: Service) {}
+      /**
+       * Stores the injected service for graph validation.
+       * @param service Service dependency that has a missing nested dependency.
+       */
+      public constructor(
+        /** Service dependency whose own Repository dependency is unavailable. */
+        public readonly service: Service,
+      ) {}
     }
     Injectable()(Controller);
     emitParameterTypes(Controller, [Service]);
@@ -214,11 +243,21 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
   });
 
   it("yields undefined for a missing @Optional dependency", async () => {
+    /** Consumer with required and explicitly optional constructor dependencies. */
     class Audited {
+      /**
+       * Stores resolved optional inputs to verify absent and present provider behavior.
+       * @param repository Optional Repository injection result.
+       * @param note Optional symbol injection result.
+       * @param name Optional typed-token injection result.
+       */
       public constructor(
-        readonly repository: Repository,
-        readonly note: unknown,
-        readonly name: unknown,
+        /** Repository dependency marked optional by the scenario. */
+        public readonly repository: Repository,
+        /** Symbol dependency marked optional by the scenario. */
+        public readonly note: unknown,
+        /** Typed token dependency marked optional by the scenario. */
+        public readonly name: unknown,
       ) {}
     }
     const note = Symbol("note");
@@ -252,8 +291,16 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
   });
 
   it("does not treat a missing dependency of an optional provider as optional", async () => {
+    /** Provider with an optional edge to Service, which remains independently required. */
     class Holder {
-      public constructor(readonly service: Service) {}
+      /**
+       * Stores the Service dependency for graph validation.
+       * @param service Service dependency whose nested requirement remains required.
+       */
+      public constructor(
+        /** Service dependency whose nested Repository requirement is not optional. */
+        public readonly service: Service,
+      ) {}
     }
     Injectable()(Holder);
     Optional()(Holder, undefined, 0);
@@ -265,11 +312,27 @@ describe("IOC-009 unknown dependencies and cycles name their path", () => {
   });
 
   it("detects a cycle instead of recursing forever", async () => {
+    /** First provider in a cycle reported with the full dependency path. */
     class Left {
-      public constructor(readonly right: unknown) {}
+      /**
+       * Stores the Right dependency edge.
+       * @param right Token supplied by the opposite node in the cycle.
+       */
+      public constructor(
+        /** Token supplied by the opposite node in the cycle. */
+        public readonly right: unknown,
+      ) {}
     }
+    /** Second provider in a cycle reported with the full dependency path. */
     class Right {
-      public constructor(readonly left: unknown) {}
+      /**
+       * Stores the Left dependency edge.
+       * @param left Token supplied by the opposite node in the cycle.
+       */
+      public constructor(
+        /** Token supplied by the opposite node in the cycle. */
+        public readonly left: unknown,
+      ) {}
     }
     Injectable()(Left);
     Injectable()(Right);

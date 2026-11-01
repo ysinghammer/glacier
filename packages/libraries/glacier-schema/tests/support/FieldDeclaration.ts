@@ -1,13 +1,17 @@
 import { DESIGN_TYPE_METADATA } from "@glacier/reflection";
 import type { IClass, IRuntimeType } from "@glacier/reflection";
 
-/**
- * Applies schema decorators the way the compiler would for `@Decorator() member: Type`, because the
- * test transformer does not emit decorator metadata: the design type is recorded first, then the
- * decorators run on the prototype.
- */
+/** Applies property decorators with compiler-like design metadata for public schema tests. */
 export class FieldDeclaration {
-  /** Records `designType` (when given) and applies `decorators` to `key` of `target`. */
+  /**
+   * Records optional design metadata, then applies property decorators to a class.
+   * @param target Class whose prototype receives the decorators.
+   * @param key String property name decorated on the class.
+   * @param designType Emitted design type, or `undefined` when unavailable.
+   * @param decorators Property decorators applied in declaration order.
+   * @returns Nothing; records metadata and applies each decorator.
+   * @throws {Error} When reflection refuses the requested design metadata write.
+   */
   public static declare(
     target: IClass,
     key: string,

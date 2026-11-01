@@ -10,6 +10,7 @@ import { ContractTarget as ContractTargetBase } from "../data/ContractTarget.js"
 
 let ContractTarget: typeof ContractTargetBase;
 beforeEach(() => {
+  /** Fresh constructor identity for each independently executed definition case. */
   ContractTarget = class extends ContractTargetBase {};
 });
 
@@ -108,6 +109,7 @@ describe("definition identity and fixed value contracts", () => {
     if (result.isValid) expect(result.definitions).toContain(definition);
   });
   it("explicit undefined overrides a base replacement rather than revealing its value", () => {
+    /** Child target used to verify an explicit undefined override. */
     class Derived extends ContractTarget {}
     const definition = new ValueMetadataDefinition<string | undefined>("undefined");
     definition.set(ContractTarget, "base");

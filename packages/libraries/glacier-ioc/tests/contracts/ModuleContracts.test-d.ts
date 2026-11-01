@@ -10,7 +10,9 @@ import {
   type ModuleLookup,
 } from "../../index.js";
 
+/** Represents a provider class in module option type checks. */
 class Service {}
+/** Represents the module class accepted by static and dynamic contracts. */
 class Feature {}
 const token = new InjectionToken<string>("name");
 

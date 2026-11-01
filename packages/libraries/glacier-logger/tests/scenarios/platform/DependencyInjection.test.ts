@@ -5,6 +5,12 @@ import { FakeProcessHost } from "../../doubles/FakeProcessHost.js";
 import { InMemoryFileSystem } from "../../doubles/InMemoryFileSystem.js";
 import { IS_NODE } from "../../doubles/RuntimeKind.js";
 
+/**
+ * Composes stdout and file transports through their public injectable dependencies.
+ * @param host Process host shared by the Node transports.
+ * @param fileSystem File-system implementation used by the file transport.
+ * @returns A factory configured for billing logs on pretty stdout and JSON file output.
+ */
 function provideLoggerFactory(
   host: FakeProcessHost,
   fileSystem: InMemoryFileSystem,

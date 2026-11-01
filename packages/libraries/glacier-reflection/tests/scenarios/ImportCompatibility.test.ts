@@ -7,6 +7,7 @@ describe("explicit registration after source-root import", () => {
     expect(Object.getOwnPropertyDescriptors(Reflect)).toEqual(descriptors);
     const registration = await import("../../register.js");
     const handler = Reflect.metadata;
+    /** Target used to compare metadata records across repeated root imports. */
     class Consumer {}
     Reflect.metadata("design:type", String)(Consumer);
     Reflect.metadata("design:paramtypes", [Number])(Consumer);

@@ -43,6 +43,135 @@ works on classes and properties (`example` becomes `examples`), and `@JsonSchema
 generated keywords. `Refine` and `Transform` are skipped; regular expression flags other than none and `u` are not
 expressible and are ignored; maps are emitted like records and bigint as integer. OpenAPI 3.0 is not supported.
 
+## Preparation and outbound JSON
+
+`Schema.prepare(Dto)` synchronously validates and warms cached input/output processing for the root,
+ancestors and all reachable DTO references (including recursive unions and collections). It does not
+construct DTOs or call default factories, transforms, refinements, getters or `toJSON`. Lazy class-reference
+thunks are metadata resolvers and necessarily run to discover reachable definitions. Preparation is
+idempotent and freezes reachable metadata; unrelated classes remain decoratable. Malformed definitions
+throw `SchemaDefinitionError`. Failed preparation does not roll back freezing: correct the declarations
+and use fresh classes/processes, rather than attempting a registry reset.
+
+```ts
+import { IsString, Rename, Schema } from "@glacier/schema";
+
+/** Application response contract; constructors are never invoked by schema processing. */
+class UserDto {
+  @IsString()
+  @Rename("display_name")
+  public name!: string;
+}
+
+Schema.prepare(UserDto);
+const result = Schema.safeSerialize(UserDto, { name: "Ada", internalNote: "discarded" });
+if (result.ok) {
+  const bytes = JSON.stringify(result.value); // {"display_name":"Ada"}
+}
+```
+
+`safeSerialize` accepts unknown logical DTO data and returns `IResult<IJsonValue>`, not a DTO instance.
+`IJsonValue` and `IJsonObject` are recursive readonly JSON contracts; runtime checks establish finite
+numbers and descriptor safety. The detached result is not a claim that the source is frozen. Always
+perform actual JSON serialization before writing transport bytes.
+
+Output reads declared **logical** names, validates them, strips extras without inspecting their getters,
+and emits `Rename` wire names recursively. `Optional` omissions stay absent and `Nullable` null stays null.
+Default-only fields remain required: output never applies defaults, coercion, transforms, trim or lowercase.
+Field refinements precede class refinements; field failure prevents class checks. Class checks receive
+validated DTO-prototype-shaped data, so public methods can read logical fields, but constructor effects,
+field initializers and private brands do not exist. Refinements must be observational checks, not mutate
+the validated data; final projection still rejects unsafe/non-JSON mutations, without rerunning callbacks.
+
+Nested DTOs, records and string-key Maps become objects; arrays, tuples and Sets become arrays; valid Dates
+become ISO strings using intrinsic methods. Non-string Map keys, bigint, nonfinite numbers, functions,
+symbols, unsupported instances, unsafe inspected accessors and cycles fail. Shared references without
+cycles can be copied independently. `IsAny` on output accepts only recursively JSON-safe plain data, not
+Dates/Maps/Sets or arbitrary `toJSON` encoders. Output recursion is bounded to 64 active objects, including
+collection containers; this is separate from input's configurable class-level `maxDepth`.
+Built-in safety codes are `unsafe_accessor`, `invalid_json_value`, `cyclic_value` and existing validation
+codes. Property paths are logical names on output. Schema diagnostic messages and `params` can contain
+private callback detail or values: HTTP adapters must expose only permitted location/path/code fields,
+not raw issues or `SchemaError.toJSON()`. No HTTP/status handling is provided here.
+
+### Direction and representational limits
+
+`Schema.toJsonSchema(Dto, { target: "openapi-3.1", direction: "output" })` propagates direction through
+all references, emits wire names, closed projected DTO objects, output requiredness, collection wire
+forms and Date strings. Bigint and nonfinite literals have an unsatisfiable output schema (`not: {}`).
+Nonfinite enum members are removed from output alternatives (an empty safe enum is unsatisfiable).
+Map `propertyNames` describes the key constraints, intersected with JSON's string-key rule: a numeric-key
+Map can only serialize when empty. Omitted direction and explicit `"input"` preserve existing generation
+exactly. Generation remains pure, does not prepare/freeze, and retains existing per-call component names.
+
+Documents are descriptions, not proof of full runtime/wire equivalence or external meta-schema validation:
+
+- Strict input Dates require actual Dates when coercion is disabled, although documents describe strings.
+- Arbitrary transforms/refinements and safe descriptor/finite-number checks are not fully representable.
+- Runtime `IsOneOf` accepts the first match; overlapping JSON Schema `oneOf` alternatives require exactly
+  one match, so their semantics can differ. Set uniqueness and object identity can also differ on the wire.
+- `JsonSchema` overrides take precedence and can contradict validation or contain non-JSON keyword values.
+  `IJsonSchema` therefore remains unknown-valued, not interchangeable with `IJsonValue`.
+- Discriminator configuration must agree with declared variant wire fields; generation does not prove that
+  every variant declares or preserves a discriminating literal. Consumers must check such contradictions.
+- JavaScript proxies and globally replaced intrinsics are not a sandboxed execution contract. Ordinary
+  data accessors and consumer collection/Date overrides are not invoked; arbitrary proxy traps cannot be
+  detected portably before reflective operations.
+- Component collisions are detected within one reachable graph only. Separate calls retain no class
+  provenance; identical schema bytes do not prove class identity for whole-document OpenAPI assembly.
+
+### Metadata-only wire compatibility
+
+```ts
+import { IsString, Schema } from "@glacier/schema";
+
+/** Boundary validator whose metadata can be checked without constructing values. */
+class WireDto {
+  @IsString() public value!: string;
+}
+
+Schema.assertJsonSchemaCompatibility(WireDto, {
+  direction: "input",
+  wire: "json",
+  coerce: false,
+});
+```
+
+`assertJsonSchemaCompatibility(Dto, { direction, wire, coerce }): void` uses the readonly root
+`IJsonSchemaCompatibilityOptions` contract and is an explicit opt-in
+metadata-only check. `wire` is `json` or `text`; `coerce` is required. Output supports JSON without
+coercion, matching `safeSerialize`. It reads all reachable/inherited field and union metadata,
+resolves lazy references and checks recursive definitions after their components are complete.
+It never constructs DTOs, invokes default/transform/refinement callbacks, freezes metadata or
+changes existing parse/serialize/generation behavior. Malformed definitions or known contradictions
+throw `SchemaDefinitionError`; there is no public registry/owner/field metadata exposure.
+
+Known checks reject non-wire Map/Set inputs, strict Date/bigint input, unfaithful bigint/nonfinite
+literal/enum representations and uncoerced non-string text scalars. Union discriminators must retain
+a declared singleton wire value; missing, renamed, broad or mismatched variant fields fail. Structural
+`JsonSchema` keywords must match the generated validation/projection structure. Descriptive annotations
+(`title`, `description`, examples, deprecated, comments, read/write annotations and `x-` extensions)
+are allowed, including nested schema descriptions; literal objects and property names are never
+mistaken for annotation keywords. Unsafe/cyclic/non-JSON manual fragments fail without getter calls.
+
+The check is deliberately conservative about structural overrides and does not infer invariants
+from arbitrary refinements/transforms. Passing does not prove callback equivalence, overlapping
+union equivalence, full wire serialization support, descriptor/identity guarantees, or external
+JSON Schema/OpenAPI meta-schema validation. A transport adapter must additionally check its own
+grammar (for example nested query arrays and scalar-only header fields). HTTP uses this public
+operation without changing schema ownership or making schema depend on HTTP.
+
+See [runtime compatibility scenarios](tests/scenarios/json-schema/SchemaCompatibility.test.ts) and
+[public type contracts](tests/contracts/SchemaCompatibility.test-d.ts).
+
+### Singleton query arrays
+
+`Schema.safeParse(QueryDto, query, { coerce: true, coerceSingletonArrays: true })` explicitly promotes
+present scalar values to `IsArray` arrays, then optionally coerces their elements. Promotion is independent
+of scalar coercion, applies through nested DTOs, and never wraps objects, missing/null values, Sets or tuples.
+Existing arrays remain arrays. Repeated query arrays bound to scalar fields still fail. Both options are
+per-call; normal body parsing retains its old behavior unless explicitly opted in.
+
 ## Decorator reference
 
 ### Public API
@@ -95,7 +224,7 @@ Only the package root is exported (`"."`); there are no subpaths or deep imports
   refinements. Each takes `{ name }` (default `Partial<Source>`, `Pick<Source>`, `Omit<Source>`, `Extend<Base>`).
   The result is a new decorated class, not a subclass of the source, without methods; it can be parsed,
   extended with `extends` and derived again. Sources are frozen when derived from. Unions cannot be a source.
-- Types (interfaces carry the `I` prefix required by the repository naming policy, so `IResult` and `ISchemaIssue` stand for the design's `Result` and `SchemaIssue`): `ICollectionOptions`, `ISizeOptions`, `IElementType`, `IUnionOptions`, `IUnionVariants`, `IJsonSchema`, `IJsonSchemaFragment`, `IJsonSchemaOptions`, `IJsonSchemaTarget`, `IDescribeOptions`, `IDerivedClass`, `IDerivedClassOptions`, `IRefineOptions`, `IIssueCode`, `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`, `ISchemaParseOptions`, `ITransformFunction`.
+- Types (interfaces carry the `I` prefix required by the repository naming policy, so `IResult` and `ISchemaIssue` stand for the design's `Result` and `SchemaIssue`): `ICollectionOptions`, `ISizeOptions`, `IElementType`, `IUnionOptions`, `IUnionVariants`, `IJsonValue`, `IJsonObject`, `IJsonSchemaDirection`, `IJsonSchema`, `IJsonSchemaFragment`, `IJsonSchemaOptions`, `IJsonSchemaTarget`, `IDescribeOptions`, `IDerivedClass`, `IDerivedClassOptions`, `IRefineOptions`, `IIssueCode`, `ISchemaIssue`, `ISchemaIssueCode`, `IResult`, `ISchemaDecoratorOptions`, `IEnumSource`, `ILiteralValue`, `IStringOptions`, `INumberOptions`, `IStringFormat`, `ISchemaParseOptions`, `ITransformFunction`.
 
 ## Migrating from class-validator / class-transformer
 
@@ -129,7 +258,10 @@ try {
   const dto = Schema.parse(Signup, body);
 } catch (error) {
   if (Schema.isError(error)) {
-    return { status: 400, body: error.toJSON() }; // issues: [{ path, code, message, params }]
+    return {
+      status: 400,
+      body: { issues: error.issues.map(({ path, code }) => ({ path, code })) },
+    };
   }
   throw error;
 }

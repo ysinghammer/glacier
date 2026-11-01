@@ -20,9 +20,17 @@ import {
 } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
+/** Cat variant used to verify discriminator selection and nested validation. */
 class Cat {
+  /** Literal discriminator selecting the cat variant. */
   public type!: "cat";
+  /** Positive remaining-life count validated as an integer. */
   public lives!: number;
+
+  /**
+   * Produces the sound used to confirm parsed instances retain their behavior.
+   * @returns The cat's sound.
+   */
   public meow(): string {
     return "meow";
   }
@@ -30,15 +38,21 @@ class Cat {
 FieldDeclaration.declare(Cat, "type", String, IsLiteral("cat"));
 FieldDeclaration.declare(Cat, "lives", Number, IsInt({ min: 1 }));
 
+/** Dog variant whose logical name is read through an input alias. */
 class Dog {
+  /** Literal discriminator selecting the dog variant. */
   public type!: "dog";
+  /** Dog name read from the `dogName` input key. */
   public name!: string;
 }
 FieldDeclaration.declare(Dog, "type", String, IsLiteral("dog"));
 FieldDeclaration.declare(Dog, "name", String, IsString({ min: 2 }), Rename("dogName"));
 
+/** Parent fixture with required and optional discriminated union fields. */
 class Owner {
+  /** Required pet selected by its `type` discriminator. */
   public pet!: Cat | Dog;
+  /** Optional union alias used to check field-specific error messages. */
   public alias?: Cat | Dog;
 }
 FieldDeclaration.declare(
@@ -151,13 +165,19 @@ describe("SCH-092 Union options and nesting", () => {
   });
 });
 
+/** Base type whose union parser selects one concrete animal subclass. */
 abstract class Animal {}
+/** Bird union variant with an integer wing count. */
 class Bird extends Animal {
+  /** Number of wings validated as an integer. */
   public wings!: number;
 }
 FieldDeclaration.declare(Bird, "wings", Number, IsInt());
+/** Fish union variant with required fins and an optional kind field. */
 class Fish extends Animal {
+  /** Number of fins validated as an integer. */
   public fins!: number;
+  /** Optional discriminator value accepted for the fish variant. */
   public kind!: string;
 }
 FieldDeclaration.declare(Fish, "fins", Number, IsInt());
@@ -196,6 +216,7 @@ describe("SCH-093 Discriminated union on a base class", () => {
   });
 
   it("applies the class message to discriminator issues only", () => {
+    /** Empty class receiving the tested class-level union decorator. */
     class Pet {}
     IsUnion({ discriminator: "type", variants: { cat: Cat } }, { message: "pick a pet" })(Pet);
     const base = Pet as unknown as new () => Pet;
@@ -217,9 +238,13 @@ describe("SCH-093 Discriminated union on a base class", () => {
   });
 });
 
+/** Fixture with ordinary unions and nullable/optional union members. */
 class Box {
+  /** Union value whose first matching option is retained. */
   public value!: string | number | Cat;
+  /** Nullable union used to test explicit null and message overrides. */
   public maybe!: string | number | null;
+  /** Optional union that accepts a missing field. */
   public flag?: boolean | number;
 }
 FieldDeclaration.declare(Box, "value", Object, IsOneOf([String, Number, Cat]));
@@ -301,10 +326,17 @@ describe("SCH-094 Non-discriminated unions", () => {
 });
 
 describe("SCH-095 Union declaration", () => {
+  /**
+   * Asserts that a declaration callback throws the schema definition error.
+   * @param declare Callback expected to fail during decorator application.
+   * @returns Nothing; forwards the assertion failure to the test runner.
+   */
   const reject = (declare: () => void): void => expect(declare).toThrow(SchemaDefinitionError);
 
   it("rejects invalid mappings", () => {
+    /** Target used to exercise malformed field- and class-level union declarations. */
     class Target {
+      /** Undeclared fixture member receiving invalid union decorators. */
       public x!: unknown;
     }
     reject(() =>
@@ -326,18 +358,22 @@ describe("SCH-095 Union declaration", () => {
   });
 
   it("rejects a second type decorator and a second class union", () => {
+    /** Fixture used to verify duplicate field and class union declarations fail. */
     class Twice {
+      /** Member on which duplicate type-decorator declarations are rejected. */
       public x!: unknown;
     }
     IsOneOf([String, Number])(Twice.prototype, "x");
     reject(() => IsObject(Cat)(Twice.prototype, "x"));
     reject(() => IsUnion({ discriminator: "t", variants: { a: Cat } })(Twice.prototype, "x"));
+    /** Class receiving the first class-level union declaration. */
     class Base {}
     IsUnion({ discriminator: "t", variants: { a: Cat } })(Base);
     reject(() => IsUnion({ discriminator: "t", variants: { b: Cat } })(Base));
   });
 
   it("freezes unions and rejects class decoration after the first parse", () => {
+    /** Class whose union declaration freezes after its first parse. */
     class Late {}
     IsUnion({ discriminator: "type", variants: { cat: Cat } })(Late);
     Schema.safeParse(Late as unknown as new () => Late, { type: "cat", lives: 1 });
@@ -345,7 +381,9 @@ describe("SCH-095 Union declaration", () => {
   });
 
   it("reports a variant reference that is not a class when first used", () => {
+    /** Fixture with an invalid lazy union variant reference. */
     class Holder {
+      /** Field with a lazy variant reference resolving to a non-class value. */
       public x!: unknown;
     }
     FieldDeclaration.declare(

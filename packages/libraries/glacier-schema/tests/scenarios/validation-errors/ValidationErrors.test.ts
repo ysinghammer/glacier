@@ -7,9 +7,13 @@ import { describe, expect, it, vi } from "vitest";
 import { IsBigInt, IsInt, IsLiteral, IsString, SchemaError, Schema } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
+/** Signup fixture used to verify typed issues and parse error conversion. */
 class Signup {
+  /** Name field constrained to a string. */
   public name!: string;
+  /** Age field constrained to an integer. */
   public age!: number;
+  /** Kind field constrained to the bigint literal `7n`. */
   public kind!: bigint;
 }
 FieldDeclaration.declare(Signup, "name", String, IsString());
@@ -37,7 +41,9 @@ describe("SCH-030 Every issue carries a path, a stable code and parameters", () 
 
 describe("SCH-031 Messages can be overridden per decorator", () => {
   it("replaces the message but keeps code, path and params", () => {
+    /** Fixture used to verify per-field validation message overrides. */
     class Custom {
+      /** Name field with a custom invalid-type message. */
       public name!: string;
     }
     FieldDeclaration.declare(Custom, "name", String, IsString({ message: "Name please" }));
@@ -64,6 +70,10 @@ describe("SCH-032 parse throws SchemaError carrying the issues", () => {
   });
 
   it("throws a SchemaError with code, summary message and all issues for invalid input", () => {
+    /**
+     * Attempts parsing the deliberately invalid signup value.
+     * @returns Parsed value when the schema accepts the supplied input.
+     */
     const attempt = (): unknown => Schema.parse(Signup, { name: 1, age: 36, kind: 7n });
 
     expect(attempt).toThrow(SchemaError);
@@ -87,7 +97,9 @@ describe("SCH-032 parse throws SchemaError carrying the issues", () => {
 
 describe("SCH-033 SchemaError serialises to JSON", () => {
   it("exposes name, code, message and issues, rendering bigint parameters as strings", () => {
+    /** Fixture whose literal issue contains bigint diagnostic values. */
     class Big {
+      /** Identifier constrained to a bigint literal. */
       public id!: bigint;
     }
     FieldDeclaration.declare(Big, "id", undefined, IsLiteral(1n));
@@ -116,7 +128,9 @@ describe("SCH-033 SchemaError serialises to JSON", () => {
   });
 
   it("keeps non-bigint parameters as they are", () => {
+    /** Fixture whose bigint field rejects a number without bigint parameters. */
     class Plain {
+      /** Identifier requiring a bigint input. */
       public id!: bigint;
     }
     FieldDeclaration.declare(Plain, "id", BigInt, IsBigInt());

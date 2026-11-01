@@ -1,7 +1,9 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "ignorePatterns": ["dist/**", "node_modules/**", "tests/artifacts/**"],
+  "jsPlugins": ["oxlint-plugin-complexity"],
   "rules": {
-    "no-debugger": "error"
+    "no-debugger": "error",
+    "complexity/complexity": ["error"]
   }
 }

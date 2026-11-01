@@ -11,7 +11,9 @@ import {
   UseAfterCloseError,
 } from "../../../index.js";
 
+/** Dependency node used to verify token paths in container errors. */
 class Repository {}
+/** Root dependency node used by container error fixtures. */
 class Service {}
 
 describe("IOC-002 container error hierarchy", () => {

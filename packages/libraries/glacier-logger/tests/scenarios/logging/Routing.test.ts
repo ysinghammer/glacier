@@ -5,6 +5,12 @@ import type { ILogLevel, Logger } from "../../../index.js";
 import { RecordingTransport } from "../../doubles/RecordingTransport.js";
 import { WriteOnlyTransport } from "../../doubles/WriteOnlyTransport.js";
 
+/**
+ * Creates the routing scenario's logger and unwraps its expected success.
+ * @param factory Factory whose routing configuration is under test.
+ * @returns A logger with the fixed `Router` context.
+ * @throws {Error} If logger creation unexpectedly rejects the fixed context.
+ */
 function loggerWith(factory: LoggerFactory): Logger {
   const result = factory.createLogger("Router");
   if (result.outcome !== "created") {
@@ -13,6 +19,11 @@ function loggerWith(factory: LoggerFactory): Logger {
   return result.logger;
 }
 
+/**
+ * Sends one entry at each supported level to exercise routing thresholds.
+ * @param logger Logger receiving the six level-specific calls.
+ * @returns No value; each call may deliver entries to configured transports.
+ */
 function logAllLevels(logger: Logger): void {
   logger.trace({ message: "t" });
   logger.debug({ message: "d" });
@@ -50,6 +61,11 @@ describe("level filtering and routing", () => {
 
     logAllLevels(loggerWith(factory));
 
+    /**
+     * Extracts entry levels while preserving the recording's delivery order.
+     * @param entries Recorded entries to project to their level values.
+     * @returns A new array containing each entry's level in input order.
+     */
     const levelsOf = (entries: { level: ILogLevel }[]): ILogLevel[] =>
       entries.map((entry) => entry.level);
     expect(levelsOf(everything.entries)).toEqual(["info", "warn", "error", "fatal"]);

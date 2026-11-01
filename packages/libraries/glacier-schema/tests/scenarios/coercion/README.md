@@ -1,5 +1,9 @@
 # Coercion
 
+Additional public contract: [explicit singleton arrays](../../../README.md#singleton-query-arrays).
+SCH-133 is proved by every test in [SingletonArrays.test.ts](SingletonArrays.test.ts): promotion is opt-in,
+independent/per-call, nested, scalar-only, and does not change scalar, tuple, Set or body behavior.
+
 Lets a caller opt in, per call, to converting loosely typed input such as query strings or form data before
 validation: `Schema.parse(Class, input, { coerce: true })` and `Schema.safeParse(Class, input, { coerce: true })`. Coercion is
 off by default and there is no field-level or class-level switch. Public contract: `Schema.parse`, `Schema.safeParse` and

@@ -38,9 +38,9 @@ const databaseUrl = new InjectionToken<string>("database-url");
 @Injectable({ scope: "request" })
 class OrderService {
   public constructor(
-    readonly repository: OrderRepository, // implicit token from design:paramtypes
-    @Inject(databaseUrl) readonly url: string, // explicit token wins
-    @Optional() readonly audit: AuditLog, // may resolve to undefined
+    public readonly repository: OrderRepository, // implicit token from design:paramtypes
+    @Inject(databaseUrl) public readonly url: string, // explicit token wins
+    @Optional() public readonly audit: AuditLog, // may resolve to undefined
   ) {}
 }
 
@@ -124,8 +124,8 @@ class RequestSession {}
 @Injectable()
 class Handler {
   constructor(
-    readonly session: RequestSession,
-    readonly moduleRef: ModuleRef,
+    public readonly session: RequestSession,
+    public readonly moduleRef: ModuleRef,
   ) {} // Handler becomes REQUEST
 }
 
@@ -153,7 +153,7 @@ are neither provided nor imported fail `create` with `InvalidModuleError` causes
 ```ts
 @Module({ providers: [Logger], exports: [Logger] })
 class LoggingModule {
-  static forRoot(level: string): IDynamicModule {
+  public static forRoot(level: string): IDynamicModule {
     return {
       module: LoggingModule,
       providers: [{ provide: LEVEL, useValue: level }],
@@ -186,10 +186,10 @@ registers process signal handlers; call `close()` yourself.
 ```ts
 @Injectable()
 class Database implements IOnModuleInit, IOnModuleDestroy {
-  async onModuleInit(): Promise<void> {
+  public async onModuleInit(): Promise<void> {
     await this.connect();
   }
-  async onModuleDestroy(): Promise<void> {
+  public async onModuleDestroy(): Promise<void> {
     await this.disconnect();
   }
 }

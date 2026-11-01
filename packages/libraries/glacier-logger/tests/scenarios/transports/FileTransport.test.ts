@@ -9,6 +9,13 @@ import { IS_NODE } from "../../doubles/RuntimeKind.js";
 
 const ARTIFACT_ROOT = "tests/artifacts/transport-files";
 
+/**
+ * Creates a logger using the supplied file transport and optional configuration overrides.
+ * @param transport File transport receiving entries from the created logger.
+ * @param configuration Optional logger settings merged over the baseline configuration.
+ * @returns The factory needed to flush and the logger with the fixed `Files` context.
+ * @throws {Error} If logger creation unexpectedly rejects the fixed valid configuration.
+ */
 function loggerFor(
   transport: NodeFileTransport,
   configuration: Partial<ILoggerConfiguration> = {},

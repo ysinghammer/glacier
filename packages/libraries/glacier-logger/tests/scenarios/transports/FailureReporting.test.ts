@@ -8,6 +8,13 @@ import { IS_NODE } from "../../doubles/RuntimeKind.js";
 import { RecordingDiagnostics } from "../../doubles/RecordingDiagnostics.js";
 import { ThrowingTransport } from "../../doubles/ThrowingTransport.js";
 
+/**
+ * Creates a logger with the supplied transport and configuration overrides.
+ * @param configuration Optional settings merged over the baseline logger configuration.
+ * @param transport Transport whose failures are observed by the returned logger.
+ * @returns The logger with the fixed `Reporting` context.
+ * @throws {Error} If logger creation unexpectedly rejects the fixed valid configuration.
+ */
 function loggerFor(configuration: Partial<ILoggerConfiguration>, transport: ITransport): Logger {
   const factory = new LoggerFactory({
     level: "info",

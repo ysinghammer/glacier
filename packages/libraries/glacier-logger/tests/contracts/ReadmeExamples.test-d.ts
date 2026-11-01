@@ -9,6 +9,10 @@ import type {
 } from "../../index.js";
 
 // README "Usage": the DI provider and a consumer injecting the factory by class.
+/**
+ * Demonstrates dependency-injected logger factory composition from the README.
+ * @returns A factory with stdout and file transports configured for billing logs.
+ */
 export function provideLoggerFactory(): LoggerFactory {
   return new LoggerFactory({
     level: "info",
@@ -24,9 +28,16 @@ export function provideLoggerFactory(): LoggerFactory {
   });
 }
 
+/** Demonstrates a consumer that receives the factory and logs with contextual bindings. */
 export class UserService {
+  /** Private readonly logger bound to the `UserService` context for this instance. */
   private readonly logger;
 
+  /**
+   * Creates the consumer logger from an injected factory.
+   * @param factory Factory used to create the service-context logger.
+   * @throws {Error} If factory creation returns a rejected outcome.
+   */
   constructor(factory: LoggerFactory) {
     const created = factory.createLogger("UserService");
     if (created.outcome === "rejected") {
@@ -35,7 +46,12 @@ export class UserService {
     this.logger = created.logger;
   }
 
-  create(userId: number): void {
+  /**
+   * Demonstrates logging a created user and an encountered lookup failure.
+   * @param userId Identifier included in the successful user-created entry.
+   * @returns No value; emits two entries through the service logger.
+   */
+  public create(userId: number): void {
     const logger = this.logger.child({ requestId: "r-1" });
     logger.info({ message: "user created", userId });
     logger.error({ err: new Error("lookup failed"), userId });
@@ -53,17 +69,34 @@ export const configuration: ILoggerConfiguration = {
 export const configured = LoggerFactory.create(configuration);
 
 // README "Custom transports".
+/** Demonstrates a user-owned transport that captures formatted delivery text. */
 export class MemoryTransport implements ITransport {
-  readonly lines: string[] = [];
+  /** Readonly array reference of text lines received through the transport contract. */
+  public readonly lines: string[] = [];
 
-  write(_entry: ILogEntry, delivery: ITransportDelivery): void {
+  /**
+   * Stores rendered text from the supplied delivery object.
+   * @param _entry Structured entry accepted by the transport contract but unused here.
+   * @param delivery Provides text rendering in the registration's configured format.
+   * @returns No value; appends the rendered line to {@link lines}.
+   */
+  public write(_entry: ILogEntry, delivery: ITransportDelivery): void {
     this.lines.push(delivery.text());
   }
 
-  async flush(): Promise<void> {}
+  /**
+   * Completes immediately because this in-memory transport has no buffered work.
+   * @returns A promise fulfilled without producing a value.
+   */
+  public async flush(): Promise<void> {}
 }
 
 // README "Flushing and rotation".
+/**
+ * Demonstrates explicit factory flushing at an application lifecycle boundary.
+ * @param factory Factory whose registered transports must finish pending work.
+ * @returns A promise fulfilled after all factory transports complete flushing.
+ */
 export async function handler(factory: LoggerFactory): Promise<void> {
   await factory.flush();
 }

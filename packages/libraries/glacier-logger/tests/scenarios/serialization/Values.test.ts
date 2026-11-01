@@ -4,6 +4,11 @@
 import { describe, expect, it } from "vitest";
 import { RecordingLogger } from "../../doubles/RecordingLogger.js";
 
+/**
+ * Serializes supplied values as log fields and returns a shallow copy for assertions.
+ * @param value Fields included alongside the fixture message.
+ * @returns Serialized fields from the first recorded entry, or an empty record.
+ */
 function fieldsOf(value: Record<string, unknown>): Record<string, unknown> {
   const { logger, entries } = new RecordingLogger();
   logger.info({ message: "m", ...value });
@@ -36,6 +41,11 @@ describe("value serialisation", () => {
 
   it("replaces a throwing toJSON with a placeholder and keeps sibling fields", () => {
     const hostile = {
+      /**
+       * Simulates a failing custom JSON conversion during serialization.
+       * @returns No value; the deliberately hostile conversion always throws.
+       * @throws {Error} Whenever serialization invokes this test value's conversion.
+       */
       toJSON(): never {
         throw new Error("no json");
       },
@@ -90,8 +100,13 @@ describe("value serialisation", () => {
   });
 
   it("treats a DataView and class instances as plain objects", () => {
+    /** Represents a small class instance used to verify enumerable-property serialization. */
     class Point {
-      x = 1;
+      /**
+       * Mutable X coordinate serialized as an ordinary enumerable instance field.
+       * @default 1
+       */
+      public x = 1;
     }
 
     expect(fieldsOf({ view: new DataView(new ArrayBuffer(2)), point: new Point() })).toEqual({
@@ -151,6 +166,11 @@ describe("hostile data", () => {
   it("replaces only the throwing getter when the object is otherwise readable", () => {
     const withGetter = {
       good: 1,
+      /**
+       * Simulates one unreadable field while leaving its sibling accessible.
+       * @returns No value; access always throws before producing a value.
+       * @throws {Error} Whenever serialization reads this deliberately hostile getter.
+       */
       get bad(): never {
         throw new Error("getter");
       },

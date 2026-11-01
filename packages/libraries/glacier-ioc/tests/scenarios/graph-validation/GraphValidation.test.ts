@@ -19,6 +19,13 @@ import {
 } from "../../../index.js";
 import { ParameterTypes } from "../module-composition/ParameterTypes.js";
 
+/**
+ * Creates a graph and returns its collected validation causes.
+ * @param root Module reference whose provider and import graph is checked.
+ * @returns Readonly validation causes from the aggregate container error.
+ * @throws {unknown} Creation fails with a non-aggregate error.
+ * @throws {Error} Creation succeeds without producing graph validation causes.
+ */
 async function problemsOf(root: IModuleReference): Promise<readonly Error[]> {
   try {
     await GlacierContainer.create(root);
@@ -29,7 +36,13 @@ async function problemsOf(root: IModuleReference): Promise<readonly Error[]> {
   throw new Error("expected create to throw");
 }
 
+/**
+ * Creates an injectable fixture class with the supplied constructor dependency tokens.
+ * @param dependencies Tokens assigned in constructor parameter order.
+ * @returns A decorated class suitable for graph-validation scenarios.
+ */
 function dependent(...dependencies: unknown[]): new (...arguments_: never[]) => object {
+  /** Injectable fixture whose constructor dependencies are configured by the helper. */
   class Dependent {}
   Injectable()(Dependent);
   dependencies.forEach((token, position) =>
@@ -42,6 +55,12 @@ function dependent(...dependencies: unknown[]): new (...arguments_: never[]) => 
   return Dependent;
 }
 
+/**
+ * Creates a dependency fixture and assigns the requested class name for readable paths.
+ * @param name Display name used in reported dependency paths.
+ * @param dependencies Tokens assigned in constructor parameter order.
+ * @returns A decorated fixture class with the requested name.
+ */
 function named(name: string, ...dependencies: unknown[]): new (...arguments_: never[]) => object {
   const created = dependent(...dependencies);
   Object.defineProperty(created, "name", { value: name });
@@ -51,13 +70,16 @@ function named(name: string, ...dependencies: unknown[]): new (...arguments_: ne
 describe("IOC-018 create fails before instantiating any provider", () => {
   it("does not construct anything when the graph is invalid", async () => {
     let constructed = 0;
+    /** Counts construction so invalid graphs can prove validation occurs first. */
     class Probe {
+      /** Increments the scenario's construction count when instantiated. */
       public constructor() {
         constructed += 1;
       }
     }
     Injectable()(Probe);
     ParameterTypes.emit(Probe, []);
+    /** Deliberately invalid provider graph root for eager-validation assertions. */
     class Broken {}
     Module({ providers: [Probe, { provide: Symbol("x") } as never] })(Broken);
 
@@ -66,8 +88,11 @@ describe("IOC-018 create fails before instantiating any provider", () => {
   });
 
   it("rejects an invalid import and an invalid export", async () => {
+    /** Import target intentionally missing module metadata. */
     class Undecorated {}
+    /** Provider hidden by the invalid module graph. */
     class Hidden {}
+    /** Root with invalid import and export declarations. */
     class Root {}
     Module({ imports: [Undecorated], providers: [Hidden], exports: [Symbol("nothing")] })(Root);
 
@@ -89,7 +114,9 @@ describe("IOC-019 all problems are reported together", () => {
     const Right = named("Right", Left);
     Inject(Right)(Left, undefined, 0);
     ParameterTypes.emit(Left, [Object]);
+    /** Import target intentionally missing module metadata. */
     class Undecorated {}
+    /** Root combining a missing dependency, a cycle, and an invalid import. */
     class Root {}
     Module({ imports: [Undecorated], providers: [Needy, Left, Right] })(Root);
 
@@ -112,6 +139,7 @@ describe("IOC-019 all problems are reported together", () => {
     const target = Symbol("target");
     const made = Symbol("made");
     const input = Symbol("input");
+    /** Root registering an unsatisfied alias and factory dependency. */
     class Root {}
     Module({
       providers: [
@@ -127,10 +155,13 @@ describe("IOC-019 all problems are reported together", () => {
   });
 
   it("reports a dependency on a private provider of an imported module", async () => {
+    /** Non-exported provider in the imported module. */
     class Secret {}
+    /** Module that owns the private Secret provider. */
     class Feature {}
     Module({ providers: [Secret] })(Feature);
     const Needy = named("Needy", Secret);
+    /** Root whose provider cannot access Feature's private Secret. */
     class Root {}
     Module({ imports: [Feature], providers: [Needy] })(Root);
 
@@ -145,6 +176,7 @@ describe("IOC-020 cycles report their path", () => {
     const first = Symbol("first");
     const second = Symbol("second");
     const third = Symbol("third");
+    /** Root registering a three-token provider cycle. */
     class Root {}
     Module({
       providers: [
@@ -167,6 +199,7 @@ describe("IOC-020 cycles report their path", () => {
     const Selfish = named("Selfish");
     Inject(Selfish)(Selfish, undefined, 0);
     ParameterTypes.emit(Selfish, [Object]);
+    /** Root registering a provider with a self-dependency. */
     class Root {}
     Module({ providers: [Selfish] })(Root);
 
@@ -174,8 +207,11 @@ describe("IOC-020 cycles report their path", () => {
   });
 
   it("reports module import cycles with the module path", async () => {
+    /** First module in the import cycle. */
     class Alpha {}
+    /** Second module in the import cycle. */
     class Beta {}
+    /** Third module in the import cycle. */
     class Gamma {}
     Module({ imports: [Beta] })(Alpha);
     Module({ imports: [Gamma] })(Beta);
@@ -190,7 +226,9 @@ describe("IOC-020 cycles report their path", () => {
 
   it("still reports missing dependencies when modules re-export each other", async () => {
     const Needy = named("Needy", Symbol("absent"));
+    /** First module that re-exports its peer. */
     class Alpha {}
+    /** Second module that re-exports its peer. */
     class Beta {}
     Module({ imports: [Beta], exports: [Beta], providers: [Needy] })(Alpha);
     Module({ imports: [Alpha], exports: [Alpha] })(Beta);
@@ -202,12 +240,16 @@ describe("IOC-020 cycles report their path", () => {
   });
 
   it("does not treat a shared import as a cycle", async () => {
+    /** Module intentionally imported by two independent branches. */
     class Shared {}
     Module()(Shared);
+    /** First branch importing Shared. */
     class Left {}
     Module({ imports: [Shared] })(Left);
+    /** Second branch importing Shared. */
     class Right {}
     Module({ imports: [Shared] })(Right);
+    /** Root that reaches the shared module through both branches. */
     class Root {}
     Module({ imports: [Left, Right] })(Root);
 
@@ -218,13 +260,22 @@ describe("IOC-020 cycles report their path", () => {
 describe("IOC-021 optional dependencies are not errors", () => {
   it("accepts missing @Optional dependencies and resolves them to undefined", async () => {
     const missing = new InjectionToken<string>("missing");
+    /** Receives an optional token that is absent from the module graph. */
     class Needy {
-      public constructor(readonly value: unknown) {}
+      /**
+       * Stores the optional injection for the undefined-value assertion.
+       * @param value Optional token result; undefined when no provider is registered.
+       */
+      public constructor(
+        /** Optional dependency value; undefined when no provider is registered. */
+        public readonly value: unknown,
+      ) {}
     }
     Injectable()(Needy);
     Inject(missing)(Needy, undefined, 0);
     Optional()(Needy, undefined, 0);
     ParameterTypes.emit(Needy, [Object]);
+    /** Root registering the optional dependency consumer. */
     class Root {}
     Module({ providers: [Needy] })(Root);
 
@@ -237,6 +288,7 @@ describe("IOC-021 optional dependencies are not errors", () => {
     Inject(Right)(Left, undefined, 0);
     Optional()(Left, undefined, 0);
     ParameterTypes.emit(Left, [Object]);
+    /** Root registering a cycle through an optional dependency. */
     class Root {}
     Module({ providers: [Left, Right] })(Root);
 

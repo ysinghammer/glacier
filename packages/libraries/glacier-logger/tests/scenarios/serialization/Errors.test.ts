@@ -4,12 +4,22 @@ import { describe, expect, it } from "vitest";
 import type { ISerializedError } from "../../../index.js";
 import { RecordingLogger } from "../../doubles/RecordingLogger.js";
 
+/**
+ * Logs an error through the public API and returns its serialized representation.
+ * @param err Error value delivered as the log call's error field.
+ * @returns Serialized error data, or `undefined` if the test logger emits no entry.
+ */
 function serialise(err: Error): ISerializedError | undefined {
   const { logger, entries } = new RecordingLogger();
   logger.error({ err });
   return entries[0]?.error;
 }
 
+/**
+ * Builds a nested Error cause chain with numbered messages from outer to inner.
+ * @param length Number of Error objects to include; callers use positive lengths.
+ * @returns The outermost error, with each later error stored as its cause.
+ */
 function chainOf(length: number): Error {
   let error = new Error(`level-${length - 1}`);
   for (let level = length - 2; level >= 0; level -= 1) {

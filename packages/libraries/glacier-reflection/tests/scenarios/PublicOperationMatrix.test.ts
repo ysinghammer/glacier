@@ -18,16 +18,34 @@ import type {
   IDynamicClassMetadataAddress,
 } from "../../index.js";
 
-/** The ordinary declaration shape, with the separately inferred retrieval contract. */
+/**
+ * Ordinary definition shape with a separately inferred retrieval contract.
+ * @template TDeclaration Value supplied to each definition operation.
+ * @template TValue Value returned by reads and inherited resolution.
+ */
 type IMatrixDefinition<TDeclaration, TValue> = Omit<
   ValueMetadataDefinition<TDeclaration>,
   "read" | "readDynamic" | "kind"
 > & {
+  /** Readonly aggregation kind distinguishing value/list/record behavior. */
   readonly kind: IMetadataKind;
+  /**
+   * Reads the target using the fixture's independent retrieval type.
+   * @template R Constructor or instance whose checked keys anchor the address.
+   * @param target Constructable or instance target to read.
+   * @param address Optional checked address and inheritance mode.
+   * @returns Typed success value or public address rejection.
+   */
   read<R extends object>(
     target: R,
     address?: IMetadataReadAddress<NoInfer<R>> & IMetadataLookup,
   ): IMetadataRead<TValue>;
+  /**
+   * Reads a target using a dynamic address that need not be statically known.
+   * @param target Constructor or instance target to read.
+   * @param address Optional dynamic address and inheritance mode.
+   * @returns Typed success value or public address rejection.
+   */
   readDynamic(
     target: object,
     address?: IDynamicClassMetadataAddress & IMetadataLookup,
@@ -36,7 +54,221 @@ type IMatrixDefinition<TDeclaration, TValue> = Omit<
 
 /** Registers independent public-operation cases without sharing target declarations between tests. */
 class PublicOperationMatrix {
-  /** Checks each inherited operation on each ordinary definition and predefined value instance. */
+  /**
+   * Runs one operation matrix case outside its nested test-registration callbacks.
+   * @template TDeclaration Values passed to definition write/decorator operations.
+   * @template TValue Values returned by reads after aggregation.
+   * @param operation Public definition operation under test.
+   * @param create Creates a fresh definition for this operation case.
+   * @param baseValue Value written to the base class.
+   * @param ownValue Value written to the child class.
+   * @param inheritedValue Expected inherited result for the aggregation kind.
+   * @param directValue Expected direct result for the aggregation kind.
+   * @returns No value; Vitest assertions report contract failures.
+   */
+  private static runOperation<TDeclaration, TValue>(
+    operation:
+      | "set"
+      | "setDynamic"
+      | "read"
+      | "readDynamic"
+      | "has"
+      | "hasDynamic"
+      | "delete"
+      | "deleteDynamic"
+      | "locations"
+      | "decorator",
+    create: () => IMatrixDefinition<TDeclaration, TValue>,
+    baseValue: TDeclaration,
+    ownValue: TDeclaration,
+    inheritedValue: TValue,
+    directValue: TValue,
+  ): void {
+    /** Base target carries one addressable field and method for all matrix cases. */
+    class Base {
+      /**
+       * Mutable instance field used to create an ordinary class target.
+       * @default 1
+       */
+      public field = 1;
+      /**
+       * Gives checked addressing a one-position tuple.
+       * @param input Sole method argument represented in the tuple.
+       * @returns No value; consumes the input for type inference.
+       */
+      public method(input: string): void {
+        void input;
+      }
+    }
+    /** Child target used to distinguish own and inherited declarations. */
+    class Child extends Base {}
+    const definition = create();
+    expect(definition.set(Base, baseValue)).toEqual({ isValid: true });
+    const address = { kind: "class" } as const;
+    const own = { kind: "class", inheritance: "own" } as const;
+    const invalid = { kind: "method-parameter", member: "method", position: -1 } as const;
+    const invalidPosition = { isValid: false, code: "invalid-position" };
+    const invalidTarget = { isValid: false, code: "invalid-target" };
+    expect(definition.read(Child, own)).toEqual({ isValid: true, isPresent: false });
+    expect(definition.has(Child, own)).toEqual({ isValid: true, isPresent: false });
+
+    switch (operation) {
+      case "set":
+        expect(definition.set(Child, ownValue, address)).toEqual({ isValid: true });
+        // @ts-expect-error Checked mutation does not accept instances.
+        expect(definition.set(new Child(), baseValue)).toEqual(invalidTarget);
+        // @ts-expect-error Checked tuples reject negative positions statically as well.
+        expect(definition.set(Child, baseValue, invalid)).toEqual(invalidPosition);
+        break;
+      case "setDynamic":
+        expect(definition.setDynamic(Child, ownValue, address)).toEqual({ isValid: true });
+        // @ts-expect-error Dynamic mutation still requires a constructor.
+        expect(definition.setDynamic(new Child(), baseValue)).toEqual(invalidTarget);
+        expect(definition.setDynamic(Child, baseValue, invalid)).toEqual(invalidPosition);
+        break;
+      case "decorator":
+        expect(definition.decorator(ownValue)(Child)).toBeUndefined();
+        // @ts-expect-error A plain object is not a class decorator target.
+        expect(() => definition.decorator(baseValue)({})).toThrowError(
+          expect.objectContaining({ code: "invalid-decorator-target" }),
+        );
+        expect(() => definition.decorator(baseValue)(Child.prototype, "method", -1)).toThrowError(
+          expect.objectContaining({ code: "invalid-decorator-location" }),
+        );
+        break;
+      default:
+        expect(definition.set(Child, ownValue)).toEqual({ isValid: true });
+    }
+    expect(definition.read(Child, own)).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: directValue,
+    });
+    const ownRead = definition.read(Child, own);
+    if (definition.kind === "value" && ownRead.isValid && ownRead.isPresent) {
+      expect(ownRead.value).toBe(ownValue);
+    }
+    expect(definition.read(Child)).toEqual({
+      isValid: true,
+      isPresent: true,
+      value: inheritedValue,
+    });
+    const before = definition.read(Child);
+    switch (operation) {
+      case "read":
+        expect(definition.read(new Child())).toEqual(before);
+        expect(definition.read({})).toEqual(invalidTarget);
+        // @ts-expect-error Checked tuple validation has a runtime boundary too.
+        expect(definition.read(Child, invalid)).toEqual(invalidPosition);
+        break;
+      case "readDynamic":
+        expect(definition.readDynamic(new Child(), address)).toEqual(before);
+        expect(definition.readDynamic(Child, own)).toEqual({
+          isValid: true,
+          isPresent: true,
+          value: directValue,
+        });
+        expect(definition.readDynamic({}, address)).toEqual(invalidTarget);
+        expect(definition.readDynamic(Child, invalid)).toEqual(invalidPosition);
+        expect(
+          definition.readDynamic(new Child(), {
+            kind: "member",
+            side: "static",
+            member: "erased",
+          }),
+        ).toEqual({ isValid: false, code: "instance-address-not-supported" });
+        break;
+      case "has":
+        expect(definition.has(new Child())).toEqual({ isValid: true, isPresent: true });
+        expect(definition.has(Child, own)).toEqual({ isValid: true, isPresent: true });
+        expect(definition.has({})).toEqual(invalidTarget);
+        // @ts-expect-error Checked negative tuple positions are invalid.
+        expect(definition.has(Child, invalid)).toEqual(invalidPosition);
+        break;
+      case "hasDynamic":
+        expect(definition.hasDynamic(new Child(), address)).toEqual({
+          isValid: true,
+          isPresent: true,
+        });
+        expect(definition.hasDynamic(Child, own)).toEqual({ isValid: true, isPresent: true });
+        expect(definition.hasDynamic({}, address)).toEqual(invalidTarget);
+        expect(definition.hasDynamic(Child, invalid)).toEqual(invalidPosition);
+        expect(
+          definition.hasDynamic(new Child(), {
+            kind: "constructor-parameter",
+            position: 0,
+          }),
+        ).toEqual({ isValid: false, code: "instance-address-not-supported" });
+        break;
+      case "delete":
+        // @ts-expect-error Instances cannot delete shared class declarations.
+        expect(definition.delete(new Child())).toEqual(invalidTarget);
+        // @ts-expect-error Checked negative tuple positions are invalid.
+        expect(definition.delete(Child, invalid)).toEqual(invalidPosition);
+        expect(definition.read(Child)).toEqual(before);
+        expect(definition.delete(Child)).toEqual({ isValid: true, isDeleted: true });
+        expect(definition.delete(Child)).toEqual({ isValid: true, isDeleted: false });
+        break;
+      case "deleteDynamic":
+        // @ts-expect-error Dynamic deletion requires a constructor too.
+        expect(definition.deleteDynamic(new Child())).toEqual(invalidTarget);
+        expect(definition.deleteDynamic(Child, invalid)).toEqual(invalidPosition);
+        expect(definition.read(Child)).toEqual(before);
+        expect(definition.deleteDynamic(Child)).toEqual({ isValid: true, isDeleted: true });
+        expect(definition.deleteDynamic(Child)).toEqual({ isValid: true, isDeleted: false });
+        break;
+      case "locations": {
+        const result = definition.locations(new Child(), { inheritance: "own" });
+        expect(result).toEqual({ isValid: true, addresses: [address] });
+        if (result.isValid) {
+          expect(Object.isFrozen(result.addresses)).toBe(true);
+          expect(Object.isFrozen(result.addresses[0])).toBe(true);
+        }
+        expect(definition.locations(Child)).toEqual({ isValid: true, addresses: [address] });
+        expect(definition.locations({})).toEqual(invalidTarget);
+        // @ts-expect-error Invalid lookup modes reject rather than become default inheritance.
+        expect(definition.locations(Child, { inheritance: "reset" })).toEqual({
+          isValid: false,
+          code: "invalid-address",
+        });
+        break;
+      }
+    }
+    if (operation === "delete" || operation === "deleteDynamic") {
+      expect(definition.read(Child)).toEqual(definition.read(Base));
+      expect(definition.read(Child, own)).toEqual({ isValid: true, isPresent: false });
+      expect(definition.locations(Child, { inheritance: "own" })).toEqual({
+        isValid: true,
+        addresses: [],
+      });
+    } else {
+      expect(definition.read(Child)).toEqual(before);
+    }
+    const discovered = MetadataDiscovery.definitions(Child);
+    const dynamic = MetadataDiscovery.definitionsDynamic(new Child());
+    for (const result of [discovered, dynamic]) {
+      expect(result.isValid).toBe(true);
+      if (result.isValid) {
+        expect(result.definitions).toHaveLength(1);
+        expect(result.definitions[0]).toBe(definition);
+      }
+    }
+    const baseRead = definition.read(Base);
+    expect(baseRead.isValid && baseRead.isPresent).toBe(true);
+  }
+
+  /**
+   * Registers all public operations for one definition kind and its test values.
+   * @template TDeclaration Values passed to definition write/decorator operations.
+   * @template TValue Values returned by reads after aggregation.
+   * @param name Label included in generated Vitest scenario names.
+   * @param create Creates a fresh definition for each operation case.
+   * @param baseValue Value written to the base class.
+   * @param ownValue Value written to the child class.
+   * @param inheritedValue Expected inherited result for the aggregation kind.
+   * @param directValue Expected direct result for the aggregation kind.
+   * @returns No value; registers Vitest tests for every operation.
+   */
   public static register<TDeclaration, TValue>(
     name: string,
     create: () => IMatrixDefinition<TDeclaration, TValue>,
@@ -59,169 +291,15 @@ class PublicOperationMatrix {
         "decorator",
       ] as const;
       for (const operation of operations) {
-        it(`${operation}: success, own/inherited boundaries and atomic validation`, () => {
-          class Base {
-            public field = 1;
-            /** Gives checked addressing a one-position tuple. */
-            public method(input: string): void {
-              void input;
-            }
-          }
-          class Child extends Base {}
-          const definition = create();
-          expect(definition.set(Base, baseValue)).toEqual({ isValid: true });
-          const address = { kind: "class" } as const;
-          const own = { kind: "class", inheritance: "own" } as const;
-          const invalid = { kind: "method-parameter", member: "method", position: -1 } as const;
-          const invalidPosition = { isValid: false, code: "invalid-position" };
-          const invalidTarget = { isValid: false, code: "invalid-target" };
-          expect(definition.read(Child, own)).toEqual({ isValid: true, isPresent: false });
-          expect(definition.has(Child, own)).toEqual({ isValid: true, isPresent: false });
-
-          switch (operation) {
-            case "set":
-              expect(definition.set(Child, ownValue, address)).toEqual({ isValid: true });
-              // @ts-expect-error Checked mutation does not accept instances.
-              expect(definition.set(new Child(), baseValue)).toEqual(invalidTarget);
-              // @ts-expect-error Checked tuples reject negative positions statically as well.
-              expect(definition.set(Child, baseValue, invalid)).toEqual(invalidPosition);
-              break;
-            case "setDynamic":
-              expect(definition.setDynamic(Child, ownValue, address)).toEqual({ isValid: true });
-              // @ts-expect-error Dynamic mutation still requires a constructor.
-              expect(definition.setDynamic(new Child(), baseValue)).toEqual(invalidTarget);
-              expect(definition.setDynamic(Child, baseValue, invalid)).toEqual(invalidPosition);
-              break;
-            case "decorator":
-              expect(definition.decorator(ownValue)(Child)).toBeUndefined();
-              // @ts-expect-error A plain object is not a class decorator target.
-              expect(() => definition.decorator(baseValue)({})).toThrowError(
-                expect.objectContaining({ code: "invalid-decorator-target" }),
-              );
-              expect(() =>
-                definition.decorator(baseValue)(Child.prototype, "method", -1),
-              ).toThrowError(expect.objectContaining({ code: "invalid-decorator-location" }));
-              break;
-            default:
-              expect(definition.set(Child, ownValue)).toEqual({ isValid: true });
-          }
-          expect(definition.read(Child, own)).toEqual({
-            isValid: true,
-            isPresent: true,
-            value: directValue,
-          });
-          const ownRead = definition.read(Child, own);
-          if (definition.kind === "value" && ownRead.isValid && ownRead.isPresent) {
-            expect(ownRead.value).toBe(ownValue);
-          }
-          expect(definition.read(Child)).toEqual({
-            isValid: true,
-            isPresent: true,
-            value: inheritedValue,
-          });
-          const before = definition.read(Child);
-          switch (operation) {
-            case "read":
-              expect(definition.read(new Child())).toEqual(before);
-              expect(definition.read({})).toEqual(invalidTarget);
-              // @ts-expect-error Checked tuple validation has a runtime boundary too.
-              expect(definition.read(Child, invalid)).toEqual(invalidPosition);
-              break;
-            case "readDynamic":
-              expect(definition.readDynamic(new Child(), address)).toEqual(before);
-              expect(definition.readDynamic(Child, own)).toEqual({
-                isValid: true,
-                isPresent: true,
-                value: directValue,
-              });
-              expect(definition.readDynamic({}, address)).toEqual(invalidTarget);
-              expect(definition.readDynamic(Child, invalid)).toEqual(invalidPosition);
-              expect(
-                definition.readDynamic(new Child(), {
-                  kind: "member",
-                  side: "static",
-                  member: "erased",
-                }),
-              ).toEqual({ isValid: false, code: "instance-address-not-supported" });
-              break;
-            case "has":
-              expect(definition.has(new Child())).toEqual({ isValid: true, isPresent: true });
-              expect(definition.has(Child, own)).toEqual({ isValid: true, isPresent: true });
-              expect(definition.has({})).toEqual(invalidTarget);
-              // @ts-expect-error Checked negative tuple positions are invalid.
-              expect(definition.has(Child, invalid)).toEqual(invalidPosition);
-              break;
-            case "hasDynamic":
-              expect(definition.hasDynamic(new Child(), address)).toEqual({
-                isValid: true,
-                isPresent: true,
-              });
-              expect(definition.hasDynamic(Child, own)).toEqual({ isValid: true, isPresent: true });
-              expect(definition.hasDynamic({}, address)).toEqual(invalidTarget);
-              expect(definition.hasDynamic(Child, invalid)).toEqual(invalidPosition);
-              expect(
-                definition.hasDynamic(new Child(), {
-                  kind: "constructor-parameter",
-                  position: 0,
-                }),
-              ).toEqual({ isValid: false, code: "instance-address-not-supported" });
-              break;
-            case "delete":
-              // @ts-expect-error Instances cannot delete shared class declarations.
-              expect(definition.delete(new Child())).toEqual(invalidTarget);
-              // @ts-expect-error Checked negative tuple positions are invalid.
-              expect(definition.delete(Child, invalid)).toEqual(invalidPosition);
-              expect(definition.read(Child)).toEqual(before);
-              expect(definition.delete(Child)).toEqual({ isValid: true, isDeleted: true });
-              expect(definition.delete(Child)).toEqual({ isValid: true, isDeleted: false });
-              break;
-            case "deleteDynamic":
-              // @ts-expect-error Dynamic deletion requires a constructor too.
-              expect(definition.deleteDynamic(new Child())).toEqual(invalidTarget);
-              expect(definition.deleteDynamic(Child, invalid)).toEqual(invalidPosition);
-              expect(definition.read(Child)).toEqual(before);
-              expect(definition.deleteDynamic(Child)).toEqual({ isValid: true, isDeleted: true });
-              expect(definition.deleteDynamic(Child)).toEqual({ isValid: true, isDeleted: false });
-              break;
-            case "locations": {
-              const result = definition.locations(new Child(), { inheritance: "own" });
-              expect(result).toEqual({ isValid: true, addresses: [address] });
-              if (result.isValid) {
-                expect(Object.isFrozen(result.addresses)).toBe(true);
-                expect(Object.isFrozen(result.addresses[0])).toBe(true);
-              }
-              expect(definition.locations(Child)).toEqual({ isValid: true, addresses: [address] });
-              expect(definition.locations({})).toEqual(invalidTarget);
-              // @ts-expect-error Invalid lookup modes reject rather than become default inheritance.
-              expect(definition.locations(Child, { inheritance: "reset" })).toEqual({
-                isValid: false,
-                code: "invalid-address",
-              });
-              break;
-            }
-          }
-          if (operation === "delete" || operation === "deleteDynamic") {
-            expect(definition.read(Child)).toEqual(definition.read(Base));
-            expect(definition.read(Child, own)).toEqual({ isValid: true, isPresent: false });
-            expect(definition.locations(Child, { inheritance: "own" })).toEqual({
-              isValid: true,
-              addresses: [],
-            });
-          } else {
-            expect(definition.read(Child)).toEqual(before);
-          }
-          const discovered = MetadataDiscovery.definitions(Child);
-          const dynamic = MetadataDiscovery.definitionsDynamic(new Child());
-          for (const result of [discovered, dynamic]) {
-            expect(result.isValid).toBe(true);
-            if (result.isValid) {
-              expect(result.definitions).toHaveLength(1);
-              expect(result.definitions[0]).toBe(definition);
-            }
-          }
-          const baseRead = definition.read(Base);
-          expect(baseRead.isValid && baseRead.isPresent).toBe(true);
-        });
+        it(`${operation}: success, own/inherited boundaries and atomic validation`, () =>
+          PublicOperationMatrix.runOperation(
+            operation,
+            create,
+            baseValue,
+            ownValue,
+            inheritedValue,
+            directValue,
+          ));
       }
     });
   }
@@ -315,6 +393,7 @@ describe("remaining runtime exports: ordinary public identity and boundaries", (
     expect(new MetadataBoundaryError("foreign-handler").cause).toBeUndefined();
   });
   it("MetadataDiscovery remains frozen and detached checked/dynamic calls preserve identity", () => {
+    /** Target used to check public definition identity and boundaries. */
     class Target {}
     const definition = new ValueMetadataDefinition<undefined>("present undefined");
     definition.set(Target, undefined);

@@ -22,7 +22,9 @@ import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
 describe("SCH-050 Optional", () => {
   it("accepts a missing or undefined value and keeps the key absent", () => {
+    /** Profile fixture with an optional nickname. */
     class Profile {
+      /** Nickname omitted when absent or undefined. */
       public nickname?: string;
     }
     FieldDeclaration.declare(Profile, "nickname", String, Optional(), IsString());
@@ -37,7 +39,9 @@ describe("SCH-050 Optional", () => {
   });
 
   it("still validates present values and rejects null", () => {
+    /** Profile fixture validating any present nickname value. */
     class Profile {
+      /** Optional nickname whose supplied value must still be a string. */
       public nickname?: string;
     }
     FieldDeclaration.declare(Profile, "nickname", String, IsString(), Optional());
@@ -55,7 +59,9 @@ describe("SCH-050 Optional", () => {
 
 describe("SCH-051 Nullable", () => {
   it("accepts null and keeps it, while undefined stays invalid", () => {
+    /** Profile fixture with a nullable but required biography. */
     class Profile {
+      /** Biography accepts null but rejects an absent input. */
       public bio!: string | null;
     }
     FieldDeclaration.declare(Profile, "bio", Object, Nullable(), IsString({ min: 3 }));
@@ -75,7 +81,9 @@ describe("SCH-051 Nullable", () => {
   });
 
   it("combines with Optional to accept both null and undefined", () => {
+    /** Profile fixture whose biography accepts null and absence. */
     class Profile {
+      /** Optional nullable biography field. */
       public bio?: string | null;
     }
     FieldDeclaration.declare(Profile, "bio", Object, Nullable(), Optional(), IsString());
@@ -87,7 +95,12 @@ describe("SCH-051 Nullable", () => {
 
 describe("SCH-052 Default", () => {
   it("replaces a missing or undefined value and makes the field optional on input", () => {
+    /** Settings fixture with a required output theme and input default. */
     class Settings {
+      /**
+       * Theme defaulted when input is absent.
+       * @default "light"
+       */
       public theme!: string;
     }
     FieldDeclaration.declare(Settings, "theme", String, IsString(), Default("light"));
@@ -98,7 +111,12 @@ describe("SCH-052 Default", () => {
   });
 
   it("does not replace null", () => {
+    /** Settings fixture proving defaults do not replace explicit null. */
     class Settings {
+      /**
+       * Required theme whose string validator rejects null.
+       * @default "light"
+       */
       public theme!: string;
     }
     FieldDeclaration.declare(Settings, "theme", String, IsString(), Default("light"));
@@ -111,7 +129,9 @@ describe("SCH-052 Default", () => {
 
   it("calls a factory once per parse, so mutable defaults are not shared", () => {
     let calls = 0;
+    /** Settings fixture with a factory-created mutable tags value. */
     class Settings {
+      /** Tags populated independently for each parse. */
       public tags!: unknown;
     }
     FieldDeclaration.declare(
@@ -134,7 +154,12 @@ describe("SCH-052 Default", () => {
   });
 
   it("validates the default like any other value", () => {
+    /** Settings fixture whose invalid default is checked by the field rule. */
     class Settings {
+      /**
+       * Retry count requiring a positive integer.
+       * @default 0
+       */
       public retries!: number;
     }
     FieldDeclaration.declare(Settings, "retries", Number, IsInt({ min: 1 }), Default(0));
@@ -143,7 +168,9 @@ describe("SCH-052 Default", () => {
   });
 
   it("is invalid when a factory yields undefined for a required field", () => {
+    /** Settings fixture whose default factory returns no value. */
     class Settings {
+      /** Required theme that remains invalid when its default is undefined. */
       public theme!: string;
     }
     FieldDeclaration.declare(
@@ -160,8 +187,11 @@ describe("SCH-052 Default", () => {
 
 describe("SCH-053 Rename", () => {
   it("reads the input key, writes the property name and reports paths by input key", () => {
+    /** Signup fixture whose first name is read from an aliased key. */
     class Signup {
+      /** Logical first name stored on the parsed instance. */
       public firstName!: string;
+      /** Integer age retained under the same input and output key. */
       public age!: number;
     }
     FieldDeclaration.declare(Signup, "firstName", String, IsString(), Rename("first_name"));
@@ -176,8 +206,11 @@ describe("SCH-053 Rename", () => {
   });
 
   it("supports swapped aliases between fields", () => {
+    /** Pair fixture with two fields whose input aliases are swapped. */
     class Pair {
+      /** First logical field read from input key `b`. */
       public a!: string;
+      /** Second logical field read from input key `a`. */
       public b!: string;
     }
     FieldDeclaration.declare(Pair, "a", String, IsString(), Rename("b"));
@@ -189,7 +222,9 @@ describe("SCH-053 Rename", () => {
   });
 
   it("rejects an empty key when decorating", () => {
+    /** Signup fixture used to reject an empty input alias. */
     class Signup {
+      /** Name field assigned an invalid empty alias. */
       public name!: string;
     }
 
@@ -199,8 +234,11 @@ describe("SCH-053 Rename", () => {
   });
 
   it("rejects two fields reading the same input key on first parse", () => {
+    /** Clash fixture whose fields intentionally share an input key. */
     class Clash {
+      /** First field owning the shared input key. */
       public a!: string;
+      /** Second field conflicting with the first input key. */
       public b!: string;
     }
     FieldDeclaration.declare(Clash, "a", String, IsString());
@@ -212,7 +250,9 @@ describe("SCH-053 Rename", () => {
 
 describe("SCH-054 Transform", () => {
   it("transforms the value before it is validated", () => {
+    /** Search fixture whose tags are normalized before validation. */
     class Search {
+      /** Input tags transformed to a string before its maximum length check. */
       public tags!: string;
     }
     FieldDeclaration.declare(
@@ -232,8 +272,14 @@ describe("SCH-054 Transform", () => {
 
   it("is skipped for a missing value without Default and applied to a default", () => {
     const seen: unknown[] = [];
+    /** Search fixture comparing optional and defaulted transform behavior. */
     class Search {
+      /** Optional term skipped when no value is supplied. */
       public term?: string;
+      /**
+       * Mode defaulted and then passed through the transform.
+       * @default "all"
+       */
       public mode!: string;
     }
     const record = Transform((value) => {
@@ -249,8 +295,11 @@ describe("SCH-054 Transform", () => {
   });
 
   it("turns a throwing transform into a transform_failed issue", () => {
+    /** Search fixture whose transforms intentionally throw. */
     class Search {
+      /** Field with an Error-throwing transform. */
       public a!: string;
+      /** Field with a non-Error throwing transform and message override. */
       public b!: string;
     }
     FieldDeclaration.declare(
@@ -293,7 +342,9 @@ describe("SCH-054 Transform", () => {
   });
 
   it("may turn a value into undefined so Optional leaves the key absent", () => {
+    /** Search fixture whose empty term becomes absent after transformation. */
     class Search {
+      /** Optional term removed when its transform returns `undefined`. */
       public term?: string;
     }
     FieldDeclaration.declare(
@@ -317,7 +368,9 @@ describe("SCH-055 Modifier declarations", () => {
     ["Rename", () => Rename("x")],
     ["Transform", () => Transform((value) => value)],
   ])("rejects a second %s on the same property", (_name, create) => {
+    /** Fixture used to reject duplicate field modifiers. */
     class Twice {
+      /** Field receiving the first modifier before duplicate application. */
       public value!: string;
     }
     FieldDeclaration.declare(Twice, "value", String, IsString(), create());
@@ -328,7 +381,9 @@ describe("SCH-055 Modifier declarations", () => {
   });
 
   it("rejects a property that only has modifiers on first parse", () => {
+    /** Fixture with an orphaned modifier and no type decorator. */
     class Orphan {
+      /** Field carrying modifiers without a base type rule. */
       public value!: string;
     }
     FieldDeclaration.declare(Orphan, "value", String, Optional());
@@ -337,7 +392,9 @@ describe("SCH-055 Modifier declarations", () => {
   });
 
   it("rejects modifiers after the first parse, static and symbol members", () => {
+    /** Fixture whose field metadata is frozen by its first parse. */
     class Frozen {
+      /** Field used to check late modifier rejection. */
       public value!: string;
     }
     FieldDeclaration.declare(Frozen, "value", String, IsString());
@@ -351,9 +408,12 @@ describe("SCH-055 Modifier declarations", () => {
 
 describe("SCH-056 Modifiers across inheritance", () => {
   it("lets a subclass add modifiers to an inherited field", () => {
+    /** Base fixture declaring the inherited name constraint. */
     class Base {
+      /** Required name with an inherited minimum-length rule. */
       public name!: string;
     }
+    /** Derived fixture adding optionality and a default to the inherited name. */
     class Derived extends Base {}
     FieldDeclaration.declare(Base, "name", String, IsString({ min: 2 }));
     FieldDeclaration.declare(Derived, "name", String, Optional(), Default("anon"));
@@ -366,9 +426,12 @@ describe("SCH-056 Modifiers across inheritance", () => {
   });
 
   it("lets a subclass type declaration replace the inherited modifiers", () => {
+    /** Base fixture whose name is optional. */
     class Base {
+      /** Name modifier replaced by the derived declaration. */
       public name!: string;
     }
+    /** Derived fixture making the inherited name required again. */
     class Derived extends Base {}
     FieldDeclaration.declare(Base, "name", String, IsString(), Optional());
     FieldDeclaration.declare(Derived, "name", String, IsString());

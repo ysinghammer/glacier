@@ -1,6 +1,6 @@
 # 0007 — Failures and asynchronous work
 
-1. Expected validation/business rejections MUST use typed discriminated outcomes. Exceptional failures MUST throw `Error` instances, with specific subclasses when callers need distinction and preserved causes when wrapping.
+1. Expected validation/business rejections MUST use typed discriminated outcomes. As a narrow transport-boundary exception, HTTP controllers MAY translate expected typed application outcomes into thrown business `Error` instances for declarative HTTP error mapping. This exception MUST NOT extend to application/domain code, where expected rejections MUST remain typed discriminated outcomes, or to other adapters and framework hooks. Exceptional failures MUST throw `Error` instances, with specific subclasses when callers need distinction and preserved causes when wrapping.
 2. Adapters MUST validate untrusted boundary input; domain code MUST enforce domain invariants. Public boundaries MUST translate failures without exposing secrets or implementation details.
 3. Catching MUST be limited to recovery, translation, or cleanup. Failures MUST NOT be swallowed, replaced by success-shaped defaults, or logged with secrets. Observability MUST preserve layer independence and MUST NOT redundantly log the same failure at every layer.
 4. Promises MUST be awaited, returned, or explicitly supervised with observable failure handling. Unsupervised fire-and-forget work MUST NOT be used.

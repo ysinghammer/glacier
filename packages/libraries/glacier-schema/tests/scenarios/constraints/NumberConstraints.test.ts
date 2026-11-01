@@ -5,11 +5,20 @@ import { IsInt, IsNumber, SchemaDefinitionError, Schema } from "../../../index.j
 import type { INumberOptions } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
+/** A numeric decorator accepted by the shared numeric-constraint scenario. */
 type IDecorator = typeof IsNumber;
 
-/** Parses `{ value: input }` against a one-field class declared with the given number decorator. */
+/**
+ * Parses one unknown input through a fixture decorated with numeric constraints.
+ * @param decorator Public number decorator applied to the fixture field.
+ * @param options Numeric constraints supplied to the decorator.
+ * @param input Candidate field value, validated without prior narrowing.
+ * @returns Parsed field value on success or the first validation issue.
+ */
 function parseNumber(decorator: IDecorator, options: INumberOptions, input: unknown) {
+  /** One-field model used for an isolated numeric parsing assertion. */
   class Holder {
+    /** Field receiving the candidate value and numeric constraints. */
     public value!: number;
   }
   FieldDeclaration.declare(Holder, "value", Number, decorator(options));
@@ -96,7 +105,9 @@ describe.each([
     ["min above max", { min: 2, max: 1 }],
     ["empty exclusive range", { exclusiveMin: 1, exclusiveMax: 1 }],
   ])("rejects %s with SchemaDefinitionError", (_title, options) => {
+    /** One-field model used to exercise invalid numeric declarations. */
     class Holder {
+      /** Field whose invalid constraint declaration is under test. */
       public value!: number;
     }
 

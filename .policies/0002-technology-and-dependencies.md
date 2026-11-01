@@ -15,6 +15,7 @@ Each grouped row has identical kind and applicability; distinct scopes remain se
 | `@types/node`                                             | Development | Server-side code and workspace-tooling Node types                                                                     |
 | `turbo`                                                   | Development | Local/CI workspace-task orchestration                                                                                 |
 | `oxlint`                                                  | Development | TypeScript linting                                                                                                    |
+| `oxlint-plugin-complexity`                                 | Development | Workspace-root Oxlint enforcement of cyclomatic and cognitive complexity                                               |
 | `oxfmt`                                                   | Development | Formatting and compliance checks                                                                                      |
 | `husky`                                                   | Development | Workspace-root local hooks invoking the workspace CI gate and commit-message checks                                   |
 | `@commitlint/cli`, `@commitlint/config-conventional`      | Development | Workspace-root commit-message tooling                                                                                 |

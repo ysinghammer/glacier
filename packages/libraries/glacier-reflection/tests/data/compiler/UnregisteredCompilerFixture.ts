@@ -9,12 +9,22 @@ const LABEL = new ValueMetadataDefinition<string>("before-registration");
 /** Emits real compiler metadata before registration, while retaining a manual annotation. */
 @LABEL.decorator("manual")
 class UnregisteredConsumer {
-  public constructor(public readonly label: string) {}
+  /**
+   * Retains one argument whose metadata is emitted before registration.
+   * @param label Text value represented in compiler metadata.
+   */
+  public constructor(
+    /** Readonly label retained for compiler emission before registration. */
+    public readonly label: string,
+  ) {}
 }
 
 /** Observes the same original declaration before and after registration without replaying emission. */
 export class UnregisteredCompilerFixture {
-  /** Reads only public metadata and discovery operations. */
+  /**
+   * Reads compiler and manual metadata through public operations.
+   * @returns Compiler, manual, and discovery observations.
+   */
   public static read(): unknown {
     const definitions = MetadataDiscovery.definitions(UnregisteredConsumer);
     return {

@@ -50,7 +50,7 @@ export class UserService {
     this.logger = created.logger;
   }
 
-  create(userId: number): void {
+  public create(userId: number): void {
     const logger = this.logger.child({ requestId: "r-1" });
     logger.info({ message: "user created", userId });
     logger.error({ err: new Error("lookup failed"), userId });
@@ -126,13 +126,13 @@ Implement `ITransport`. `write` receives the entry and a delivery that renders i
 import type { ILogEntry, ITransport, ITransportDelivery } from "@glacier/logger";
 
 export class MemoryTransport implements ITransport {
-  readonly lines: string[] = [];
+  public readonly lines: string[] = [];
 
-  write(_entry: ILogEntry, delivery: ITransportDelivery): void {
+  public write(_entry: ILogEntry, delivery: ITransportDelivery): void {
     this.lines.push(delivery.text());
   }
 
-  async flush(): Promise<void> {}
+  public async flush(): Promise<void> {}
 }
 ```
 
@@ -159,11 +159,16 @@ console mode, a DI container, nested contexts, per-context levels and wildcard r
 
 ## Layout (policy 0003)
 
-`src/logging/`, `src/serialization/`, `src/formatting/` and `src/transports/` are the capabilities. `formatting` reads
-the public `ILogEntry` contract of `logging` and uses `serialization` for safety; `transports` depends on `formatting`.
+Capabilities are organized under `src/domain/`, `src/application/`, and `src/infrastructure/`:
+`formatting`, `serialization`, and `logging` own their domain concepts; `logging` also has application
+and infrastructure layers, as do `transports` where applicable. `formatting` reads the public
+`ILogEntry` contract of `logging` and uses `serialization` for safety; `transports` depends on `formatting`.
 
-- `domain/`: levels, reserved keys, bindings invariants, call and entry types, formatters, serialisation. No I/O.
-- `application/`: `LoggerFactory`, `Logger`, configuration validation, outcomes, errors, buffering.
-- `application/ports/outbound/`: consumer-owned contracts such as `ITransport`, `IEntryFormatter` and `IClock`.
-- `infrastructure/adapters/outbound/`: Node stdout and file transports and the browser console transport.
+- `src/domain/logging/`: levels, reserved keys, bindings invariants, calls and entries.
+- `src/domain/formatting/` and `src/domain/serialization/`: formatters and safe serialization concepts.
+- `src/application/logging/`: `LoggerFactory`, `Logger`, configuration validation, outcomes and errors.
+- `src/application/logging/ports/outbound/`: consumer-owned contracts such as `ITransport`, `IEntryFormatter` and `IClock`.
+- `src/application/transports/`: buffering and transport application contracts.
+- `src/infrastructure/logging/adapters/outbound/`: environment diagnostics integration.
+- `src/infrastructure/transports/adapters/outbound/`: Node stdout and file transports and the browser console transport.
 - Type names for string-literal unions use the `I` prefix (`ILogLevel`).

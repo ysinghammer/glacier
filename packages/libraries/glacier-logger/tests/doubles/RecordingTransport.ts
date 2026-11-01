@@ -1,15 +1,32 @@
 import type { ILogEntry, ITransport } from "../../index.js";
 
-/** Test-owned transport that records every entry and counts flushes. */
+/** Captures delivered log entries and counts completed flush requests for assertions. */
 export class RecordingTransport implements ITransport {
-  readonly entries: ILogEntry[] = [];
-  flushCount = 0;
+  /**
+   * Readonly array reference of entries received by {@link write}, in delivery order.
+   * @default An empty array
+   */
+  public readonly entries: ILogEntry[] = [];
+  /**
+   * Number of times {@link flush} has been requested.
+   * @default 0
+   */
+  public flushCount = 0;
 
-  write(entry: ILogEntry): void {
+  /**
+   * Adds a delivered entry to the observable recording.
+   * @param entry Entry supplied by the logger.
+   * @returns No value; appends the same entry reference to {@link entries}.
+   */
+  public write(entry: ILogEntry): void {
     this.entries.push(entry);
   }
 
-  flush(): Promise<void> {
+  /**
+   * Records a flush request and completes immediately.
+   * @returns A promise fulfilled after incrementing {@link flushCount}.
+   */
+  public flush(): Promise<void> {
     this.flushCount += 1;
     return Promise.resolve();
   }

@@ -12,14 +12,27 @@ import {
 } from "../../../index.js";
 import { ParameterTypes } from "../module-composition/ParameterTypes.js";
 
+/**
+ * Creates an injectable fixture class with the requested scope and dependencies.
+ * @param scope Lifetime applied to the generated class.
+ * @param dependencies Tokens emitted in constructor parameter order.
+ * @returns The generated class decorated with its scope metadata.
+ */
 function scoped(scope: "default" | "transient" | "request", ...dependencies: unknown[]) {
+  /** Class fixture carrying the scope and dependency metadata requested by the test. */
   class Scoped {}
   Injectable({ scope })(Scoped);
   ParameterTypes.emit(Scoped, dependencies);
   return Scoped;
 }
 
+/**
+ * Creates a root module containing the supplied provider declarations.
+ * @param providers Provider classes or provider objects registered by the module.
+ * @returns The generated root module reference.
+ */
 function moduleOf(...providers: unknown[]): IModuleReference {
+  /** Root module used to validate only the supplied providers. */
   class Root {}
   Module({ providers: providers as never[] })(Root);
   return Root;
@@ -45,11 +58,27 @@ describe("IOC-024 scope bubbling", () => {
 
   it("shares the REQUEST dependency between dependents of one context", async () => {
     const request = scoped("request");
+    /** One consumer of the shared request-scoped provider. */
     class Left {
-      public constructor(readonly shared: object) {}
+      /**
+       * Stores the shared dependency to compare identity across consumers.
+       * @param shared Request-scoped object supplied by injection.
+       */
+      public constructor(
+        /** Request-scoped object shared by consumers in one context. */
+        public readonly shared: object,
+      ) {}
     }
+    /** Another consumer of the shared request-scoped provider. */
     class Right {
-      public constructor(readonly shared: object) {}
+      /**
+       * Stores the shared dependency to compare identity across consumers.
+       * @param shared Request-scoped object supplied by injection.
+       */
+      public constructor(
+        /** Request-scoped object shared by consumers in one context. */
+        public readonly shared: object,
+      ) {}
     }
     ParameterTypes.emit(Left, [request]);
     ParameterTypes.emit(Right, [request]);
@@ -64,8 +93,16 @@ describe("IOC-024 scope bubbling", () => {
 
   it("does not bubble TRANSIENT to dependents", async () => {
     const transient = scoped("transient");
+    /** Holds a transient dependency to verify transient scope does not bubble. */
     class Holder {
-      public constructor(readonly inner: object) {}
+      /**
+       * Stores the resolved transient dependency.
+       * @param inner Transient object supplied by injection.
+       */
+      public constructor(
+        /** Transient object injected into this default-scoped holder. */
+        public readonly inner: object,
+      ) {}
     }
     ParameterTypes.emit(Holder, [transient]);
     const container = await GlacierContainer.create(moduleOf(transient, Holder));
@@ -126,6 +163,12 @@ describe("IOC-024 scope bubbling", () => {
 });
 
 describe("IOC-027 invalid scope declarations", () => {
+  /**
+   * Creates an invalid declaration graph and returns its aggregated causes.
+   * @param root Module reference whose provider scope declarations are checked.
+   * @returns Readonly causes reported during container graph validation.
+   * @throws {Error} Container creation unexpectedly succeeds without validation causes.
+   */
   async function causesOf(root: IModuleReference): Promise<readonly Error[]> {
     try {
       await GlacierContainer.create(root);
@@ -136,6 +179,7 @@ describe("IOC-027 invalid scope declarations", () => {
   }
 
   it("rejects unknown scope literals on classes and provider objects at create", async () => {
+    /** Provider class deliberately decorated with an unsupported scope value. */
     class Bogus {}
     Injectable({ scope: "singleton" as never })(Bogus);
 

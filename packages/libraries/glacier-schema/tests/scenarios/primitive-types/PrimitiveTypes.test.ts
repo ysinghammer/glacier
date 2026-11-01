@@ -24,13 +24,21 @@ import {
 import type { ISchemaIssue } from "../../../index.js";
 import { FieldDeclaration } from "../../support/FieldDeclaration.js";
 
-/** Declares a single-field class and parses `{ value: input }` against it. */
+/**
+ * Parses an unknown candidate through a one-field public schema.
+ * @param designType Design type recorded for the fixture property.
+ * @param decorator Property decorator defining the field's validation rule.
+ * @param input Candidate value tested by the schema.
+ * @returns Parsed value on success or the validation issues on failure.
+ */
 function parseValue(
   designType: Parameters<typeof FieldDeclaration.declare>[2],
   decorator: PropertyDecorator,
   input: unknown,
 ): { readonly ok: true; readonly value: unknown } | { readonly issues: readonly ISchemaIssue[] } {
+  /** One-field fixture used to exercise a primitive decorator. */
   class Holder {
+    /** Candidate value inspected by the schema parser. */
     public value!: unknown;
   }
   FieldDeclaration.declare(Holder, "value", designType, decorator);
@@ -38,6 +46,11 @@ function parseValue(
   return result.ok ? { ok: true, value: Reflect.get(result.value, "value") } : result;
 }
 
+/**
+ * Selects the first validation issue from a failed parse outcome.
+ * @param outcome Success or failure returned by `parseValue`.
+ * @returns First issue on failure, or `undefined` when parsing succeeded.
+ */
 function issueOf(outcome: ReturnType<typeof parseValue>): ISchemaIssue | undefined {
   return "issues" in outcome ? outcome.issues[0] : undefined;
 }
@@ -186,6 +199,7 @@ describe("SCH-017 IsEnum", () => {
   });
 
   it("rejects a source without values when decorating", () => {
+    /** Empty fixture used to reject an enum decorator with no members. */
     class Empty {}
 
     expect(() => FieldDeclaration.declare(Empty, "value", undefined, IsEnum([]))).toThrow(
@@ -200,7 +214,9 @@ describe("SCH-018 IsAny", () => {
   });
 
   it("accepts undefined and leaves the key absent", () => {
+    /** Fixture used to verify `IsAny` preserves absence. */
     class Holder {
+      /** Arbitrary field omitted when the input key is absent. */
       public value!: unknown;
     }
     FieldDeclaration.declare(Holder, "value", undefined, IsAny());

@@ -1,0 +1,210 @@
+import type { IClass } from "@glacier/reflection";
+import { CompiledSchemaCache } from "./CompiledSchemaCache.js";
+import type { ICompiledSchema } from "./CompiledSchemaCache.js";
+import { ClassRefinements } from "./ClassRefinements.js";
+import type { IClassRefinement } from "./ClassRefinements.js";
+import { FieldRegistry } from "./FieldRegistry.js";
+import type { ISchemaIssue } from "../failures/ISchemaIssue.js";
+import type { IValueFailure } from "../validation/types/IValueFailure.js";
+import { ReceivedType } from "../validation/ReceivedType.js";
+import { FieldProcessorFactory } from "../validation/factories/FieldProcessor.factory.js";
+import type { IFieldProcessor } from "../validation/factories/FieldProcessor.factory.js";
+import { RootUnionSchema } from "../validation/RootUnionSchema.js";
+import { UnionRegistry } from "./UnionRegistry.js";
+import { SchemaDefinitionError } from "../failures/SchemaDefinition.error.js";
+
+/** Nesting limit used when the call does not set `maxDepth`. */
+const DEFAULT_MAX_DEPTH = 64;
+
+interface ICompiledField {
+  /** Property name on the instance. */
+  readonly key: string;
+  /** Key read from the input, which differs from `key` for renamed fields. */
+  readonly inputKey: string;
+  /** Field-level issue message override, when configured. */
+  readonly message: string | undefined;
+  /** Cached processor applying this field's modifiers and declared type. */
+  readonly process: IFieldProcessor;
+}
+
+/** Compiles a decorated class into a cached validate-and-instantiate closure, without `eval`. */
+export class SchemaCompiler {
+  /**
+   * Retrieves or compiles a cached schema for a decorated class.
+   * @template T Instance type produced by parsing the target class.
+   * @param target Class whose registered fields and refinements define the schema.
+   * @returns Cached parser closure; first compilation freezes the class hierarchy metadata.
+   */
+  public static compile<T extends object>(target: IClass): ICompiledSchema<T> {
+    const cached = CompiledSchemaCache.get<T>(target);
+    if (cached !== undefined) return cached;
+    CompiledSchemaCache.freeze(target);
+    const union = UnionRegistry.get(target);
+    if (union !== undefined) {
+      const rootUnion = RootUnionSchema.create<T>(union);
+      CompiledSchemaCache.set(target, rootUnion);
+      return rootUnion;
+    }
+    const fields: readonly ICompiledField[] = FieldRegistry.readAll(target).map((definition) => ({
+      key: definition.name,
+      inputKey: definition.modifiers.inputKey ?? definition.name,
+      message: definition.message,
+      process: FieldProcessorFactory.create(definition),
+    }));
+    SchemaCompiler.assertDistinctInputKeys(target, fields);
+    const schema = SchemaCompiler.build<T>(target, fields, ClassRefinements.readAll(target));
+    CompiledSchemaCache.set(target, schema);
+    return schema;
+  }
+
+  /**
+   * Runs class refinements after all fields have validated.
+   * @param instance Constructor-free instance populated from validated fields.
+   * @param refinements Inherited and local refinement declarations in execution order.
+   * @returns Issues for false results or exceptions, preserving each configured path and code.
+   */
+  private static refine(
+    instance: object,
+    refinements: readonly IClassRefinement[],
+  ): ISchemaIssue[] {
+    const issues: ISchemaIssue[] = [];
+    for (const { test, options } of refinements) {
+      const check = test as (value: object) => boolean;
+      const base = {
+        path: options.path ?? [],
+        code: options.code ?? "custom",
+        message: options.message ?? "Refinement failed",
+      } as const;
+      try {
+        if (!check(instance)) issues.push({ ...base, params: {} });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        issues.push({ ...base, params: { reason } });
+      }
+    }
+    return issues;
+  }
+
+  /**
+   * Ensures every compiled field reads a distinct input key.
+   * @param target Class used to identify a conflicting schema in the error.
+   * @param fields Compiled fields and their effective input keys.
+   * @returns No value when all fields use distinct input keys.
+   * @throws {SchemaDefinitionError} If two fields read the same input key.
+   */
+  private static assertDistinctInputKeys(target: IClass, fields: readonly ICompiledField[]): void {
+    const owners = new Map<string, string>();
+    for (const field of fields) {
+      const first = owners.get(field.inputKey);
+      if (first !== undefined) {
+        throw new SchemaDefinitionError(
+          `${target.name}.${field.key} and ${target.name}.${first} both read input key ${field.inputKey}`,
+        );
+      }
+      owners.set(field.inputKey, field.key);
+    }
+  }
+
+  /**
+   * Creates the parser closure for a class after its fields and refinements are compiled.
+   * @template T Instance type returned when parsing succeeds.
+   * @param target Class prototype used for the constructor-free output instance.
+   * @param fields Compiled field processors in declaration order.
+   * @param refinements Class-level checks run after successful field processing.
+   * @returns Parser producing a populated instance or typed issues.
+   */
+  private static build<T extends object>(
+    target: IClass,
+    fields: readonly ICompiledField[],
+    refinements: readonly IClassRefinement[],
+  ): ICompiledSchema<T> {
+    return (input, context) => {
+      const maxDepth = context.options.maxDepth ?? DEFAULT_MAX_DEPTH;
+      if (context.depth >= maxDepth) {
+        return {
+          ok: false,
+          issues: [
+            {
+              path: [],
+              code: "max_depth_exceeded",
+              message: `Maximum nesting depth of ${maxDepth} exceeded`,
+              params: { maxDepth },
+            },
+          ],
+        };
+      }
+      if (typeof input !== "object" || input === null || Array.isArray(input)) {
+        const received = ReceivedType.describe(input);
+        return {
+          ok: false,
+          issues: [
+            {
+              path: [],
+              code: "invalid_type",
+              message: `Expected object, received ${received}`,
+              params: { expected: "object", received },
+            },
+          ],
+        };
+      }
+      const instance: T = Object.create(target.prototype);
+      const issues = SchemaCompiler.processFields(input, instance, fields, context);
+      if (issues.length === 0) issues.push(...SchemaCompiler.refine(instance, refinements));
+      return issues.length === 0 ? { ok: true, value: instance } : { ok: false, issues };
+    };
+  }
+
+  /**
+   * Processes declared input fields and assigns only accepted, defined values.
+   * @template T Instance type being populated.
+   * @param input Plain object already accepted by the root type check.
+   * @param instance Constructor-free object receiving accepted fields.
+   * @param fields Compiled field processors in declaration order.
+   * @param context Per-parse options and nesting depth.
+   * @returns Issues collected from rejected fields.
+   */
+  private static processFields<T extends object>(
+    input: object,
+    instance: T,
+    fields: readonly ICompiledField[],
+    context: Parameters<ICompiledSchema<T>>[1],
+  ): ISchemaIssue[] {
+    const issues: ISchemaIssue[] = [];
+    for (const field of fields) {
+      const raw = Object.hasOwn(input, field.inputKey)
+        ? Reflect.get(input, field.inputKey)
+        : undefined;
+      const outcome = field.process(raw, context);
+      if (!outcome.isValid) {
+        issues.push(...SchemaCompiler.fieldFailures(field, outcome.failures));
+      } else if (outcome.value !== undefined) {
+        Object.defineProperty(instance, field.key, {
+          value: outcome.value,
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    }
+    return issues;
+  }
+
+  /**
+   * Converts value failures to public issues prefixed with the field input key.
+   * @param field Field whose input key and message override apply.
+   * @param failures Failures returned by the field processor.
+   * @returns Public issue records with complete field paths.
+   */
+  private static fieldFailures(
+    field: ICompiledField,
+    failures: readonly IValueFailure[],
+  ): ISchemaIssue[] {
+    return failures.map((failure) => ({
+      path: [field.inputKey, ...(failure.path ?? [])],
+      code: failure.code,
+      message:
+        failure.hasOwnMessage === true ? failure.message : (field.message ?? failure.message),
+      params: failure.params,
+    }));
+  }
+}

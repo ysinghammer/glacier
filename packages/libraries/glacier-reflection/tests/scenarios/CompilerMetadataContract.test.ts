@@ -14,6 +14,7 @@ describe("checked compiler metadata public contract", () => {
   it.each(["invalid-decorator-target", "invalid-decorator-location", "foreign-handler"] as const)(
     "preserves a consumer-thrown %s as an exceptional inspection cause",
     (code) => {
+      /** Target whose metadata descriptor is inspected through a proxy. */
       class Consumer {}
       Reflect.metadata("design:type", Boolean)(Consumer);
       const cause = new MetadataBoundaryError(code, { cause: new Error("private diagnostic") });
@@ -44,7 +45,9 @@ describe("checked compiler metadata public contract", () => {
   it.each(["invalid-decorator-target", "invalid-decorator-location"] as const)(
     "retains %s identity from prototype and repeated owner inspection without invoking getters or bodies",
     (code) => {
+      /** Target with a declared member used to test prototype descriptor inspection. */
       class Consumer {
+        /** Mutable declared member addressed by compiler metadata callbacks. */
         public member!: unknown;
       }
       Reflect.metadata("design:type", Boolean)(Consumer.prototype, "member");
@@ -112,6 +115,7 @@ describe("checked compiler metadata public contract", () => {
   it.each(["invalid-decorator-target", "invalid-decorator-location"] as const)(
     "preserves %s thrown by parameter snapshot getters at the value boundary",
     (code) => {
+      /** Target retaining prior parameter metadata when snapshotting rejects. */
       class Consumer {}
       Reflect.metadata("design:paramtypes", [Boolean])(Consumer);
       const cause = new MetadataBoundaryError(code);
@@ -139,7 +143,9 @@ describe("checked compiler metadata public contract", () => {
   );
 
   it("keeps expected compiler target and invocation rejections cause-less, safe and atomic", () => {
+    /** Target with a numeric member used for callback key normalization. */
     class Consumer {
+      /** Mutable numeric member used by legacy compiler callback checks. */
       public 7!: unknown;
     }
     Reflect.metadata("design:type", Boolean)(Consumer);
@@ -189,6 +195,7 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("rejects sparse and invalid dense parameter arrays through the source public protocol atomically", () => {
+    /** Target retaining a valid compiler parameter array across rejected writes. */
     class Consumer {}
     Reflect.metadata("design:paramtypes", [Boolean])(Consumer);
     const sparse: unknown[] = [];
@@ -256,8 +263,11 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("records all supported runtime keys through the mapped public root and preserves definition isolation", () => {
+    /** Target with instance and static members used for compiler metadata locations. */
     class Consumer {
+      /** Mutable instance field represented by compiler-emitted design:type metadata. */
       public member!: unknown;
+      /** Mutable static field represented by compiler-emitted return metadata. */
       public static member: unknown;
     }
     const independent = new ValueMetadataDefinition<IRuntimeType>("design:type");
@@ -296,7 +306,9 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("captures a complete frozen compiler array at factory time while typed decorators retain array identity", () => {
+    /** Base owns the emitted parameter array copied at compiler callback creation. */
     class Base {}
+    /** Derived owns the direct array supplied through the typed decorator API. */
     class Derived extends Base {}
     const values: IRuntimeType[] = [String, undefined];
     const callback = Reflect.metadata("design:paramtypes", values);
@@ -319,6 +331,7 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("preserves causes and old declarations when untrusted inspection or complete snapshot preparation fails", () => {
+    /** Target retaining the prior parameter declaration after failed snapshots. */
     class Consumer {}
     DESIGN_PARAMETER_TYPES_METADATA.set(Consumer, [Boolean]);
     const cause = new Error("private diagnostic");
@@ -357,6 +370,7 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("rejects immediate unsupported values and invalid callback addresses without changing valid data", () => {
+    /** Target retaining valid compiler metadata through invalid callback cases. */
     class Consumer {}
     Reflect.metadata("design:type", String)(Consumer);
     expect(() => Reflect.metadata("secret:key", String)).toThrowError(
@@ -385,9 +399,12 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("replaces scalar and whole parameter declarations, including empty and unavailable values", () => {
+    /** Base declares the original instance member type. */
     class Base {
+      /** Mutable instance member replaced by the derived compiler declaration. */
       public member!: unknown;
     }
+    /** Derived replaces the inherited member and constructor metadata. */
     class Derived extends Base {}
     Reflect.metadata("design:type", String)(Base.prototype, "member");
     Reflect.metadata("design:type", Number)(Derived.prototype, "member");
@@ -414,6 +431,7 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("snapshots and freezes only compiler-ingested parameter arrays", () => {
+    /** Target whose emitted array snapshot remains isolated from its source input. */
     class Consumer {}
     const values: IRuntimeType[] = [String, undefined];
     Reflect.metadata("design:paramtypes", values)(Consumer);
@@ -433,7 +451,9 @@ describe("checked compiler metadata public contract", () => {
   });
 
   it("predefined constants retain ordinary value-definition identity, operations and direct array ownership", () => {
+    /** Target with one member for predefined metadata decorator checks. */
     class Consumer {
+      /** Mutable member used to verify direct predefined decorator writes. */
       public member!: string;
     }
     const values: IRuntimeType[] = [String];
@@ -492,7 +512,9 @@ describe("checked compiler metadata public contract", () => {
       : ["null", "object", "number", "string", "array"];
     for (const shape of shapes) {
       it(`rejects ${key} malformed ${shape} without replacing the valid declaration`, () => {
+        /** Target member retains valid metadata while malformed values are rejected. */
         class Consumer {
+          /** Mutable member receiving the compiler metadata callback. */
           public member!: unknown;
         }
         Reflect.metadata(key, isParameterTypes ? [String] : String)(Consumer.prototype, "member");
@@ -523,7 +545,9 @@ describe("checked compiler metadata public contract", () => {
     }
     for (const shape of ["instance", "plain", "arrow"]) {
       it(`rejects ${key} ${shape} targets atomically`, () => {
+        /** Target member provides prior metadata for invalid target checks. */
         class Consumer {
+          /** Mutable member receiving the initial valid compiler metadata declaration. */
           public member!: unknown;
         }
         const value = isParameterTypes ? [String] : String;
@@ -542,7 +566,9 @@ describe("checked compiler metadata public contract", () => {
     }
     for (const shape of ["parameter", "prototype", "object"]) {
       it(`rejects ${key} unsupported ${shape} locations atomically`, () => {
+        /** Target member provides prior metadata for invalid location checks. */
         class Consumer {
+          /** Mutable member receiving the initial valid compiler metadata declaration. */
           public member!: unknown;
         }
         const value = isParameterTypes ? [String] : String;
@@ -559,7 +585,9 @@ describe("checked compiler metadata public contract", () => {
       });
     }
     it(`accepts ${key} supported unavailable runtime representations`, () => {
+      /** Target member receives an accepted unavailable runtime representation. */
       class Consumer {
+        /** Mutable member addressed by the compiler metadata callback. */
         public member!: unknown;
       }
       const value = isParameterTypes ? [Object, Function, undefined, () => undefined] : undefined;
@@ -572,7 +600,9 @@ describe("checked compiler metadata public contract", () => {
     });
     for (const shape of ["string", "symbol"]) {
       it(`rejects unknown ${shape} keys without changing ${key} declarations`, () => {
+        /** Target member retains valid metadata when an unknown key is rejected. */
         class Consumer {
+          /** Mutable member addressed by the initial compiler metadata callback. */
           public member!: unknown;
         }
         const value = isParameterTypes ? [String] : String;

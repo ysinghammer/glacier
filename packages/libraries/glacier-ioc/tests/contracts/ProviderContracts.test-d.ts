@@ -7,9 +7,11 @@ import {
   type IProvider,
 } from "../../index.js";
 
+/** Provides the decorated root module type used in provider contract checks. */
 class TestRoot {}
 Module()(TestRoot);
 
+/** Supplies a class provider and inferred factory argument in the type contract. */
 class Repository {}
 const host = new InjectionToken<string>("host");
 const port = new InjectionToken<number>("port");
