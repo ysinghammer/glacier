@@ -1,7 +1,40 @@
 # @glacier/orm
 
 This package is an early PostgreSQL library. Importing it does not open a database connection.
-Migrations have not yet been implemented.
+
+## Migrations
+
+Set `DATABASE_URL` to a PostgreSQL connection URL, then run the declared executable:
+
+```sh
+glacier-orm migrate --dir ./migrations
+```
+
+`--database-url` overrides `DATABASE_URL`; one is required. URLs must use `postgres:` or
+`postgresql:` and include a hostname. Prefer the environment variable when credentials are present:
+command-line arguments can be visible in process listings. The directory must exist. SQL files use contiguous names
+starting with `0001`, such as `0001_create_users.sql` and `0002_add_index.sql`. Names have exactly
+four digits, an underscore, and a name beginning with an ASCII letter or digit followed by ASCII
+letters, digits, underscores, or hyphens. Other non-`.sql` entries are ignored. SQL files must be
+regular, non-symlink UTF-8 files. An empty directory is valid for an empty migration history.
+
+The CLI applies files in order, recording each filename and SHA-256 checksum of its original bytes
+in `glacier_migrations` on the connection's search path. Applied files must remain present, unchanged,
+and in the same order. A mismatch fails before any pending file executes; migrations are forward-only.
+One dedicated PostgreSQL session holds a database-wide advisory lock for the entire history check
+and execution. Other instances wait until the session closes, including after an execution failure.
+
+Each file normally runs in one transaction together with its history record. A file whose first
+line is exactly `-- glacier:no-transaction` opts out, for commands such as `CREATE INDEX CONCURRENTLY`.
+An opt-out file and its history write are not atomic: failures can leave SQL effects without a history
+record and may require manual recovery before retrying. PostgreSQL may group multiple statements sent
+in one query into an implicit transaction, so use a single statement for commands requiring no
+transaction. Migration SQL is trusted: do not issue transaction-control statements, release advisory
+locks, or alter `glacier_migrations` from a file, as those can defeat these guarantees.
+
+Exit status is `0` for success, `2` for invalid command-line arguments, and `1` for migration or
+connection failures. Diagnostics do not print connection URLs, file contents, or raw database errors.
+PostgreSQL server logs can still contain SQL. There is no programmatic migration API.
 
 ## Database access
 
@@ -273,4 +306,5 @@ database cause and constraint can contain sensitive details and should not be ex
 
 The package builds with `pnpm --filter @glacier/orm build` and runs its scenario and coverage
 checks with `pnpm --filter @glacier/orm test`. Type contracts are checked by
-`pnpm --filter @glacier/orm lint:types` after the package is built.
+`pnpm --filter @glacier/orm lint:types` after the package is built. Runtime coverage reports measure
+emitted JavaScript, combining package-root scenarios with CLI subprocesses; they are not source-mapped.

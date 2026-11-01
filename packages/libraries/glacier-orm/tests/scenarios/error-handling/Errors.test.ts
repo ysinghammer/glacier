@@ -13,7 +13,7 @@ import {
   SerializationFailure,
   TooManyRowsError,
   UniqueViolation,
-} from "../../../index.js";
+} from "@glacier/orm";
 import type { ISchemaIssue } from "@glacier/schema";
 
 describe("PostgreSQL error translation", () => {

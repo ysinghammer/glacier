@@ -16,7 +16,7 @@ import {
   Rename,
   Transform,
 } from "@glacier/schema";
-import { Sql, SqlFragment, TableMapping } from "../../../index.js";
+import { Sql, SqlFragment, TableMapping } from "@glacier/orm";
 
 /** Nested native object using an independent logical and wire field name. */
 class Profile {

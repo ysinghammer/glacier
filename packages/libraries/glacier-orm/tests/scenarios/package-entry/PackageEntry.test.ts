@@ -1,14 +1,13 @@
 import * as orm from "@glacier/orm";
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import * as source from "../../../index.js";
 
 describe("package root", () => {
-  it("exposes the same error API from the built and source roots", () => {
-    expect(Object.keys(orm).sort()).toEqual(Object.keys(source).sort());
+  it("exposes the error, SQL, and mapping API from the built package root", () => {
     expect(orm.PgErrors.map).toBeTypeOf("function");
     expect(orm.Sql.tag).toBeTypeOf("function");
     expect(orm.TableMapping.read).toBeTypeOf("function");
+    expect(Object.keys(orm).filter((name) => name.toLowerCase().includes("migration"))).toEqual([]);
   });
 
   it("imports the built root without connecting or keeping a process alive", () => {

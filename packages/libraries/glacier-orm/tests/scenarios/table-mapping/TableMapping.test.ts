@@ -9,7 +9,7 @@ import {
   Schema,
   SchemaDefinitionError,
 } from "@glacier/schema";
-import { TableMapping } from "../../../index.js";
+import { TableMapping } from "@glacier/orm";
 
 describe("table mapping", () => {
   it("reads mappings from genuine compiled legacy decorators through package roots", () => {

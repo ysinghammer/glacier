@@ -16,10 +16,11 @@ export default defineConfig({
     teardownTimeout: LIFECYCLE_TIMEOUT_MS,
     reporters: ["default", "json"],
     outputFile: "tests/artifacts/results.json",
+    server: { deps: { external: [/\/dist\//] } },
     coverage: {
       provider: "v8",
-      include: ["index.ts", "src/**/*.ts"],
-      exclude: ["src/**/*.d.ts"],
+      include: ["dist/**/*.js"],
+      autoAttachSubprocess: true,
       reportsDirectory: "tests/artifacts/coverage",
       reporter: ["text", "json", "json-summary", "html", "lcov"],
       reportOnFailure: true,

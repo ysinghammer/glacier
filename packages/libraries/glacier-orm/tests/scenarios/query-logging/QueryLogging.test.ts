@@ -1,8 +1,8 @@
 import { LoggerFactory } from "@glacier/logger";
 import type { ILogEntry, ILogLevel, Logger, ITransport } from "@glacier/logger";
 import { describe, expect, it } from "vitest";
-import { DbFactory, QueryLogHook, Sql } from "../../../index.js";
-import type { IQueryEvent } from "../../../index.js";
+import { DbFactory, QueryLogHook, Sql } from "@glacier/orm";
+import type { IQueryEvent } from "@glacier/orm";
 import { PostgresContainer } from "../../data/PostgresContainer.js";
 
 /** Captures the entries delivered through the logger's public transport interface. */

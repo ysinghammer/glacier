@@ -10,8 +10,8 @@ import {
   TableMapping,
   TooManyRowsError,
   UniqueViolation,
-} from "../../../index.js";
-import type { IQueryEvent } from "../../../index.js";
+} from "@glacier/orm";
+import type { IQueryEvent } from "@glacier/orm";
 import { PostgresContainer } from "../../data/PostgresContainer.js";
 
 /** A simple validated PostgreSQL row. */

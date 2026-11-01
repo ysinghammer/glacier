@@ -2,6 +2,9 @@
   "name": "@glacier/orm",
   "version": "1.0.0",
   "private": true,
+  "bin": {
+    "glacier-orm": "./dist/cli.js"
+  },
   "files": [
     "dist"
   ],
@@ -14,7 +17,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json && node tests/data/VerifyBuild.ts",
+    "build": "tsc --project tsconfig.json && node tests/data/PrepareCli.ts && node tests/data/VerifyBuild.ts",
     "lint:types": "tsc --project tsconfig.json --noEmit && tsc --project tsconfig.tests.json && tsc --project tsconfig.contracts.json",
     "test": "node tests/data/VerifyBuild.ts && tsc --project tsconfig.fixtures.json && vitest run --coverage"
   },

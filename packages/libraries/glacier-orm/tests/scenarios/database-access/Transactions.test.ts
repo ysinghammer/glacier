@@ -7,8 +7,8 @@ import {
   DbFactory,
   Sql,
   UniqueViolation,
-} from "../../../index.js";
-import type { IQueryable, IQueryEvent, ITransactionOptions } from "../../../index.js";
+} from "@glacier/orm";
+import type { IQueryable, IQueryEvent, ITransactionOptions } from "@glacier/orm";
 import { PostgresContainer } from "../../data/PostgresContainer.js";
 import type { PoolClient } from "pg";
 

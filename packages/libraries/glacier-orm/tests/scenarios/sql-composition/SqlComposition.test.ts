@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Sql, SqlFragment } from "../../../index.js";
+import { Sql, SqlFragment } from "@glacier/orm";
 
 describe("SQL composition", () => {
   it("numbers nested fragments in traversal order without inserting values into text", () => {

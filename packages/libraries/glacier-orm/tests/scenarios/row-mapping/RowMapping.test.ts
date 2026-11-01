@@ -12,7 +12,7 @@ import {
   Schema,
   SchemaDefinitionError,
 } from "@glacier/schema";
-import { RowMapper, RowValidationError, TableMapping } from "../../../index.js";
+import { RowMapper, RowValidationError, TableMapping } from "@glacier/orm";
 
 describe("row mapping", () => {
   it("maps arbitrary result classes with recursive schema coercion and wire aliases", () => {
