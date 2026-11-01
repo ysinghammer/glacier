@@ -4,7 +4,8 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node"],
     "rootDir": ".",
-    "noEmit": true
+    "noEmit": true,
+    "experimentalDecorators": true
   },
   "include": ["vitest.config.ts", "tests/**/*.ts"],
   "exclude": ["tests/artifacts", "tests/contracts", "dist", "node_modules"]

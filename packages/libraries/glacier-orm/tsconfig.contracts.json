@@ -4,7 +4,8 @@
     "lib": ["ES2023", "DOM"],
     "types": ["node"],
     "rootDir": ".",
-    "noEmit": true
+    "noEmit": true,
+    "experimentalDecorators": true
   },
   "include": ["tests/contracts/**/*.test-d.ts"],
   "exclude": ["tests/artifacts", "dist", "node_modules"]

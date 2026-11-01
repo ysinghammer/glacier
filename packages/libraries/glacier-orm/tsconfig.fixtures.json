@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "rootDir": "tests/data",
+    "outDir": "tests/artifacts/compiler",
+    "experimentalDecorators": true
+  },
+  "include": ["tests/data/**/*.ts"],
+  "exclude": ["tests/artifacts", "dist", "node_modules"]
+}

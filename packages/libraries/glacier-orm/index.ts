@@ -13,3 +13,6 @@ export { PgErrors } from "./src/infrastructure/errorHandling/adapters/outbound/P
 export { Sql } from "./src/domain/sqlComposition/Sql.js";
 export { SqlFragment } from "./src/domain/sqlComposition/SqlFragment.js";
 export type { ICompiledSql } from "./src/domain/sqlComposition/SqlFragment.js";
+export { TableMapping } from "./src/application/tableMapping/TableMapping.js";
+export type { ITableMapping } from "./src/domain/tableMapping/types/ITableMapping.js";
+export type { ITableColumn } from "./src/domain/tableMapping/types/ITableColumn.js";

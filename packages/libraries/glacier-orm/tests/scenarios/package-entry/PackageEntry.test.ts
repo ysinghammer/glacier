@@ -7,5 +7,6 @@ describe("package root", () => {
     expect(Object.keys(orm).sort()).toEqual(Object.keys(source).sort());
     expect(orm.PgErrors.map).toBeTypeOf("function");
     expect(orm.Sql.tag).toBeTypeOf("function");
+    expect(orm.TableMapping.read).toBeTypeOf("function");
   });
 });
