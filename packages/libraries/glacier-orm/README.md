@@ -68,6 +68,44 @@ resolvers. Failed preparation does not roll back either freeze. Calling
 `read()` reaches schema preparation. Root unions, invalid schemas, unknown annotated fields and column collisions
 are rejected; errors found before preparation do not freeze ORM declarations.
 
+`TableMapping.isTable(Class)` checks inherited or direct table declarations without preparing or
+freezing metadata. It rejects invalid class targets rather than treating them as undecorated.
+
+## Mapping result rows
+
+```ts
+import { RowMapper } from "@glacier/orm";
+import { IsBigInt, IsNumber } from "@glacier/schema";
+
+/** Result of a SQL projection or a direct pg pool query. */
+class Total {
+  /** PostgreSQL int8 can arrive as text. */
+  @IsBigInt()
+  public id!: bigint;
+
+  /** PostgreSQL numeric can arrive as text. */
+  @IsNumber()
+  public amount!: number;
+}
+
+const totals = RowMapper.map(Total, [{ id: "42", amount: "12.50" }]);
+// totals[0] is a Total with id 42n and amount 12.5.
+```
+
+Every row is passed to `Schema.parse` with coercion enabled, including nested JSON objects and
+arrays already decoded by `pg`. Schema coercion applies to all supported types, not only database
+numeric types; use bigint for exact large integers, since number conversion can lose precision.
+For arbitrary schema classes, SQL aliases must match schema wire names, including `Rename`.
+For table classes, only declared database columns are mapped to their schema wire names; column
+overrides take precedence, unrecognized columns are ignored, and missing columns are validated.
+Nested JSON keys must use the nested schema's wire names, not its table column names. Mapping does
+not mutate rows. Table mapping is prepared even when the result is empty.
+
+The first invalid row throws `RowValidationError` with its zero-based index, schema issues, and
+schema error cause. The summary message omits row values, but issues and causes can contain
+sensitive details and must not be exposed or logged without review. Schema definition and callback
+exceptions propagate unchanged. No database connection is required to use the mapper.
+
 ## Errors
 
 `PgErrors.map` translates the six supported SQLSTATEs from `pg.DatabaseError` into

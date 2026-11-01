@@ -18,3 +18,4 @@ export type { ITableMapping } from "./src/domain/tableMapping/types/ITableMappin
 export type { ITableColumn } from "./src/domain/tableMapping/types/ITableColumn.js";
 export type { IInsertShape } from "./src/domain/tableMapping/types/IInsertShape.js";
 export type { IUpdateShape } from "./src/domain/tableMapping/types/IUpdateShape.js";
+export { RowMapper } from "./src/application/rowMapping/Row.mapper.js";

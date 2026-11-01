@@ -6,6 +6,16 @@ import type { ITableMapping } from "../../domain/tableMapping/types/ITableMappin
 /** Declares PostgreSQL table metadata and reads immutable effective schema mappings. */
 export class TableMapping {
   /**
+   * Checks whether a class inherits or declares a table without preparing its schema.
+   * @template T Instance type described by the class.
+   * @param target Schema class to inspect, including abstract classes.
+   * @returns True when the class has an effective table declaration; does not freeze metadata.
+   */
+  public static isTable<T extends object>(target: IConstructableClass<T>): boolean {
+    return TableDeclarations.readTable(target) !== undefined;
+  }
+
+  /**
    * Creates a legacy class decorator declaring an explicit table identifier.
    * @param name Nonempty table identifier without NUL; it is not SQL-quoted here.
    * @returns Class decorator recording an own declaration; subclasses inherit unless overridden.
